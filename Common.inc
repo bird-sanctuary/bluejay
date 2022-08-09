@@ -171,8 +171,6 @@ Set_MCU_Clk_24MHz MACRO
 	mov	SFRPAGE, #10h
 	mov	PFE0CN, #00h				;; Set flash timing for 24MHz and disable prefetch engine
 	mov	SFRPAGE, #00h
-
-	clr	Flag_Clock_At_48MHz
 ENDM
 
 Set_MCU_Clk_48MHz MACRO
@@ -181,8 +179,6 @@ Set_MCU_Clk_48MHz MACRO
 	mov	SFRPAGE, #00h
 
 	mov	CLKSEL, #03h				;; Set clock to 48MHz (Oscillator 1)
-
-	setb	Flag_Clock_At_48MHz
 ENDM
 
 Wdt_Configure MACRO

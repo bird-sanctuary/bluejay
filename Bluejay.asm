@@ -113,8 +113,6 @@ PWM_CENTERED					EQU		DEADTIME > 0			; Use center aligned pwm on ESCs with dead 
 ; for at least 2 battery cycles time to be sure that the ESC can hold it
 USE_WATCHDOG					EQU		0	; Do not use watchdog by default (more testing needed)
 
-USE_EXTENDED_TELEMETRY_DEBUG	EQU		0	; Do not use extended telemetry debugging values
-
 IF MCU_48MHZ < 2 AND PWM_FREQ	< 3
 	; Number of bits in pwm high byte
 	PWM_BITS_H	EQU	(2 + MCU_48MHZ - PWM_CENTERED - PWM_FREQ)
@@ -179,8 +177,8 @@ Flags2:					DS	1			; State flags. NOT reset upon motor_start
 Flag_Ext_Tele				BIT	Flags2.0		; Set if extended telemetry is enabled
 Flag_Pgm_Dir_Rev			BIT	Flags2.1		; Set if the programmed direction is reversed
 Flag_Pgm_Bidir				BIT	Flags2.2		; Set if the programmed control mode is bidirectional operation
-Flag_Skip_Timer2_Int		BIT	Flags2.3		; Set for 48MHz MCUs when Timer2 interrupt shall be ignored
-Flag_Clock_At_48MHz			BIT	Flags2.4		; Set if 48MHz MCUs run at 48MHz
+;Flag_Skip_Timer2_Int		BIT	Flags2.3		; Set for 48MHz MCUs when Timer2 interrupt shall be ignored
+;Flag_Clock_At_48MHz			BIT	Flags2.4		; Set if 48MHz MCUs run at 48MHz
 Flag_Rcp_Stop				BIT	Flags2.5		; Set if the RC pulse value is zero or if timeout occurs
 Flag_Rcp_Dir_Rev			BIT	Flags2.6		; RC pulse direction in bidirectional mode
 Flag_Rcp_DShot_Inverted		BIT	Flags2.7		; DShot RC pulse input is inverted (and supports telemetry)
@@ -229,15 +227,13 @@ Wt_Zc_Tout_Start_H:			DS	1	; Timer3 start point for zero cross scan timeout (hi 
 Wt_Comm_Start_L:			DS	1	; Timer3 start point from zero cross to commutation (lo byte)
 Wt_Comm_Start_H:			DS	1	; Timer3 start point from zero cross to commutation (hi byte)
 
-Pwm_Limit:				DS	1	; Maximum allowed pwm (8-bit)
+Pwm_Limit:					DS	1	; Maximum allowed pwm (8-bit)
 Pwm_Limit_By_Rpm:			DS	1	; Maximum allowed pwm for low or high rpm (8-bit)
 Pwm_Limit_Beg:				DS	1	; Initial pwm limit (8-bit)
 
 Pwm_Braking_L:				DS	1	; Max Braking pwm (lo byte)
 Pwm_Braking_H:				DS	1	; Max Braking pwm (hi byte)
 
-Adc_Conversion_Cnt:			DS	1	; Adc conversion counter
-Temp_Level:					DS	1	; Current average temperature (lo byte ADC reading, assuming hi byte is 1)
 Temp_Prot_Limit:			DS	1	; Temperature protection limit
 Temp_Pwm_Level_Setpoint:	DS	1	; PWM level setpoint
 
@@ -1133,36 +1129,190 @@ t1_int_exit_no_int:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 t2_int:
-	push	ACC
-	clr	TMR2CN0_TF2H				; Clear interrupt flag
-	inc	Timer2_X					; Increment extended byte
+	push ACC
+	clr	TMR2CN0_TF2H						; Clear interrupt flag
+	inc	Timer2_X							; Increment extended byte
 
-IF MCU_48MHZ == 1
-	jnb	Flag_Clock_At_48MHz, t2_int_start	; Always run if clock is 24MHz
+	; Check RC pulse timeout counter
+	mov	A, Rcp_Timeout_Cntd					; RC pulse timeout count zero?
+	jnz	t2_int_rcp_timeout_decrement
+	setb Flag_Rcp_Stop						; If zero -> Set rcp stop in case of timeout
+	sjmp t2_int_flag_rcp_stop_check
 
-	jbc	Flag_Skip_Timer2_Int, t2_int_exit	; Flag set? - Skip interrupt and clear flag
+t2_int_rcp_timeout_decrement:
+	dec	Rcp_Timeout_Cntd					; No - decrement
 
-t2_int_start:
-	setb	Flag_Skip_Timer2_Int		; Skip next interrupt
-ENDIF
-	; Update RC pulse timeout counter
-	mov	A, Rcp_Timeout_Cntd			; RC pulse timeout count zero?
-	jz	t2_int_rcp_stop
-	dec	Rcp_Timeout_Cntd			; No - decrement
+t2_int_flag_rcp_stop_check:
+	; If rc pulse is not zero
+	jnb	Flag_Rcp_Stop, t2_int_switch_case_128ms_scheduler		; If rc pulse is not zero don't increment rcp stop counter
 
-	jnb	Flag_Rcp_Stop, t2_int_exit	; Exit if pulse is above stop value
+	; Increment Rcp_Stop_Cnt clipping it to 255
+	mov A, Rcp_Stop_Cnt
+	inc A
+	jz ($+4)
+	inc Rcp_Stop_Cnt
 
-t2_int_rcp_stop:
-	setb	Flag_Rcp_Stop				; Set rcp stop in case of timeout
 
-	; Update RC pulse stop counter
-	inc	Rcp_Stop_Cnt				; Increment stop counter
-	mov	A, Rcp_Stop_Cnt
-	jnz	($+4)					; Branch if counter has not wrapped
-	dec	Rcp_Stop_Cnt				; Set stop counter back to max
+
+;******************  128 ms scheduler *******************
+;***********  For PWM temperature limiting **************
+t2_int_switch_case_128ms_scheduler:
+	; Apply 1s mask to Timer2_X (5 lowest bits)
+	mov A, Timer2_x
+	anl A, #03Fh
+
+t2_int_switch_case_128ms_scheduler_32ms:
+	cjne A, #1, t2_int_switch_case_128ms_scheduler_64ms
+
+	; Check temp protection enabled, and exit when protection is disabled
+	mov	A, Temp_Prot_Limit
+	jz	t2_int_switch_case_1024ms_scheduler
+
+	; ******* UPDATE TEMPERATURE SETPOINT *******
+	mov	Temp_Pwm_Level_Setpoint, #255				; Remove setpoint
+
+	; Check TEMP_LIMIT in Base.inc and make calculations to understand temperature readings
+	; Is temperature reading below 256? (ADC 10bit value corresponding to about 25ºC)
+	mov	A, ADC0H									; Load temp hi
+	jz t2_int_switch_case_1024ms_scheduler			; Temperature below 25ºC do not update setpoint
+
+	mov	A, ADC0L									; Load temp lo
+
+	clr	C
+	subb	A, Temp_Prot_Limit						; Is temperature below first limit?
+	jc	t2_int_switch_case_1024ms_scheduler			; Yes - Jump to next scheduler
+
+	mov	Temp_Pwm_Level_Setpoint, #200				; No - update pwm limit (about 80%)
+
+	subb	A, #(TEMP_LIMIT_STEP / 2)				; Is temperature below second limit
+	jc	t2_int_switch_case_1024ms_scheduler			; Yes - Jump to next scheduler
+
+	mov	Temp_Pwm_Level_Setpoint, #150				; No - update pwm limit (about 60%)
+
+	subb	A, #(TEMP_LIMIT_STEP / 2)				; Is temperature below third limit
+	jc	t2_int_switch_case_1024ms_scheduler			; Yes - Jump to next scheduler
+
+	mov	Temp_Pwm_Level_Setpoint, #100				; No - update pwm limit (about 40% allowing landing)
+
+	subb	A, #(TEMP_LIMIT_STEP / 2)				; Is temperature below final limit
+	jc	t2_int_switch_case_1024ms_scheduler			; Yes - Jump to next scheduler
+
+	mov	Temp_Pwm_Level_Setpoint, #50				; No - update pwm limit (about 20% forced landing)
+	; Zero pwm cannot be set because of set_pwm_limit algo restrictions
+	; Otherwise hard stuttering is produced
+
+	; Jump to next scheduler
+	sjmp t2_int_switch_case_1024ms_scheduler
+
+t2_int_switch_case_128ms_scheduler_64ms:
+	cjne A, #2, t2_int_switch_case_128ms_scheduler_96ms
+
+	; Check temp protection enabled, and exit when protection is disabled
+	mov	A, Temp_Prot_Limit
+	jz	t2_int_switch_case_1024ms_scheduler
+
+	; Update PWM limit
+
+	; pwm limit is updated one unit at a time to avoid abrupt pwm changes
+	; resulting in current spikes
+	; Compare pwm limit to setpoint
+	clr C
+	mov	A, Pwm_Limit
+	subb A, Temp_Pwm_Level_Setpoint
+	jz t2_int_switch_case_1024ms_scheduler	; pwm limit == setpoint -> next
+	jc t2_int_schtemp_update_pwm_limit_inc	; pwm limit < setpoint -> increase pwm limit
+
+t2_int_sch128_temp_update_pwm_limit_dec:
+	; Decrease pwm limit
+	mov A, Pwm_Limit
+	jz t2_int_switch_case_1024ms_scheduler	; pwm limit is 0 -> Exit
+	dec Pwm_Limit
+
+	; Jump to next scheduler
+	sjmp t2_int_switch_case_1024ms_scheduler
+
+t2_int_schtemp_update_pwm_limit_inc:
+	; Increase pwm limit
+	mov A, Pwm_Limit
+	inc A
+	jz ($+4)
+	inc Pwm_Limit
+
+	; Jump to next scheduler
+	sjmp t2_int_switch_case_1024ms_scheduler
+
+t2_int_switch_case_128ms_scheduler_96ms:
+	cjne A, #3, t2_int_switch_case_1024ms_scheduler
+
+	; Start a new ADC conversion so after 64ms it will be ready for stage 2 og 128ms scheduler
+	Stop_Adc
+	Start_Adc
+
+	; Continue on next scheduler
+
+
+;****************** 1024 ms scheduler *******************
+;************ For Extended Dshot Telemetry **************
+t2_int_switch_case_1024ms_scheduler:
+	; Apply 1s mask to Timer2_X (5 lowest bits)
+	mov A, Timer2_X
+	anl A, #01Fh
+
+t2_int_switch_case_1024ms_scheduler_128ms:
+	cjne A, #4, t2_int_switch_case_1024ms_scheduler_256ms
+
+	; Return if extended telemetry is disabled
+	jnb Flag_Ext_Tele, t2_int_exit
+
+	; Return if a telemetry response is ongoing
+	mov A, Ext_Telemetry_H
+	jnz t2_int_exit
+
+	; Prepare extended telemetry temperature value for next telemetry transmission
+	; Check value above or below 20ºC
+	mov A, ADC0H
+	jnz t2_int_sch_1024_do_extended_telemetry_temp_above_20
+
+t2_int_sch_1024_do_extended_telemetry_temp_below_20:
+	; Value below 20ºC -> to code between 0-20
+	mov A, ADC0L
+	clr C
+	subb A, #(255 - 20)
+	jnc t2_int_sch_1024_do_extended_telemetry_temp_load
+
+	; Value below 0ºC -> clamp to 0
+	clr A
+	sjmp t2_int_sch_1024_do_extended_telemetry_temp_load
+
+t2_int_sch_1024_do_extended_telemetry_temp_above_20:
+	; Value above 20ºC -> to code between 20-255
+	mov A, ADC0L
+	add A, #20
+
+t2_int_sch_1024_do_extended_telemetry_temp_load:
+	mov Ext_Telemetry_L, A				; Set telemetry low value with temperature data
+	mov Ext_Telemetry_H, #02h			; Set telemetry high value on first repeated dshot coding partition
+
+	; Exit switch case
+	sjmp t2_int_exit
+
+t2_int_switch_case_1024ms_scheduler_256ms:
+	cjne A, #8, t2_int_switch_case_1024ms_scheduler_384ms
+	; Stub for debug 0
+	sjmp t2_int_exit
+
+t2_int_switch_case_1024ms_scheduler_384ms:
+	cjne A, #12, t2_int_switch_case_1024ms_scheduler_512ms
+	; Stub for debug 1
+	sjmp t2_int_exit
+
+t2_int_switch_case_1024ms_scheduler_512ms:
+	cjne A, #16, t2_int_exit
+	; Stub for debug 2
+	sjmp t2_int_exit
 
 t2_int_exit:
-	pop	ACC						; Restore preserved registers
+	pop	ACC									; Restore preserved registers
 	reti
 
 
@@ -1669,205 +1819,6 @@ set_pwm_limit_high_rpm_store:
 	mov	Pwm_Limit_By_Rpm, A
 
 	ret
-
-
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;
-; Check motor temperature and limit power
-;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-check_temp_and_limit_power:
-	; Increment conversion counter and check temp rate is reached
-	; TODO: DO NOT USE THIS COUNTER IN EXTENDED DSHOT TELEMETRY
-	inc	Adc_Conversion_Cnt
-
-	; Check temperature update rate mask (0-7)
-	mov  A, Adc_Conversion_Cnt
-	anl A, #TEMP_UPDATE_RATE_MASK						; Count between 0-7
-	jnz temp_check_exit									; Leave if not 0
-
-	; Check ADC conversion is done
-	jnb	ADC0CN0_ADINT, temp_check_exit					; Leave if conversion is not ready
-
-	; Read ADC 10 bit result
-	mov	Temp3, ADC0L
-	mov	Temp4, ADC0H
-
-	; Start a new ADC conversion after reading sample,
-	; so we don't have to wait next time
-	Stop_Adc
-	Start_Adc
-
-	; Check temp protection enabled, and exit when protection is disabled
-	; This way temperature is avaliable for extended telemetry even if no
-	; Temperature protection is active
-	mov	A, Temp_Prot_Limit
-	jz	temp_check_exit
-
-	; Check TEMP_LIMIT in Base.inc and make calculations to understand temperature readings
-	; Is temperature reading below 256? (ADC 10bit value corresponding to about 25ºC)
-	mov	A, Temp4
-	jz temp_level_dec				; Temperature below 25ºC -> Decrease
-
-	; Temp level > Current Temp?
-	clr	C
-	mov	 A, Temp3
-	subb A, Temp_Level
-	jz temp_update_pwm_limit		; Equal -> Only update pwm limit
-	jnc temp_level_inc				; No -> Increase temperature level
-
-	; Yes -> Decrease temperature level
-temp_level_dec:
-	mov	A, Temp_Level
-	jz	temp_update_pwm_limit		; Already zero (about 25ºC) - only update pwm limit
-
-	; Decrease
-	dec Temp_Level
-	sjmp temp_level_update_setpoint	; Level Updated, so setpoint should be updated
-
-temp_level_inc:
-	; Increase
-	inc Temp_Level
-	mov	A, Temp_Level
-	jnz	temp_level_update_setpoint	; Level Updated, so setpoint should be updated
-
-	mov Temp_Level, #255			; Already maximum - only update pwm limit
-	sjmp temp_update_pwm_limit
-
-temp_level_update_setpoint:
-	mov	A, Temp_Level
-
-	mov	Temp_Pwm_Level_Setpoint, #255	; Remove setpoint
-
-	clr	C
-	subb	A, Temp_Prot_Limit			; Is temperature below first limit?
-	jc	temp_update_pwm_limit			; Yes - exit
-
-	mov	Temp_Pwm_Level_Setpoint, #200	; No - update pwm limit (about 80%)
-
-	clr	C
-	subb	A, #(TEMP_LIMIT_STEP / 2)	; Is temperature below second limit
-	jc	temp_update_pwm_limit			; Yes - exit
-
-	mov	Temp_Pwm_Level_Setpoint, #150	; No - update pwm limit (about 60%)
-
-	clr	C
-	subb	A, #(TEMP_LIMIT_STEP / 2)	; Is temperature below third limit
-	jc	temp_update_pwm_limit			; Yes - exit
-
-	mov	Temp_Pwm_Level_Setpoint, #100	; No - update pwm limit (about 40% allowing landing)
-
-	clr	C
-	subb	A, #(TEMP_LIMIT_STEP / 2)	; Is temperature below final limit
-	jc	temp_update_pwm_limit			; Yes - exit
-
-	mov	Temp_Pwm_Level_Setpoint, #50	; No - update pwm limit (about 20% forced landing)
-	; Zero pwm cannot be set because of set_pwm_limit algo restrictions
-	; Otherwise hard stuttering is produced
-
-temp_update_pwm_limit:
-	; Check pwm limit update rate mask (0-63, pwm limit update rate is slower than temperature update rate)
-	mov A, Adc_Conversion_Cnt
-	anl A, #TEMP_LIMIT_RATE_MASK					; Count between 0-63
-	jnz temp_check_exit								; If not zero -> exit
-
-	; pwm limit is updated one unit at a time to avoid abrupt pwm changes
-	; resulting in current spikes
-	; Compare pwm limit to setpoint
-	clr C
-	mov	A, Pwm_Limit
-	subb A, Temp_Pwm_Level_Setpoint
-	jz temp_check_exit					; pwm limit == setpoint -> exit
-	jc temp_update_pwm_limit_inc		; pwm limit < setpoint -> increase pwm limit
-
-	; Decrease pwm limit
-	mov A, Pwm_Limit
-	jz temp_check_exit					; pwm limit is 0 -> Exit
-	dec A
-	mov Pwm_Limit, A
-	sjmp temp_check_exit
-
-temp_update_pwm_limit_inc:
-	; Increase pwm limit
-	mov A, Pwm_Limit
-	inc A
-	mov Pwm_Limit, A
-	jnz temp_check_exit					; pwm limit not 0 -> Exit
-	mov Pwm_Limit, #255					; else set pwm limit to max & exit
-
-temp_check_exit:
-	ret
-
-
-
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;
-; Extended telemetry
-;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-
-
-do_extended_telemetry:
-	; Return if extended telemetry is disabled
-	jnb Flag_Ext_Tele, do_extended_telemetry_end
-
-	; Return if a telemetry response is ongoing
-	mov A, Ext_Telemetry_H
-	jnz do_extended_telemetry_end
-
-	; Use the same counter than adc conversion counter to load extended telemetry
-	; This way we have Temp3 & Temp4 with temperature value
-	mov A, Adc_Conversion_Cnt
-	anl A, #0FFh					; Count between 0-255
-
-IF USE_EXTENDED_TELEMETRY_DEBUG == 1
-	cjne A, #0, do_extended_telemetry_debug_0
-ELSE
-	jnz do_extended_telemetry_end
-ENDIF
-
-	; Prepare extended telemetry temperature value for next telemetry transmission
-	; Check value above or below 20ºC
-	mov A, Temp4
-	jnz do_extended_telemetry_temp_above_20
-
-	; Value below 20ºC -> to code between 0-20
-	mov A, Temp3
-	clr C
-	subb A, #(255 - 20)
-	jnc do_extended_telemetry_temp_loaded
-
-	; Value below 0ºC -> clamp to 0
-	clr A
-	sjmp do_extended_telemetry_temp_loaded
-
-do_extended_telemetry_temp_above_20:
-	; Value above 20ºC -> to code between 20-255
-	mov A, Temp3
-	add A, #20
-
-do_extended_telemetry_temp_loaded:
-	mov Ext_Telemetry_L, A				; Set telemetry low value with temperature data
-	mov Ext_Telemetry_H, #02h			; Set telemetry high value on first repeated dshot coding partition
-	ret
-
-do_extended_telemetry_debug_0:
-	cjne A, #21, do_extended_telemetry_debug_1
-	mov Ext_Telemetry_L, #11			; Set telemetry low value with temperature data
-	mov Ext_Telemetry_H, #0Ah			; Set telemetry high value on first repeated dshot coding partition
-	ret
-
-do_extended_telemetry_debug_1:
-	cjne A, #42, do_extended_telemetry_end
-	mov Ext_Telemetry_L, #22			; Set telemetry low value with temperature data
-	mov Ext_Telemetry_H, #0Ch			; Set telemetry high value on first repeated dshot coding partition
-	ret
-
-do_extended_telemetry_end:
-	ret
-
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -4121,22 +4072,8 @@ motor_start:
 
 	call	wait1ms
 
-	; Read initial average temperature
-	Start_Adc						; Start adc conversion
-
-	jnb	ADC0CN0_ADINT, $			; Wait for adc conversion to complete
-
-	mov	Temp_Level, ADC0L			; Read initial temperature
-	mov	A, ADC0H
-	jnz	($+5)						; Is reading below 256?
-	mov	Temp_Level, #0				; Yes - set average temperature value to zero
-
 	mov Ext_Telemetry_H, #0				; Clear extended telemetry data
 	mov	Temp_Pwm_Level_Setpoint, #255	; Initialize temperature pwm level setpoint
-
-	mov	Adc_Conversion_Cnt, #(TEMP_UPDATE_RATE_MASK-1)		; Make sure a temp reading is ckecked
-	call	check_temp_and_limit_power
-	mov	Adc_Conversion_Cnt, #(TEMP_UPDATE_RATE_MASK-1)		; Make sure a temp reading is ckecked
 
 	; Set up start operating conditions
 	clr	IE_EA						; Disable interrupts
@@ -4272,8 +4209,6 @@ run6:
 ;		evaluate_comparator_integrity
 	call	wait_for_comm
 	call	comm6_comm1
-	call	check_temp_and_limit_power
-	call 	do_extended_telemetry
 	call	calc_next_comm_period
 ;		wait_advance_timing
 ;		calc_new_wait_times
