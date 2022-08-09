@@ -1157,9 +1157,9 @@ t2_int_flag_rcp_stop_check:
 ;******************  128 ms scheduler *******************
 ;***********  For PWM temperature limiting **************
 t2_int_switch_case_128ms_scheduler:
-	; Apply 1s mask to Timer2_X (5 lowest bits)
+	; Apply 128ms mask to Timer2_X (2 lowest bits)
 	mov A, Timer2_x
-	anl A, #03Fh
+	anl A, #03h
 
 t2_int_switch_case_128ms_scheduler_32ms:
 	cjne A, #1, t2_int_switch_case_128ms_scheduler_64ms
@@ -1251,6 +1251,7 @@ t2_int_switch_case_128ms_scheduler_96ms:
 	; Continue on next scheduler
 
 
+
 ;****************** 1024 ms scheduler *******************
 ;************ For Extended Dshot Telemetry **************
 t2_int_switch_case_1024ms_scheduler:
@@ -1311,6 +1312,8 @@ t2_int_switch_case_1024ms_scheduler_512ms:
 	; Stub for debug 2
 	sjmp t2_int_exit
 
+
+; **************   Return from timer2 **********
 t2_int_exit:
 	pop	ACC									; Restore preserved registers
 	reti
