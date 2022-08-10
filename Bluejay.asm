@@ -1265,10 +1265,6 @@ t2_int_switch_case_1024ms_scheduler:
 t2_int_switch_case_1024ms_scheduler_128ms:
 	cjne A, #4, t2_int_switch_case_1024ms_scheduler_256ms
 
-	; Return if a telemetry response is ongoing
-	mov A, Ext_Telemetry_H
-	jnz t2_int_exit
-
 	; Prepare extended telemetry temperature value for next telemetry transmission
 	; Check value above or below 20ºC
 	mov A, ADC0H
