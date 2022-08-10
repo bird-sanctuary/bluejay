@@ -1255,15 +1255,15 @@ t2_int_switch_case_128ms_scheduler_96ms:
 ;****************** 1024 ms scheduler *******************
 ;************ For Extended Dshot Telemetry **************
 t2_int_switch_case_1024ms_scheduler:
+	; Return if extended telemetry is disabled
+	jnb Flag_Ext_Tele, t2_int_exit
+
 	; Apply 1s mask to Timer2_X (5 lowest bits)
 	mov A, Timer2_X
 	anl A, #01Fh
 
 t2_int_switch_case_1024ms_scheduler_128ms:
 	cjne A, #4, t2_int_switch_case_1024ms_scheduler_256ms
-
-	; Return if extended telemetry is disabled
-	jnb Flag_Ext_Tele, t2_int_exit
 
 	; Return if a telemetry response is ongoing
 	mov A, Ext_Telemetry_H
@@ -1299,17 +1299,29 @@ t2_int_sch_1024_do_extended_telemetry_temp_load:
 
 t2_int_switch_case_1024ms_scheduler_256ms:
 	cjne A, #8, t2_int_switch_case_1024ms_scheduler_384ms
+
 	; Stub for debug 0
+	mov Ext_Telemetry_L, #088h			; Set telemetry low value with temperature data
+	mov Ext_Telemetry_H, #08h			; Set telemetry high value on first repeated dshot coding partition
+
 	sjmp t2_int_exit
 
 t2_int_switch_case_1024ms_scheduler_384ms:
 	cjne A, #12, t2_int_switch_case_1024ms_scheduler_512ms
+
 	; Stub for debug 1
+	mov Ext_Telemetry_L, #0AAh			; Set telemetry low value with temperature data
+	mov Ext_Telemetry_H, #0Ah			; Set telemetry high value on first repeated dshot coding partition
+
 	sjmp t2_int_exit
 
 t2_int_switch_case_1024ms_scheduler_512ms:
 	cjne A, #16, t2_int_exit
+
 	; Stub for debug 2
+	mov Ext_Telemetry_L, #0CCh			; Set telemetry low value with temperature data
+	mov Ext_Telemetry_H, #0Ch			; Set telemetry high value on first repeated dshot coding partition
+
 	sjmp t2_int_exit
 
 
