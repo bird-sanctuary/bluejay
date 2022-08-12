@@ -4072,6 +4072,7 @@ beep_delay_set:
 wait_for_start_no_beep:
 	jb	Flag_Telemetry_Pending, wait_for_start_check_rcp
 	call	dshot_tlm_create_packet		; Create telemetry packet (0 rpm)
+	call 	scheduler_run
 
 wait_for_start_check_rcp:
 	jnb	Flag_Rcp_Stop, wait_for_start_nonzero	; Higher than stop, Yes - proceed
