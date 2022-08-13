@@ -1703,28 +1703,28 @@ scheduler_128ms_switch_case_32ms:
 	; Check TEMP_LIMIT in Base.inc and make calculations to understand temperature readings
 	; Is temperature reading below 256? (ADC 10bit value corresponding to about 25ºC)
 	mov	A, ADC0H									; Load temp hi
-	jz scheduler_1024ms_switch_case			; Temperature below 25ºC do not update setpoint
+	jz scheduler_1024ms_switch_case					; Temperature below 25ºC do not update setpoint
 
 	mov	A, ADC0L									; Load temp lo
 
 	clr	C
 	subb	A, Temp_Prot_Limit						; Is temperature below first limit?
-	jc	scheduler_1024ms_switch_case			; Yes - Jump to next scheduler
+	jc	scheduler_1024ms_switch_case				; Yes - Jump to next scheduler
 
 	mov	Temp_Pwm_Level_Setpoint, #200				; No - update pwm limit (about 80%)
 
 	subb	A, #(TEMP_LIMIT_STEP / 2)				; Is temperature below second limit
-	jc	scheduler_1024ms_switch_case			; Yes - Jump to next scheduler
+	jc	scheduler_1024ms_switch_case				; Yes - Jump to next scheduler
 
 	mov	Temp_Pwm_Level_Setpoint, #150				; No - update pwm limit (about 60%)
 
 	subb	A, #(TEMP_LIMIT_STEP / 2)				; Is temperature below third limit
-	jc	scheduler_1024ms_switch_case			; Yes - Jump to next scheduler
+	jc	scheduler_1024ms_switch_case				; Yes - Jump to next scheduler
 
 	mov	Temp_Pwm_Level_Setpoint, #100				; No - update pwm limit (about 40% allowing landing)
 
 	subb	A, #(TEMP_LIMIT_STEP / 2)				; Is temperature below final limit
-	jc	scheduler_1024ms_switch_case			; Yes - Jump to next scheduler
+	jc	scheduler_1024ms_switch_case				; Yes - Jump to next scheduler
 
 	mov	Temp_Pwm_Level_Setpoint, #50				; No - update pwm limit (about 20% forced landing)
 	; Zero pwm cannot be set because of set_pwm_limit algo restrictions
@@ -1748,19 +1748,19 @@ scheduler_128ms_switch_case_64ms:
 	clr C
 	mov	A, Pwm_Limit
 	subb A, Temp_Pwm_Level_Setpoint
-	jz scheduler_1024ms_switch_case	; pwm limit == setpoint -> next
-	jc t2_int_schtemp_update_pwm_limit_inc	; pwm limit < setpoint -> increase pwm limit
+	jz scheduler_1024ms_switch_case					; pwm limit == setpoint -> next
+	jc scheduler_128ms_temp_update_pwm_limit_inc	; pwm limit < setpoint -> increase pwm limit
 
-t2_int_sch128_temp_update_pwm_limit_dec:
+scheduler_128ms_temp_update_pwm_limit_dec:
 	; Decrease pwm limit
 	mov A, Pwm_Limit
-	jz scheduler_1024ms_switch_case	; pwm limit is 0 -> Exit
+	jz scheduler_1024ms_switch_case					; pwm limit is 0 -> Exit
 	dec Pwm_Limit
 
 	; Jump to next scheduler
 	sjmp scheduler_1024ms_switch_case
 
-t2_int_schtemp_update_pwm_limit_inc:
+scheduler_128ms_temp_update_pwm_limit_inc:
 	; Increase pwm limit
 	mov A, Pwm_Limit
 	inc A
