@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleasd
+
+### Chores
+* Updated links to point to new repository ([#4](https://github.com/bird-sanctuary/bluejay/pull/4))
+
 ## [0.16](https://github.com/mathiasvr/bluejay/compare/v0.15...v0.16) (2022-01-17)
 
 ### Bug Fixes
