@@ -2,7 +2,7 @@
 
 # Bluejay
 
-[![GitHub release (latest by date)](https://img.shields.io/github/downloads/mathiasvr/bluejay/latest/total?style=for-the-badge)](https://github.com/mathiasvr/bluejay/releases/latest)
+[![GitHub release (latest by date)](https://img.shields.io/github/downloads/bird-sanctuary/bluejay/latest/total?style=for-the-badge)](https://github.com/bird-sanctuary/bluejay/releases/latest)
 [![Discord](https://img.shields.io/discord/811989862299336744?color=7289da&label=Discord&logo=discord&logoColor=white&style=for-the-badge)](https://discord.gg/phAmtxnMMN)
 
 Digital ESC firmware for controlling brushless motors in multirotors.
@@ -31,7 +31,7 @@ Bluejay firmware can be flashed to BLHeli_S compatible ESCs and configured using
 - [ESC Configurator](https://esc-configurator.com/) (PWA)
 - [Bluejay Configurator](https://github.com/mathiasvr/bluejay-configurator/releases) (Standalone)
 
-You can also do it manually by downloading the [release binaries](https://github.com/mathiasvr/bluejay/wiki/Release-binaries).
+You can also do it manually by downloading the [release binaries](https://github.com/bird-sanctuary/bluejay/wiki/Release-binaries).
 
 ## Documentation
 See the [wiki](https://github.com/mathiasvr/bluejay/wiki) for documentation.
@@ -39,10 +39,13 @@ See the [wiki](https://github.com/mathiasvr/bluejay/wiki) for documentation.
 ## Contribute
 Any help you can provide is greatly appreciated!
 
-If you have problems, suggestions or other feedback you can open an [issue](https://github.com/mathiasvr/bluejay/issues).
+If you have problems, suggestions or other feedback you can open an [issue](https://github.com/bird-sanctuary/bluejay/issues).
 
 You can also join our [Discord server](https://discord.gg/phAmtxnMMN) to ask questions and discuss Bluejay!
 
+### PRs
+Pleas direct your PRs against the develop branch of this repository.
+
 ### Build
 
-Please see the [wiki](https://github.com/mathiasvr/bluejay/wiki/Building-from-source) for instructions on how to build Bluejay from source.
+Please see the [wiki](https://github.com/bird-sanctuary/bluejay/wiki/Building-from-source) for instructions on how to build Bluejay from source.
