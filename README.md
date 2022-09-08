@@ -19,7 +19,7 @@ Bluejay aims to be an open source successor to BLHeli_S adding several improveme
 - PWM dithering: 11-bit effective throttle resolution
 - Power configuration: Startup power and RPM protection
 - High performance: Low commutation interference
-- Smoother throttle to pwm conversion
+- Smoother throttle to PWM conversion
 - User configurable startup tunes :musical_note:
 - Numerous optimizations and bug fixes
 
@@ -34,7 +34,7 @@ Bluejay firmware can be flashed to BLHeli_S compatible ESCs and configured using
 You can also do it manually by downloading the [release binaries](https://github.com/bird-sanctuary/bluejay/wiki/Release-binaries).
 
 ## Documentation
-See the [wiki](https://github.com/mathiasvr/bluejay/wiki) for documentation.
+See the [wiki](https://github.com/mathiasvr/bluejay/wiki) for useful information. A very detailed documentation with flow charts is [available too](https://github.com/bird-sanctuary/bluejay-documentation).
 
 ## Contribute
 Any help you can provide is greatly appreciated!
@@ -43,9 +43,8 @@ If you have problems, suggestions or other feedback you can open an [issue](http
 
 You can also join our [Discord server](https://discord.gg/phAmtxnMMN) to ask questions and discuss Bluejay!
 
-### PRs
-Pleas direct your PRs against the develop branch of this repository.
+### Pull Requests
+If you have fixed an issue or added functionality, please feel free to submit a pull request. Direct your PRs against the develop branch of this repository.
 
 ### Build
-
 Please see the [wiki](https://github.com/bird-sanctuary/bluejay/wiki/Building-from-source) for instructions on how to build Bluejay from source.
