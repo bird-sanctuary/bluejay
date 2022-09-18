@@ -120,8 +120,8 @@ ENDIF
 Initialize_Comparator MACRO
 	mov	CMP_CN0, #80h				;; Comparator enabled, no hysteresis
 	mov	CMP_MD, #00h				;; Comparator response time 100ns
-IF COMPARATOR_INVERT == 1 AND MCU_48MHZ == 1
-	mov	CMP_MD, #40h				;; Output polarity inverted (Only supported on BB2)
+IF COMPARATOR_INVERT == 1 AND MCU_48MHZ >= 1
+	mov	CMP_MD, #40h				;; Output polarity inverted (Only supported on BB2 and BB51)
 ENDIF
 ENDM
 
@@ -134,17 +134,29 @@ ENDM
 
 ; Set comparator multiplexer to phase A
 Set_Comparator_Phase_A MACRO
-	mov	CMP_MX, #((A_Mux SHL 4) + V_Mux)
+	IF MCU_48MHZ < 2
+		mov	CMP_MX, #((A_Mux SHL 4) + V_Mux)
+	ELSEIF MCU_48MHZ == 2
+		mov	CMP_MX, #12h
+	ENDIF
 ENDM
 
 ; Set comparator multiplexer to phase B
 Set_Comparator_Phase_B MACRO
-	mov	CMP_MX, #((B_Mux SHL 4) + V_Mux)
+	IF MCU_48MHZ < 2
+		mov	CMP_MX, #((B_Mux SHL 4) + V_Mux)
+	ELSEIF MCU_48MHZ == 2
+		mov	CMP_MX, #10h
+	ENDIF
 ENDM
 
 ; Set comparator multiplexer to phase C
 Set_Comparator_Phase_C MACRO
-	mov	CMP_MX, #((C_Mux SHL 4) + V_Mux)
+	IF MCU_48MHZ < 2
+		mov	CMP_MX, #((C_Mux SHL 4) + V_Mux)
+	ELSEIF MCU_48MHZ == 2
+		mov	CMP_MX, #11h
+	ENDIF
 ENDM
 
 
@@ -315,23 +327,44 @@ $endif
 ;**** **** **** **** ****
 ; ADC and temperature measurement
 ;**** **** **** **** ****
-TEMP_LIMIT		EQU	49			; Temperature measurement ADC value for which main motor power is limited at 80degC (low byte, assuming high byte is 1)
-TEMP_LIMIT_STEP	EQU	9			; Temperature measurement ADC value increment for another 10degC
+; Temperature measurement ADC value for which main motor power is limited at 80degC (low byte, assuming high byte is 1)
+IF MCU_48MHZ < 2
+	TEMP_LIMIT		EQU	49
+ELSEIF MCU_48MHZ == 2
+	TEMP_LIMIT		EQU	92
+ENDIF
+TEMP_LIMIT_STEP		EQU	9		; Temperature measurement ADC value increment for another 10degC
 
 Initialize_Adc MACRO
-	mov	REF0CN, #0Ch				;; Set vdd (3.3V) as reference. Enable temp sensor and bias
-IF MCU_48MHZ == 0
-	mov	ADC0CF, #59h				;; ADC clock 2MHz, PGA gain 1
-ELSE
-	mov	ADC0CF, #0B9h				;; ADC clock 2MHz, PGA gain 1
-ENDIF
+	IF MCU_48MHZ < 2
+		mov	REF0CN, #0Ch			;; Set vdd (3.3V) as reference. Enable temp sensor and bias
+		IF MCU_48MHZ == 0
+			mov	ADC0CF, #59h		;; ADC clock 2MHz, PGA gain 1
+		ELSEIF MCU_48MHZ == 1
+			mov	ADC0CF, #0B9h		;; ADC clock 2MHz, PGA gain 1
+		ENDIF
+	ELSEIF MCU_48MHZ == 2
+		mov	CLKGRP0, #18h			;; Enable SAR clock, at 12MHz
+		mov	ADC0CF1, #0Ah			;; 800ns tracking time
+		mov	ADC0CF2, #2Fh			;; 1.65V reference
+	ENDIF
+
 	mov	ADC0MX, #10h				;; Select temp sensor input
-	mov	ADC0CN0, #80h				;; ADC enabled
-	mov	ADC0CN1, #01h				;; Common mode buffer enabled
+	IF MCU_48MHZ < 2
+		mov	ADC0CN0, #80h			;; ADC enabled
+		mov	ADC0CN1, #01h			;; Common mode buffer enabled
+	ELSEIF MCU_48MHZ == 2
+		mov	ADC0CN0, #85h			;; ADC enabled, gain 0.5, temp sensor enabled
+		mov	ADC0CN1, #20h			;; 10bit mode
+	ENDIF
 ENDM
 
 Start_Adc MACRO
-	mov	ADC0CN0, #90h				;; Enable ADC and initiate conversion
+	IF MCU_48MHZ < 2
+		mov	ADC0CN0, #90h			;; Enable ADC and initiate conversion
+	ELSEIF MCU_48MHZ == 2
+		mov	ADC0CN0, #95h			;; Enable ADC and initiate conversion
+	ENDIF
 ENDM
 
 Stop_Adc MACRO

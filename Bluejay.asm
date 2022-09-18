@@ -59,36 +59,53 @@
 ; There is a startup phase and an initial run phase, before normal bemf commutation run begins.
 ;
 ;**** **** **** **** ****
+; Legend:
+; RX			Receive/transmit pin
+; Am, Bm, Cm	Comparator inputs for BEMF
+; Vn			Common Comparator input
+; Ap, Bp, Cp	PWM pins
+; Ac, Bc, Cc	Complementary PWM pins
+;
+;**** **** **** **** ****
 ; List of enumerated supported ESCs
 				; PORT 0					PORT 1					PWM	COM	PWM	LED
 				; P0 P1 P2 P3 P4 P5 P6 P7	P0 P1 P2 P3 P4 P5 P6 P7		inv	inv	side	n
 				; -----------------------	-----------------------		------------------
-A_	EQU	1		; Vn Am Bm Cm __ RX __ __	Ap Ac Bp Bc Cp Cc __ __		no	no	high	_
-B_	EQU	2		; Vn Am Bm Cm __ RX __ __	Cc Cp Bc Bp Ac Ap __ __		no	no	high	_
-C_	EQU	3		; RX __ Vn Am Bm Cm Ap Ac	Bp Bc Cp Cc __ __ __ __		no	no	high	_
-D_	EQU	4		; Bm Cm Am Vn __ RX __ __	Ap Ac Bp Bc Cp Cc __ __		no	yes	high	_
-E_	EQU	5		; Vn Am Bm Cm __ RX L0 L1	Ap Ac Bp Bc Cp Cc L2 __		no	no	high	3	Pinout like A, with LEDs
-F_	EQU	6		; Vn Cm Bm Am __ RX __ __	Ap Ac Bp Bc Cp Cc __ __		no	no	high	_
-G_	EQU	7		; Bm Cm Am Vn __ RX __ __	Ap Ac Bp Bc Cp Cc __ __		no	no	high	_	Pinout like D, but non-inverted com FETs
-H_	EQU	8		; Cm Vn Bm Am __ __ __ RX	Cc Bc Ac __ Cp Bp Ap __		no	no	high	_
-I_	EQU	9		; Vn Am Bm Cm __ RX __ __	Cp Bp Ap Cc Bc Ac __ __		no	no	high	_
-J_	EQU	10		; Am Cm Bm Vn RX L0 L1 L2	Ap Bp Cp Ac Bc Cc __ __		no	no	high	3
-K_	EQU	11		; RX Am Vn Bm __ Cm __ __	Ac Bc Cc Cp Bp Ap __ __		no	yes	high	_
-L_	EQU	12		; Cm Bm Am Vn __ RX __ __	Cp Bp Ap Cc Bc Ac __ __		no	no	high	_
-M_	EQU	13		; __ __ L0 RX Bm Vn Cm Am	__ Ap Bp Cp Ac Bc Cc __		no	no	high	1
-N_	EQU	14		; Vn Am Bm Cm __ RX __ __	Ac Ap Bc Bp Cc Cp __ __		no	no	high	_
-O_	EQU	15		; Bm Cm Am Vn __ RX __ __	Ap Ac Bp Bc Cp Cc __ __		no	yes	low	_	Pinout Like D, but low side pwm
-P_	EQU	16		; __ Cm Bm Vn Am RX __ __	__ Ap Bp Cp Ac Bc Cc __		no	no	high	_
-Q_	EQU	17		; __ RX __ L0 L1 Ap Bp Cp	Ac Bc Cc Vn Cm Bm Am __		no	no	high	2
-R_	EQU	18		; Vn Am Bm Cm __ RX __ __	Cp Bp Ap Cc Bc Ac __ __		no	no	high	_	Same as I
-S_	EQU	19		; Bm Cm Am Vn __ RX __ __	Ac Ap Bc Bp Cc Cp __ __		no	no	high	_
-T_	EQU	20		; __ Cm Vn Bm __ Am __ RX	Cc Bc Ac Ap Bp Cp __ __		no	no	high	_
-U_	EQU	21		; L2 L1 L0 RX Bm Vn Cm Am	__ Ap Bp Cp Ac Bc Cc __		no	no	high	3	Pinout like M, with 3 LEDs
-V_	EQU	22		; Am Bm Vn Cm __ RX __ Cc	Cp Bc __ __ Bp Ac Ap __		no	no	high	_
-W_	EQU	23		; __ __ Am Vn __ Bm Cm RX	__ __ __ __ Cp Bp Ap __		n/a	n/a	high	_	Tristate gate driver
+IF MCU_48MHZ < 2
+A_	EQU	1	; Vn Am Bm Cm __ RX __ __	Ap Ac Bp Bc Cp Cc __ __		no	no	high	_
+B_	EQU	2	; Vn Am Bm Cm __ RX __ __	Cc Cp Bc Bp Ac Ap __ __		no	no	high	_
+C_	EQU	3	; RX __ Vn Am Bm Cm Ap Ac	Bp Bc Cp Cc __ __ __ __		no	no	high	_
+D_	EQU	4	; Bm Cm Am Vn __ RX __ __	Ap Ac Bp Bc Cp Cc __ __		no	yes	high	_
+E_	EQU	5	; Vn Am Bm Cm __ RX L0 L1	Ap Ac Bp Bc Cp Cc L2 __		no	no	high	3	Pinout like A, with LEDs
+F_	EQU	6	; Vn Cm Bm Am __ RX __ __	Ap Ac Bp Bc Cp Cc __ __		no	no	high	_
+G_	EQU	7	; Bm Cm Am Vn __ RX __ __	Ap Ac Bp Bc Cp Cc __ __		no	no	high	_	Pinout like D, but non-inverted com FETs
+H_	EQU	8	; Cm Vn Bm Am __ __ __ RX	Cc Bc Ac __ Cp Bp Ap __		no	no	high	_
+I_	EQU	9	; Vn Am Bm Cm __ RX __ __	Cp Bp Ap Cc Bc Ac __ __		no	no	high	_
+J_	EQU	10	; Am Cm Bm Vn RX L0 L1 L2	Ap Bp Cp Ac Bc Cc __ __		no	no	high	3
+K_	EQU	11	; RX Am Vn Bm __ Cm __ __	Ac Bc Cc Cp Bp Ap __ __		no	yes	high	_
+L_	EQU	12	; Cm Bm Am Vn __ RX __ __	Cp Bp Ap Cc Bc Ac __ __		no	no	high	_
+M_	EQU	13	; __ __ L0 RX Bm Vn Cm Am	__ Ap Bp Cp Ac Bc Cc __		no	no	high	1
+N_	EQU	14	; Vn Am Bm Cm __ RX __ __	Ac Ap Bc Bp Cc Cp __ __		no	no	high	_
+O_	EQU	15	; Bm Cm Am Vn __ RX __ __	Ap Ac Bp Bc Cp Cc __ __		no	yes	low	_	Pinout Like D, but low side pwm
+P_	EQU	16	; __ Cm Bm Vn Am RX __ __	__ Ap Bp Cp Ac Bc Cc __		no	no	high	_
+Q_	EQU	17	; __ RX __ L0 L1 Ap Bp Cp	Ac Bc Cc Vn Cm Bm Am __		no	no	high	2
+R_	EQU	18	; Vn Am Bm Cm __ RX __ __	Cp Bp Ap Cc Bc Ac __ __		no	no	high	_	Same as I
+S_	EQU	19	; Bm Cm Am Vn __ RX __ __	Ac Ap Bc Bp Cc Cp __ __		no	no	high	_
+T_	EQU	20	; __ Cm Vn Bm __ Am __ RX	Cc Bc Ac Ap Bp Cp __ __		no	no	high	_
+U_	EQU	21	; L2 L1 L0 RX Bm Vn Cm Am	__ Ap Bp Cp Ac Bc Cc __		no	no	high	3	Pinout like M, with 3 LEDs
+V_	EQU	22	; Am Bm Vn Cm __ RX __ Cc	Cp Bc __ __ Bp Ac Ap __		no	no	high	_
+W_	EQU	23	; __ __ Am Vn __ Bm Cm RX	__ __ __ __ Cp Bp Ap __		n/a	n/a	high	_	Tristate gate driver
 X_	EQU	24
 Y_	EQU	25
-Z_	EQU	26		; Bm Cm Am Vn __ RX __ __	Ac Ap Bc Bp Cc Cp __ __		yes	no	high	-	Pinout like S, but inverted pwm FETs
+Z_	EQU	26	; Bm Cm Am Vn __ RX __ __	Ac Ap Bc Bp Cc Cp __ __		yes	no	high	_	Pinout like S, but inverted pwm FETs
+ENDIF
+
+; BB51 - Required
+IF MCU_48MHZ = 2
+A_	EQU	1	; __ Bm Cm Am Vn RX __ __	Ap Ac Bp Bc Cp Cc __ __		no	no	low	_
+B_	EQU	2	; __ Bm Cm Am Vn RX __ __	Ac Ap Bc Bp Cc Cp __ __		no	yes	high	_
+C_	EQU	3	; __ Bm Cm Am Vn RX __ __	Ac Ap Bc Bp Cc Cp __ __		yes	yes	high	_
+ENDIF
 
 ;**** **** **** **** ****
 ; Select the port mapping to use (or unselect all for use with external batch compile file)
@@ -96,7 +113,9 @@ Z_	EQU	26		; Bm Cm Am Vn __ RX __ __	Ac Ap Bc Bp Cc Cp __ __		yes	no	high	-	Pino
 
 ;**** **** **** **** ****
 ; Select the MCU type (or unselect for use with external batch compile file)
-;MCU_48MHZ		EQU	0
+;MCU_48MHZ		EQU	0	; BB1
+;MCU_48MHZ		EQU	1	; BB2
+;MCU_48MHZ		EQU	2	; BB51
 
 ;**** **** **** **** ****
 ; Select the FET dead time (or unselect for use with external batch compile file)
@@ -109,9 +128,15 @@ Z_	EQU	26		; Bm Cm Am Vn __ RX __ __	Ac Ap Bc Bp Cc Cp __ __		yes	no	high	-	Pino
 
 PWM_CENTERED	EQU	DEADTIME > 0			; Use center aligned pwm on ESCs with dead time
 
-IF MCU_48MHZ < 2 AND PWM_FREQ	< 3
+IF MCU_48MHZ == 0
+	IS_MCU_48MHZ	EQU	0
+ELSE
+	IS_MCU_48MHZ	EQU	1
+ENDIF
+
+IF MCU_48MHZ < 3 AND PWM_FREQ < 3
 	; Number of bits in pwm high byte
-	PWM_BITS_H	EQU	(2 + MCU_48MHZ - PWM_CENTERED - PWM_FREQ)
+	PWM_BITS_H	EQU	(2 + IS_MCU_48MHZ - PWM_CENTERED - PWM_FREQ)
 ENDIF
 
 $include (Common.inc)					; Include common source code for EFM8BBx based ESCs
@@ -316,7 +341,11 @@ Temp_Storage:				DS	48	; Temporary storage (internal memory)
 ;**** **** **** **** ****
 ; EEPROM code segments
 ; A segment of the flash is used as "EEPROM", which is not available in SiLabs MCUs
-CSEG AT 1A00h
+IF MCU_48MHZ == 2
+	CSEG AT 3000h
+ELSE
+	CSEG AT 1A00h
+ENDIF
 EEPROM_FW_MAIN_REVISION		EQU	0	; Main revision of the firmware
 EEPROM_FW_SUB_REVISION		EQU	17	; Sub revision of the firmware
 EEPROM_LAYOUT_REVISION		EQU	204	; Revision of the EEPROM layout
@@ -366,10 +395,18 @@ Eep_Pgm_LED_Control:		DB	DEFAULT_PGM_LED_CONTROL		; EEPROM copy of programmed LE
 
 Eep_Dummy:				DB	0FFh						; EEPROM address for safety reason
 
-CSEG AT 1A60h
+IF MCU_48MHZ == 2
+	CSEG AT 3060h
+ELSE
+	CSEG AT 1A60h
+ENDIF
 Eep_Name:					DB	"Bluejay (BETA)  "			; Name tag (16 Bytes)
 
-CSEG AT 1A70h
+IF MCU_48MHZ == 2
+	CSEG AT 3070h
+ELSE
+	CSEG AT 1A70h
+ENDIF
 Eep_Pgm_Beep_Melody:		DB	2, 58, 4, 32, 52, 66, 13, 0, 69, 45, 13, 0, 52, 66, 13, 0, 78, 39, 211, 0, 69, 45, 208, 25, 52, 25, 0
 
 ;**** **** **** **** ****
@@ -395,7 +432,7 @@ ELSE
 DSHOT_TLM_PREDELAY		EQU	7					; 7 Timer0 ticks inherent delay
 ENDIF
 
-IF MCU_48MHZ == 1
+IF MCU_48MHZ >= 1
 	DSHOT_TLM_CLOCK_48		EQU	49000000			; 49MHz
 	DSHOT_TLM_START_DELAY_48	EQU	-(16 * 49 / 4)		; Start telemetry after 16 us (~30 us after receiving DShot cmd)
 	DSHOT_TLM_PREDELAY_48	EQU	11				; 11 Timer0 ticks inherent delay
@@ -408,7 +445,7 @@ Set_DShot_Tlm_Bitrate MACRO rate
 
 	mov	DShot_GCR_Start_Delay, #DSHOT_TLM_START_DELAY
 
-IF MCU_48MHZ == 1
+IF MCU_48MHZ >= 1
 	mov	DShot_GCR_Pulse_Time_1_Tmp, #(DSHOT_TLM_PREDELAY_48 - (1 * DSHOT_TLM_CLOCK_48 / 4 / rate))
 	mov	DShot_GCR_Pulse_Time_2_Tmp, #(DSHOT_TLM_PREDELAY_48 - (2 * DSHOT_TLM_CLOCK_48 / 4 / rate))
 	mov	DShot_GCR_Pulse_Time_3_Tmp, #(DSHOT_TLM_PREDELAY_48 - (3 * DSHOT_TLM_CLOCK_48 / 4 / rate))
@@ -1636,7 +1673,7 @@ set_pwm_limit_low_rpm_exit:
 set_pwm_limit_high_rpm:
 	clr	C
 	mov	A, Comm_Period4x_L
-IF MCU_48MHZ == 1
+IF MCU_48MHZ >= 1
 	subb	A, #0A0h					; Limit Comm_Period4x to 160, which is ~510k erpm
 ELSE
 	subb	A, #0E4h					; Limit Comm_Period4x to 228, which is ~358k erpm
@@ -1891,7 +1928,7 @@ calc_next_comm_period:
 	setb	TMR2CN0_TR2				; Timer2 enabled
 	setb	IE_EA
 
-IF MCU_48MHZ == 1
+IF MCU_48MHZ >= 1
 	clr	C						; Divide time by 2 on 48MHz
 	rrca	Temp3
 	rrca	Temp2
@@ -1909,7 +1946,7 @@ ENDIF
 	mov	A, Temp2
 	subb	A, Prev_Comm_H
 	mov	Prev_Comm_H, Temp2			; Save timestamp as previous commutation
-IF MCU_48MHZ == 1
+IF MCU_48MHZ >= 1
 	anl	A, #7Fh
 ENDIF
 	mov	Temp2, A					; Store commutation period in Temp2 (hi byte)
@@ -1933,7 +1970,7 @@ calc_next_comm_startup:
 	subb	A, Temp5
 	mov	A, Temp3
 	subb	A, Temp6					; Calculate the new extended commutation time
-IF MCU_48MHZ == 1
+IF MCU_48MHZ >= 1
 	anl	A, #7Fh
 ENDIF
 	jz	calc_next_comm_startup_no_X
@@ -2183,7 +2220,7 @@ calc_new_wait_times:
 	clr	A
 	subb	A, Temp4
 	mov	Temp2, A
-IF MCU_48MHZ == 1
+IF MCU_48MHZ >= 1
 	clr	C
 	rlca	Temp1					; Multiply by 2
 	rlca	Temp2
@@ -2441,22 +2478,22 @@ comp_init:
 
 comp_start:
 	; Set number of comparator readings required
-	mov	Temp3, #(1 SHL MCU_48MHZ)	; Number of OK readings required
-	mov	Temp4, #(1 SHL MCU_48MHZ)	; Max number of readings required
+	mov	Temp3, #(1 SHL IS_MCU_48MHZ)	; Number of OK readings required
+	mov	Temp4, #(1 SHL IS_MCU_48MHZ)	; Max number of readings required
 	jb	Flag_High_Rpm, comp_check_timeout	; Branch if high rpm
 
 	jnb	Flag_Initial_Run_Phase, ($+5)
 	clr	Flag_Demag_Detected			; Clear demag detected flag if start phases
 
 	jnb	Flag_Startup_Phase, comp_not_startup
-	mov	Temp3, #(27 SHL MCU_48MHZ)	; Set many samples during startup, approximately one pwm period
-	mov	Temp4, #(27 SHL MCU_48MHZ)
+	mov	Temp3, #(27 SHL IS_MCU_48MHZ)	; Set many samples during startup, approximately one pwm period
+	mov	Temp4, #(27 SHL IS_MCU_48MHZ)
 	sjmp	comp_check_timeout
 
 comp_not_startup:
 	; Too low value (~<15) causes rough running at pwm harmonics.
 	; Too high a value (~>35) causes the RCT4215 630 to run rough on full throttle
-	mov	Temp4, #(20 SHL MCU_48MHZ)
+	mov	Temp4, #(20 SHL IS_MCU_48MHZ)
 	mov	A, Comm_Period4x_H			; Set number of readings higher for lower speeds
 IF MCU_48MHZ == 0
 	clr	C
@@ -2466,9 +2503,9 @@ ENDIF
 	inc	A						; Minimum 1
 	mov	Temp3, A
 	clr	C
-	subb	A, #(20 SHL MCU_48MHZ)
+	subb	A, #(20 SHL IS_MCU_48MHZ)
 	jc	($+4)
-	mov	Temp3, #(20 SHL MCU_48MHZ)	; Maximum 20
+	mov	Temp3, #(20 SHL IS_MCU_48MHZ)	; Maximum 20
 
 comp_check_timeout:
 	jb	Flag_Timer3_Pending, comp_check_timeout_not_timed_out	; Has zero cross scan timeout elapsed?
@@ -2533,7 +2570,7 @@ comp_read_wrong_extend_timeout:
 	jnb	Flag_High_Rpm, comp_read_wrong_low_rpm	; Branch if not high rpm
 
 	mov	TMR3L, #0					; Set timeout to ~1ms
-	mov	TMR3H, #-(8 SHL MCU_48MHZ)
+	mov	TMR3H, #-(8 SHL IS_MCU_48MHZ)
 
 comp_read_wrong_timeout_set:
 	mov	TMR3CN0, #04h				; Timer3 enabled and interrupt flag cleared
@@ -2545,7 +2582,7 @@ comp_read_wrong_low_rpm:
 	mov	A, Comm_Period4x_H			; Set timeout to ~4x comm period 4x value
 	mov	Temp7, #0FFh				; Default to long timeout
 
-IF MCU_48MHZ == 1
+IF MCU_48MHZ >= 1
 	clr	C
 	rlc	A
 	jc	comp_read_wrong_load_timeout
@@ -3479,7 +3516,11 @@ write_eeprom_byte_from_acc:
 	mov	Temp8, A
 	clr	C
 	mov	A, DPH					; Check that address is not in bootloader area
-	subb	A, #1Ch
+	IF MCU_48MHZ == 2
+		subb	A, #0F0h
+	ELSE
+		subb	A, #1Ch
+	ENDIF
 	jc	($+3)
 
 	ret
@@ -3817,7 +3858,9 @@ pgm_start:
 	mov	WDTCN, #0DEh				; Disable watchdog (WDT)
 	mov	WDTCN, #0ADh
 	mov	SP, #Stack				; Initialize stack (16 bytes of indirect RAM)
-	orl	VDM0CN, #080h				; Enable the VDD monitor
+	IF MCU_48MHZ < 2
+		orl	VDM0CN, #080h			; Enable the VDD monitor
+	ENDIF
 	mov	RSTSRC, #06h				; Set missing clock and VDD monitor as a reset source if not 1S capable
 	mov	CLKSEL, #00h				; Set clock divider to 1 (Oscillator 0 at 24MHz)
 	call	switch_power_off
@@ -3833,11 +3876,14 @@ pgm_start:
 	mov	P1, #P1_INIT
 	mov	P1SKIP, #P1_SKIP
 	mov	P2MDOUT, #P2_PUSHPULL
-IF MCU_48MHZ == 1
+IF MCU_48MHZ >= 1
 	; Not available on BB1
 	mov	SFRPAGE, #20h
 	mov	P2MDIN, #P2_DIGITAL
-	mov	P2SKIP, #P2_SKIP
+	IF MCU_48MHZ == 1
+		; Not available on BB51
+		mov	P2SKIP, #P2_SKIP
+	ENDIF
 	mov	SFRPAGE, #00h
 ENDIF
 	Initialize_Crossbar				; Initialize the crossbar and related functionality
@@ -3874,7 +3920,7 @@ init_no_signal:
 	mov	Flash_Key_2, #0
 	call	switch_power_off
 
-IF MCU_48MHZ == 1
+IF MCU_48MHZ >= 1
 	Set_MCU_Clk_24MHz				; Set clock frequency
 ENDIF
 
@@ -3889,7 +3935,11 @@ input_high_check:
 
 	call	beep_enter_bootloader
 
-	ljmp	1C00h					; Jump to bootloader
+	IF MCU_48MHZ == 2
+		ljmp	0F000h				; Jump to bootloader
+	ELSE
+		ljmp	1C00h				; Jump to bootloader
+	ENDIF
 
 bootloader_done:
 	jnb	Flag_Had_Signal, setup_dshot	; Check if DShot signal was lost
@@ -3966,7 +4016,7 @@ ENDIF
 	jz	arming_begin
 
 	; Setup variables for DShot600 (Only on 48MHz for performance reasons)
-IF MCU_48MHZ == 1
+IF MCU_48MHZ >= 1
 	mov	DShot_Timer_Preset, #-64		; Load DShot sync timer preset (for DShot600)
 	mov	DShot_Pwm_Thr, #8			; Load DShot pwm threshold (for DShot600)
 	mov	DShot_Frame_Length_Thr, #40	; Load DShot frame length criteria
@@ -4107,7 +4157,7 @@ motor_start:
 	mov	Temp_Pwm_Level_Setpoint, Pwm_Limit_Beg
 
 	; Begin startup sequence
-IF MCU_48MHZ == 1
+IF MCU_48MHZ >= 1
 	Set_MCU_Clk_48MHz
 
 	; Scale DShot criteria for 48MHz
@@ -4370,7 +4420,7 @@ exit_run_mode:
 	mov	Flags0, #0				; Clear run time flags (in case they are used in interrupts)
 	mov	Flags1, #0
 
-IF MCU_48MHZ == 1
+IF MCU_48MHZ >= 1
 	Set_MCU_Clk_24MHz
 
 	; Scale DShot criteria for 24MHz
@@ -4435,7 +4485,11 @@ exit_run_mode_brake_done:
 ; as code flash after offset 1A00 is used for EEPROM storage
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-CSEG AT 19FDh
+IF MCU_48MHZ == 2
+	CSEG AT 2FFDh
+ELSE
+	CSEG AT 19FDh
+ENDIF
 reset:
 	ljmp	pgm_start
 
