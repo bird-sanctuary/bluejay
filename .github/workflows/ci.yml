@@ -42,7 +42,7 @@ jobs:
           wget -c "$BUILD_ENV_URL" -O wine.zip
           unzip -P "$BUILD_ENV_PASSWORD" wine.zip -d ~/
 
-      - name: Build Firmware
+      - name: Build
         run: make all
 
       - name: Upload build artifacts
@@ -52,7 +52,7 @@ jobs:
           path: ./build/hex/*.hex
           retention-days: 30
 
-      - name: Build Changelog
+      - name: Generate Changelog
         if: startsWith(github.ref, 'refs/tags/v')
         id: github_release
         uses: mikepenz/release-changelog-builder-action@v3
