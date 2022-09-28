@@ -51,3 +51,17 @@ jobs:
           name: bluejay_ci_${{ github.run_number }}
           path: ./build/hex/*.hex
           retention-days: 7
+
+      - name: Build Changelog
+        if: startsWith(github.ref, 'refs/tags/v')
+        id: github_release
+        uses: mikepenz/release-changelog-builder-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v0.1.14
+        with:
+          body: ${{steps.github_release.outputs.changelog}}
+          files: ./build/hex/*.hex
