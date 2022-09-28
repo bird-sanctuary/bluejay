@@ -32,7 +32,7 @@ jobs:
           path: ~/.wine
           key: toolchain-cache
 
-      - name: Prepare environment
+      - name: Prepare build environment
         if: ${{ steps.cache-toolchain.outputs.cache-hit != 'true' }}
         env:
           BUILD_ENV_URL: ${{ secrets.BUILD_ENV_URL }}
