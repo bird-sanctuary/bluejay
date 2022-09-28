@@ -34,7 +34,7 @@ Bluejay firmware can be flashed to BLHeli_S compatible ESCs and configured using
 You can also do it manually by downloading the [release binaries](https://github.com/bird-sanctuary/bluejay/wiki/Release-binaries).
 
 ## Documentation
-See the [wiki](https://github.com/mathiasvr/bluejay/wiki) for useful information. A very detailed documentation with flow charts is [available too](https://github.com/bird-sanctuary/bluejay-documentation).
+See the [wiki](https://github.com/bird-sanctuary/bluejay/wiki) for useful information. A very detailed documentation with flow charts is [available too](https://github.com/bird-sanctuary/bluejay-documentation).
 
 
 ## Ancestry
