@@ -1,14 +1,16 @@
-name: Build Bluejay Firmware.
+name: Build Firmware.
 
 on:
   push:
     branches:
-    - main
+      - main
+      - develop
     tags:
-    - '*'
+      - '*'
   pull_request:
     branches:
-    - main
+      - main
+      - develop
 
 jobs:
   build:
