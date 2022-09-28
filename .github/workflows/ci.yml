@@ -1,4 +1,4 @@
-name: Build Firmware.
+name: Build Firmware
 
 on:
   push:
@@ -50,7 +50,7 @@ jobs:
         with:
           name: bluejay_ci_${{ github.run_number }}
           path: ./build/hex/*.hex
-          retention-days: 7
+          retention-days: 30
 
       - name: Build Changelog
         if: startsWith(github.ref, 'refs/tags/v')
