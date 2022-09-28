@@ -40,6 +40,6 @@ jobs:
       - name: Publish build artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: Assets
+          name: bluejay_ci_${{ github.run_number }}
           path: ./build/hex/*.hex
           retention-days: 7
