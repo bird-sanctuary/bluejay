@@ -1,0 +1,45 @@
+name: Build Bluejay Firmware.
+
+on:
+  push:
+    branches:
+    - main
+    tags:
+    - '*'
+  pull_request:
+    branches:
+    - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/bird-sanctuary/bluejay-builder
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v2
+
+      # TODO: See if we should cache the ~/.wine directory
+      - name: Prepare environment
+        env:
+          BUILD_ENV_URL: ${{ secrets.BUILD_ENV_URL }}
+          BUILD_ENV_PASSWORD: ${{ secrets.BUILD_ENV_PASSWORD }}
+        run: |
+          rm -rf ~/.wine
+          wget -c "$BUILD_ENV_URL" -O wine.zip
+          unzip -P "$BUILD_ENV_PASSWORD" wine.zip -d ~/
+
+      - name: Build Firmware
+        run: make all
+
+      # TODO: Automate changelog generation and creating releases
+      - name: Publish build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Assets
+          path: ./build/hex/*.hex
+          retention-days: 7
