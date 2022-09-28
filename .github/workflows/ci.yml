@@ -30,10 +30,10 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.wine
-          key: toolchain-${{ hashFiles('~/.wine/drive_c/Keil_v5/TOOLS.INI') }}
+          key: toolchain-cache
 
       - name: Prepare environment
-        if: steps.cache-toolchian.outputs.cache-hit != 'true'
+        if: ${{ steps.cache-toolchain.outputs.cache-hit != 'true' }}
         env:
           BUILD_ENV_URL: ${{ secrets.BUILD_ENV_URL }}
           BUILD_ENV_PASSWORD: ${{ secrets.BUILD_ENV_PASSWORD }}
