@@ -2,7 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleasd
+## [0.16.2](https://github.com/mathiasvr/bluejay/compare/v0.16...v0.16.2)
+* From now on the release notes should be used as a referenct to what changed. This Changelog will those not be continuted anymore.
 
 ### Chores
 * Updated links to point to new repository ([#4](https://github.com/bird-sanctuary/bluejay/pull/4))
