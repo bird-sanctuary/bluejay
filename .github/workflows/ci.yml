@@ -23,8 +23,15 @@ jobs:
       - name: Code Checkout
         uses: actions/checkout@v2
 
-      # TODO: See if we should cache the ~/.wine directory
+      - name: Cache Toolchain
+        id: cache-toolchain
+        uses: actions/cache@v3
+        with:
+          path: ~/.wine
+          key: toolchain-${{ hashFiles('~/.wine/drive_c/Keil_v5/TOOLS.INI') }}
+
       - name: Prepare environment
+        if: steps.cache-toolchian.outputs.cache-hit != 'true'
         env:
           BUILD_ENV_URL: ${{ secrets.BUILD_ENV_URL }}
           BUILD_ENV_PASSWORD: ${{ secrets.BUILD_ENV_PASSWORD }}
@@ -36,8 +43,7 @@ jobs:
       - name: Build Firmware
         run: make all
 
-      # TODO: Automate changelog generation and creating releases
-      - name: Publish build artifacts
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v3
         with:
           name: bluejay_ci_${{ github.run_number }}
