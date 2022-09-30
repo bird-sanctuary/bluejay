@@ -2,15 +2,13 @@ name: Build Firmware
 
 on:
   push:
-    branches:
-      - main
-      - develop
     tags:
       - '*'
   pull_request:
     branches:
       - main
       - develop
+    types: [opened, reopened, synchronize]
 
 jobs:
   build:
