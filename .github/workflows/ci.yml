@@ -69,4 +69,4 @@ jobs:
         uses: softprops/action-gh-release@v0.1.14
         with:
           body: ${{steps.github_release.outputs.changelog}}
-          files: ./bluejay-${GITHUB_RUN_NUMBER}/*.hex
+          files: ./bluejay-${{ github.run_number }}/*.hex
