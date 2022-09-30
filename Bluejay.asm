@@ -1067,18 +1067,12 @@ t1_int_max_braking_set:
 t1_int_pwm_braking_set:
 ENDIF
 
-<<<<<<< HEAD
-	; Note: Interrupts are not explicitly disabled
-	; Assume higher priority interrupts (Int0, Timer0) to be disabled at this point
-IF PWM_BITS_H != 0
-=======
 	; Note: Interrupts (of higher priority) are not explicitly disabled because
 	; int0 is already disabled and timer 0 is assumed to be disabled at this point
 ;IF PWM_BITS_H != 0
 	mov	A, Pwm_Bits_H
 	jz	t1_int_set_pwm_8_bit
 
->>>>>>> aec294d... feat: Add pwm frequency setting
 	; Set power pwm auto-reload registers
 	Set_Power_Pwm_Reg_L	Temp2
 	Set_Power_Pwm_Reg_H	Temp3
