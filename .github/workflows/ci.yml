@@ -46,7 +46,7 @@ jobs:
       - name: Bundle Artifacts
         run: tar -cvzf bluejay_firmware.tar.gz -C build/hex/ .
 
-      - name: Upload build artifacts
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v3
         with:
           name: bluejay_ci_${{ github.run_number }}

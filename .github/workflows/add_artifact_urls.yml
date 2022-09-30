@@ -17,5 +17,5 @@ jobs:
             prefix: Here are the build results
             suffix: Artifacts will only be retained for 30 days.
             format: name
-            addTo: pullandissues
+            addTo: pull
         continue-on-error: true
