@@ -45,11 +45,14 @@ jobs:
       - name: Build
         run: make all
 
+      - name: Bundle Artifacts
+        run: tar -cvzf bluejay_firmware.tar.gz -C build/hex/ .
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
         with:
           name: bluejay_ci_${{ github.run_number }}
-          path: ./build/hex/*.hex
+          path: bluejay_firmware.tar.gz
           retention-days: 30
 
       - name: Generate Changelog
