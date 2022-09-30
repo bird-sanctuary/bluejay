@@ -2,15 +2,13 @@ name: Build Firmware
 
 on:
   push:
-    branches:
-      - main
-      - develop
     tags:
       - '*'
   pull_request:
     branches:
       - main
       - develop
+    types: [opened, reopened, synchronize]
 
 jobs:
   build:
@@ -43,13 +41,18 @@ jobs:
           unzip -P "$BUILD_ENV_PASSWORD" wine.zip -d ~/
 
       - name: Build
-        run: make all
+        run: |
+          make all
+          mv build/hex "bluejay-${GITHUB_RUN_NUMBER}"
 
-      - name: Upload build artifacts
+      - name: Bundle Artifacts
+        run: tar -cvzf bluejay-${{ github.run_number }}.tar.gz "bluejay-${GITHUB_RUN_NUMBER}"
+
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: bluejay_ci_${{ github.run_number }}
-          path: ./build/hex/*.hex
+          name: bluejay-ci-${{ github.run_number }}
+          path: bluejay-${{ github.run_number }}.tar.gz
           retention-days: 30
 
       - name: Generate Changelog
@@ -66,4 +69,4 @@ jobs:
         uses: softprops/action-gh-release@v0.1.14
         with:
           body: ${{steps.github_release.outputs.changelog}}
-          files: ./build/hex/*.hex
+          files: ./bluejay-${GITHUB_RUN_NUMBER}/*.hex
