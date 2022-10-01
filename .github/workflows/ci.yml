@@ -71,3 +71,4 @@ jobs:
           body: ${{steps.github_release.outputs.changelog}}
           files: ./bluejay-${{ github.run_number }}/*.hex
           token: ${{ secrets.ACCESS_TOKEN }}
+          prerelease: true
