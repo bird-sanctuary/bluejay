@@ -47,8 +47,8 @@ def cleanup(line):
     # Replace tabs in all lines (even in comments)
     line = re.sub('\t+', ' ', line)
     if not line.startswith(";"):
-        # Replace muliple spaces with one
-        line = re.sub(' +', ' ', line)
+        # Replace muliple spaces with one unless in quotes
+        line = re.sub(r'("[^"]*")| +', lambda m: m.group(1) if m.group(1) else ' ', line)
 
         # Replace multiple semicolons with one
         line = re.sub(';+', ';', line)
@@ -107,53 +107,54 @@ for path in processPaths:
     # Reformat all available lines
     file = open("%s%s" % (path, suffix), 'w')
     for line in cleanLines:
-        fields = line.split(" ")
+        if line != "":
+            fields = line.split(" ")
 
-        field0 = fields[0]
-        field1 = fields[1] if (len(fields) > 1) else None
+            field0 = fields[0]
+            field1 = fields[1] if (len(fields) > 1) else None
 
-        # We leave block comments as they are apart from indendation
-        if not line.startswith(";"):
-            if field0 not in noIndent and field1 not in noIndent:
-                # Append spaces to field 0
-                append0 = maxLength[0] - len(field0) - (depth * spaces)
-                fields[0] = "%s%s" % (field0, " " * append0)
+            # We leave block comments as they are apart from indendation
+            if not line.startswith(";") and len(fields) > 1:
+                if field0 not in noIndent and field1 not in noIndent:
+                    # Append spaces to field 0
+                    append0 = maxLength[0] - len(field0) - (depth * spaces)
+                    fields[0] = "%s%s" % (field0, " " * append0)
 
-                # Append spaced to field 1
-                if len(fields) > 1 and field1 != ";" and "," not in field1:
-                    append1 = maxLength[1] - len(field1)
+                    # Append spaced to field 1
+                    if len(fields) > 1 and field1 != ";" and "," not in field1:
+                        append1 = maxLength[1] - len(field1)
 
-                    # Compensate for lines where field 0 is longer due to indendation
-                    if append0 < 0:
-                        append1 += append0
+                        # Compensate for lines where field 0 is longer due to indendation
+                        if append0 < 0:
+                            append1 += append0
 
-                    fields[1] = "%s%s" % (field1, " " * append1)
+                        fields[1] = "%s%s" % (field1, " " * append1)
 
-                if len(fields) > 1 and field1 != ";" and "," in field1:
-                    fields[1] = re.sub(',', ', ', field1)
+                    if len(fields) > 1 and field1 != ";" and "," in field1:
+                        fields[1] = re.sub(',', ', ', field1)
 
-            line = " ".join(fields)
+                line = " ".join(fields)
 
-        if field0 in decreaseDepth or field1 in decreaseDepth:
-            depth -= 1
+            if field0 in decreaseDepth or field1 in decreaseDepth:
+                depth -= 1
 
-        # Calculate space prefix
-        spacePrefix = depth * spaces
-        if field0 in temporaryDecreaseDepth:
-            spacePrefix -= spaces
+            # Calculate space prefix
+            spacePrefix = depth * spaces
+            if field0 in temporaryDecreaseDepth:
+                spacePrefix -= spaces
 
-        line = "%s%s" % (" " * spacePrefix, line)
+            line = "%s%s" % (" " * spacePrefix, line)
 
-        # Align all inline comments
-        fields = line.split(";")
-        if not line.startswith(";") and fields[0].strip() != "":
-            if len(fields) > 1:
-                append = offsetInlineComments - len(fields[0])
-                fields[0] = "%s%s" % (fields[0], " " * append)
-                line = ";".join(fields)
+            # Align all inline comments
+            fields = line.split(";")
+            if not line.startswith(";") and fields[0].strip() != "":
+                if len(fields) > 1:
+                    append = offsetInlineComments - len(fields[0])
+                    fields[0] = "%s%s" % (fields[0], " " * append)
+                    line = ";".join(fields)
 
-        if field0 in increaseDepth or field1 in increaseDepth:
-            depth += 1
+            if field0 in increaseDepth or field1 in increaseDepth:
+                depth += 1
 
         file.write("%s\n" % line)
 
