@@ -1732,7 +1732,7 @@ scheduler_128ms_switch_case_32ms:
 	; Check TEMP_LIMIT in Base.inc and make calculations to understand temperature readings
 	; Is temperature reading below 256? (ADC 10bit value corresponding to about 25ºC)
 	mov	A, ADC0H									; Load temp hi
-	jz scheduler_1024ms_switch_case					; Temperature below 25ºC do not update setpoint
+	jz scheduler_1024ms_switch_case					; Temperature below 25ºC (on BB1 or BB2) and below 0ºC (on BB51) do not update setpoint
 
 	mov	A, ADC0L									; Load temp lo
 
@@ -1820,29 +1820,52 @@ scheduler_1024ms_switch_case:
 	mov A, Scheduler_Counter
 	anl A, #01Fh
 
-scheduler_1024ms_switch_case_128ms:
-	cjne A, #4, scheduler_1024ms_switch_case_256ms
+IF MCU_48MHZ < 2
+	scheduler_1024ms_switch_case_128ms:
+		cjne A, #4, scheduler_1024ms_switch_case_256ms
 
-	; Prepare extended telemetry temperature value for next telemetry transmission
-	; Check value above or below 20ºC
-	mov A, ADC0H
-	jnz scheduler_1024ms_do_extended_telemetry_temp_above_20
+		; Prepare extended telemetry temperature value for next telemetry transmission
+		; Check value above or below 20ºC - this is an approximation ADCOH having a value
+		; of 0x01 equals to around 22.5ºC.
+		mov A, ADC0H
+		jnz scheduler_1024ms_do_extended_telemetry_temp_above_20
 
-scheduler_1024ms_do_extended_telemetry_temp_below_20:
-	; Value below 20ºC -> to code between 0-20
-	mov A, ADC0L
-	clr C
-	subb A, #(255 - 20)
-	jnc scheduler_1024ms_do_extended_telemetry_temp_load
+	scheduler_1024ms_do_extended_telemetry_temp_below_20:
+		; Value below 20ºC -> to code between 0-20
+		mov A, ADC0L
+		clr C
+		subb A, #(255 - 20)
+		jnc scheduler_1024ms_do_extended_telemetry_temp_load
 
-	; Value below 0ºC -> clamp to 0
-	clr A
-	sjmp scheduler_1024ms_do_extended_telemetry_temp_load
+		; Value below 0ºC -> clamp to 0
+		clr A
+		sjmp scheduler_1024ms_do_extended_telemetry_temp_load
 
-scheduler_1024ms_do_extended_telemetry_temp_above_20:
-	; Value above 20ºC -> to code between 20-255
-	mov A, ADC0L
-	add A, #20
+	scheduler_1024ms_do_extended_telemetry_temp_above_20:
+		; Value above 20ºC -> to code between 20-255
+		mov A, ADC0L						; This is an approximation: 9 ADC steps @10 Bit are 10 degrees
+		add A, #20
+ELSEIF MCU_48MHZ == 2
+	scheduler_1024ms_switch_case_128ms:
+		cjne A, #4, scheduler_1024ms_switch_case_256ms
+
+		mov A, ADC0H
+		jnz scheduler_1024ms_do_extended_telemetry_temp_above_0
+
+	scheduler_1024ms_do_extended_telemetry_temp_below_0:
+		; If Hi Byte is not 0x01 we are definetly below 0, thus
+		; clamp to 0.
+		clr A
+		sjmp scheduler_1024ms_do_extended_telemetry_temp_load
+
+	scheduler_1024ms_do_extended_telemetry_temp_above_0:
+		; Prepare extended telemetry temperature value for next telemetry transmission
+		; On BB51 they hi byte is always 1 if the temperature is above 0ºC.
+		; In fact the value is 0x0114 at 0ºC, thus we ignore the hi byte and normalize
+		; the low byte to
+		mov A, ADC0L
+		subb A, #14h
+ENDIF
 
 scheduler_1024ms_do_extended_telemetry_temp_load:
 	mov Ext_Telemetry_L, A				; Set telemetry low value with temperature data

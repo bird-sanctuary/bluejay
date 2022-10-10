@@ -329,9 +329,9 @@ $endif
 ;**** **** **** **** ****
 ; Temperature measurement ADC value for which main motor power is limited at 80degC (low byte, assuming high byte is 1)
 IF MCU_48MHZ < 2
-	TEMP_LIMIT		EQU	49
+	TEMP_LIMIT		    EQU	49
 ELSEIF MCU_48MHZ == 2
-	TEMP_LIMIT		EQU	92
+	TEMP_LIMIT		    EQU	92	; 0degC is on the BB51 at 0x0114 so ((92 - 20) / 9 * 10) = 80degC
 ENDIF
 TEMP_LIMIT_STEP		EQU	9		; Temperature measurement ADC value increment for another 10degC
 
@@ -354,16 +354,16 @@ Initialize_Adc MACRO
 		mov	ADC0CN0, #80h			;; ADC enabled
 		mov	ADC0CN1, #01h			;; Common mode buffer enabled
 	ELSEIF MCU_48MHZ == 2
-		mov	ADC0CN0, #85h			;; ADC enabled, gain 0.5, temp sensor enabled
+		mov	ADC0CN0, #85h			;; ADC enabled (gain 0.5, temp sensor enabled)
 		mov	ADC0CN1, #20h			;; 10bit mode
 	ENDIF
 ENDM
 
 Start_Adc MACRO
 	IF MCU_48MHZ < 2
-		mov	ADC0CN0, #90h			;; Enable ADC and initiate conversion
+		mov	ADC0CN0, #90h			;; Initiate conversion
 	ELSEIF MCU_48MHZ == 2
-		mov	ADC0CN0, #95h			;; Enable ADC and initiate conversion
+		mov	ADC0CN0, #95h			;; Initiate conversion (gain 0.5, temp sensor enabled)
 	ENDIF
 ENDM
 
