@@ -4,9 +4,11 @@ VERSION		?= $(TAG)
 
 # Target parameters
 LAYOUTS		= A B C D E F G H I J K L M N O P Q R S T U V W Z
-MCUS		= H L
-DEADTIMES	= 0 5 10 15 20 25 30 40 50 70 90 120
-PWM_FREQS	= 24 48 96
+MCUS			= H L
+LAYOUTS_X		= A B C
+MCUS_X		= X
+DEADTIMES		= 0 5 10 15 20 25 30 40 50 70 90 120
+PWM_FREQS		= 24 48 96
 
 # Example single target
 LAYOUT		?= A
@@ -61,7 +63,7 @@ $(OUTPUT_DIR)/$(1)_$(2)_$(3)_$(4)_$(VERSION).OBJ : $(ASM_SRC) $(ASM_INC)
 	$(eval _ESC			:= $(1))
 	$(eval _ESC_INT		:= $(shell printf "%d" "'${_ESC}"))
 	$(eval _ESCNO		:= $(shell echo $$(( $(_ESC_INT) - 65 + 1))))
-	$(eval _MCU_48MHZ	:= $(subst L,0,$(subst H,1,$(2))))
+	$(eval _MCU_48MHZ	:= $(subst L,0,$(subst H,1,$(subst X,2,$(2)))))
 	$(eval _DEADTIME	:= $(3))
 	$(eval _PWM_FREQ	:= $(subst 24,0,$(subst 48,1,$(subst 96,2,$(4)))))
 	$$(eval _LST		:= $$(patsubst %.OBJ,%.LST,$$@))
@@ -84,6 +86,12 @@ single_target : $(SINGLE_TARGET_HEX)
 # Create all obj targets using macro expansion
 $(foreach _l, $(LAYOUTS), \
 	$(foreach _m, $(MCUS), \
+		$(foreach _d, $(DEADTIMES), \
+			$(foreach _p, $(filter-out $(subst L,96,$(_m)), $(PWM_FREQS)), \
+				$(eval $(call MAKE_OBJ,$(_l),$(_m),$(_d),$(_p)))))))
+
+$(foreach _l, $(LAYOUTS_X), \
+	$(foreach _m, $(MCUS_X), \
 		$(foreach _d, $(DEADTIMES), \
 			$(foreach _p, $(filter-out $(subst L,96,$(_m)), $(PWM_FREQS)), \
 				$(eval $(call MAKE_OBJ,$(_l),$(_m),$(_d),$(_p)))))))
