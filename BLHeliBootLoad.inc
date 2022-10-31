@@ -2,7 +2,13 @@
 
 XTAL					EQU	25000000
 
-BOOT_START			EQU	1C00h	; Bootloader segment address
+; Bootloader segment address
+IF MCU_48MHZ < 2
+	BOOT_START		EQU	1C00h
+ELSEIF MCU_48MHZ == 2
+	BOOT_START		EQU	0F000h
+ENDIF
+
 BOOT_DELAY			EQU	XTAL/4	; About 250ms (don't set to fast to avoid connection problems)
 BOOT_BAUDRATE			EQU	19200	; Only used if no baudrate detection activated, XTAL is than important
 BOOT_VERSION			EQU	6		; Version 6 (must be not changed)
@@ -52,8 +58,10 @@ init:clr	IE_EA
 	mov	SP, #0c0h				; Stack = 64 upper bytes of RAM
 	; Initialize clock
 	mov	CLKSEL, #00h			; Set clock divider to 1
-	; Initialize VDD monitor
-	orl	VDM0CN, #080h			; Enable the VDD monitor
+	IF MCU_48MHZ < 2
+		; Initialize VDD monitor
+		orl	VDM0CN, #080h		; Enable the VDD monitor
+	ENDIF
 	mov	Baudl, #38h			; Wait 100us
 	mov	Baudh, #03h
 	acall waitf
@@ -231,7 +239,11 @@ pro4:djnz	Xl, pro5
 pro5:
 	clr	C
 	mov	A, DPH				; Check that address is not in bootloader area
-	subb	A, #1Ch
+	IF MCU_48MHZ < 2
+		subb A, #1Ch
+	ELSEIF MCU_48MHZ == 2
+		subb A, #0F0h
+	ENDIF
 	jc	($+5)
 
 	inc	DPTR					; Increment flash address
@@ -382,4 +394,3 @@ BOOT_SIGN:	DB	"BLHeli"
 BOOT_MSG:		DB	"471d"		; Interface-MCU_BootlaoderRevision
 
 BOOT_INFO:	DB	SIGNATURE_001, SIGNATURE_002, BOOT_VERSION, BOOT_PAGES
-
