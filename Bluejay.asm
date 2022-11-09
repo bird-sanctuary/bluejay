@@ -347,7 +347,7 @@ ELSE
 	CSEG AT 1A00h
 ENDIF
 EEPROM_FW_MAIN_REVISION		EQU	0	; Main revision of the firmware
-EEPROM_FW_SUB_REVISION		EQU	17	; Sub revision of the firmware
+EEPROM_FW_SUB_REVISION		EQU	18	; Sub revision of the firmware
 EEPROM_LAYOUT_REVISION		EQU	204	; Revision of the EEPROM layout
 
 Eep_FW_Main_Revision:		DB	EEPROM_FW_MAIN_REVISION		; EEPROM firmware main revision number
@@ -400,7 +400,7 @@ IF MCU_48MHZ == 2
 ELSE
 	CSEG AT 1A60h
 ENDIF
-Eep_Name:					DB	"Bluejay (BETA)  "			; Name tag (16 Bytes)
+Eep_Name:					DB	"Bluejay         "			; Name tag (16 Bytes)
 
 IF MCU_48MHZ == 2
 	CSEG AT 3070h
