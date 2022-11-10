@@ -5,40 +5,47 @@ Attempts to auto format assembler code by the following rules:
 * Replace multiple empty lines with single empty line
 * Find longest fields
 '''
-
+import argparse
+import filecmp
 import os
 import re
 import sys
 
-if len(sys.argv) < 2:
-    print("Usage %s SOURCE_FILE" % (sys.argv[0]))
-    sys.exit()
+parser = argparse.ArgumentParser(description="Format and lint 8051 assembler files.")
+parser.add_argument("path", metavar="PATH", type=str,
+                    help="directory to search for files")
+parser.add_argument("--extensions", dest="extensions", nargs="+",
+                    default=["asm", "inc"],
+                    help="list of file extension to parse")
+parser.add_argument("--exclude", dest="exclude", nargs="+",
+                    default=["build", "tools", "Silabs"],
+                    help="list of directories to exclude")
+parser.add_argument("--suffix", dest="suffix",
+                    default="", help="suffix for formatted file, default overwrites current file")
+parser.add_argument("--spaces", dest="spaces",
+                    default=2, help="spaces per level of indent")
+parser.add_argument("--comment-offset", dest="commentOffset",
+                    default=50, help="offset for comments from beginning of the line")
+parser.add_argument("--lint", dest="lint", action="store_true",
+                    default=False, help="lint files")
 
-path = sys.argv[1]
+args = parser.parse_args()
 
-processExtensions = ["asm", "inc"]
-excludeDirs= ["build", "tools", "Silabs"]
-spaces = 2
-offsetInlineComments = 50
+path = args.path
+processExtensions = args.extensions
+excludeDirs = args.exclude
+suffix = args.suffix
+spaces = args.spaces
+offsetInlineComments = args.commentOffset
+lint = args.lint
+
+if lint:
+    suffix = ".asmb"
 
 noIndent = ["IF", "ELSE", "ELSEIF", "MACRO", "$if", "$include", "$set"]
 increaseDepth = ["IF", "MACRO", "$if"]
 decreaseDepth = ["ENDIF", "ENDM", "$endif"]
 temporaryDecreaseDepth = ["ELSE", "ELSEIF"]
-processPaths = []
-#suffix = ".asmb"
-suffix = ""
-
-# Collect all files to be processed
-for root, dirs, files in os.walk(path):
-    dirs[:] = [d for d in dirs if d not in excludeDirs]
-    for file in files:
-        extension = file.split(".")[-1]
-        if extension in processExtensions:
-            path = os.path.join(root, file)
-            processPaths.append(path)
-
-
 maxLength = [0, 0]
 
 def cleanup(line):
@@ -78,6 +85,16 @@ def cleanup(line):
 
     return line
 
+# Collect all files to be processed
+processPaths = []
+for root, dirs, files in os.walk(path):
+    dirs[:] = [d for d in dirs if d not in excludeDirs]
+    for file in files:
+        extension = file.split(".")[-1]
+        if extension in processExtensions:
+            path = os.path.join(root, file)
+            processPaths.append(path)
+
 for path in processPaths:
     '''
     In the first run we find out what our longest fields are and do some base
@@ -105,7 +122,8 @@ for path in processPaths:
     file.close()
 
     # Reformat all available lines
-    file = open("%s%s" % (path, suffix), 'w')
+    targetPath = "%s%s" % (path, suffix)
+    file = open(targetPath, 'w')
     for line in cleanLines:
         if line != "":
             fields = line.split(" ")
@@ -159,3 +177,11 @@ for path in processPaths:
         file.write("%s\n" % line)
 
     file.close()
+
+    if lint:
+        match = filecmp.cmp(path, targetPath)
+        os.unlink(targetPath)
+
+        if not match:
+            print("Failed linting %s" % path)
+            sys.exit(1)
