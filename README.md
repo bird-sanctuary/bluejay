@@ -3,7 +3,7 @@
 # Bluejay
 
 [![GitHub release (latest by date)](https://img.shields.io/github/downloads/bird-sanctuary/bluejay/latest/total?style=for-the-badge)](https://github.com/bird-sanctuary/bluejay/releases/latest)
-[![Discord](https://img.shields.io/discord/811989862299336744?color=7289da&label=Discord&logo=discord&logoColor=white&style=for-the-badge)](https://discord.gg/phAmtxnMMN)
+[![Discord](https://img.shields.io/discord/822952715944460368?color=7289da&label=Discord&logo=discord&logoColor=white&style=for-the-badge)](https://discord.gg/ddyzguPB5t)
 
 Digital ESC firmware for controlling brushless motors in multirotors.
 
@@ -47,7 +47,7 @@ Any help you can provide is greatly appreciated!
 
 If you have problems, suggestions or other feedback you can open an [issue](https://github.com/bird-sanctuary/bluejay/issues).
 
-You can also join our [Discord server](https://discord.gg/phAmtxnMMN) to ask questions and to discuss Bluejay!
+You can also join our [Discord server](https://discord.gg/ddyzguPB5t) to ask questions and to discuss Bluejay!
 
 ### Pull Requests
 If you have fixed an issue or added a functionality, please feel free to submit a pull request. Direct your PRs against the develop branch of this repository.
