@@ -3,9 +3,9 @@
 XTAL					EQU	25000000
 
 ; Bootloader segment address
-IF MCU_48MHZ < 2
+IF MCU_TYPE < 2
 	BOOT_START		EQU	1C00h
-ELSEIF MCU_48MHZ == 2
+ELSEIF MCU_TYPE == 2
 	BOOT_START		EQU	0F000h
 ENDIF
 
@@ -58,7 +58,7 @@ init:clr	IE_EA
 	mov	SP, #0c0h				; Stack = 64 upper bytes of RAM
 	; Initialize clock
 	mov	CLKSEL, #00h			; Set clock divider to 1
-	IF MCU_48MHZ < 2
+	IF MCU_TYPE < 2
 		; Initialize VDD monitor
 		orl	VDM0CN, #080h		; Enable the VDD monitor
 	ENDIF
@@ -239,9 +239,9 @@ pro4:djnz	Xl, pro5
 pro5:
 	clr	C
 	mov	A, DPH				; Check that address is not in bootloader area
-	IF MCU_48MHZ < 2
+	IF MCU_TYPE < 2
 		subb A, #1Ch
-	ELSEIF MCU_48MHZ == 2
+	ELSEIF MCU_TYPE == 2
 		subb A, #0F0h
 	ENDIF
 	jc	($+5)
