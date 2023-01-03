@@ -3075,7 +3075,6 @@ dshot_tlm_create_packet:
 
 	; Calculate e-period (6 commutations) in microseconds
 	; Comm_Period * 6 * 0.5 = Comm_Period4x * 3/4 (1/2 + 1/4)
-	;mov	A, Tlm_Data_L
 	mov	C, Tlm_Data_H.0
 	rrc	A
 	mov	Temp2, A
