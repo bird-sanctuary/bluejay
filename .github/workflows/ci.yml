@@ -10,6 +10,8 @@ on:
       - develop
     types: [opened, reopened, synchronize]
 
+permissions: write-all
+
 jobs:
   build:
     runs-on: ubuntu-latest
