@@ -96,6 +96,8 @@ IF MCU_48MHZ < 2
 	;$include (Layouts/Y.inc)			; Select pinout Y
 	ELSEIF ESCNO == Z_
 	$include (Layouts/Z.inc)				; Select pinout Z
+	ELSEIF ESCNO == 0
+	$include (Layouts/Yolo.inc)			; Temporary
 	ENDIF
 ENDIF
 
