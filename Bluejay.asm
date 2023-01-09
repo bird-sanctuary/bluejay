@@ -156,7 +156,7 @@ DEFAULT_PGM_BRAKE_ON_STOP		EQU	0	; 1=Enabled	0=Disabled
 DEFAULT_PGM_LED_CONTROL			EQU	0	; Byte for LED control. 2 bits per LED, 0=Off, 1=On
 
 DEFAULT_PGM_STARTUP_POWER_MIN		EQU	51	; 0..255 => (1000..1125 Throttle): value * (1000 / 2047) + 1000
-DEFAULT_PGM_STARTUP_BEEP			EQU	1	; 0=Short beep, 1=Melody
+DEFAULT_PGM_STARTUP_BEEP			EQU	1	; 0=Off, 1=Normal, 2=Custom
 DEFAULT_PGM_DITHERING			EQU	1	; 0=Disabled, 1=Enabled
 
 DEFAULT_PGM_STARTUP_POWER_MAX		EQU	25	; 0..255 => (1000..2000 Throttle): Maximum startup power
@@ -408,6 +408,9 @@ ELSE
 	CSEG AT 1A70h
 ENDIF
 Eep_Pgm_Beep_Melody:		DB	2, 58, 4, 32, 52, 66, 13, 0, 69, 45, 13, 0, 52, 66, 13, 0, 78, 39, 211, 0, 69, 45, 208, 25, 52, 25, 0
+
+CSEG AT 1AF0h
+Eep_Pgm_Melody_End_Wait:	DB	0, 0						; Time [ms] to wait after playing melody (hi/lo byte)
 
 ;**** **** **** **** ****
 Interrupt_Table_Definition			; SiLabs interrupts
@@ -1438,6 +1441,20 @@ beep_off:							; Fets off loop
 	ret
 
 ; Beep sequences
+beep_startup:
+	call	beep_f1
+	call	wait5ms
+	call	beep_f2
+	call	wait5ms
+	call	beep_f1
+	call	wait5ms
+	call	beep_f3
+	call	wait200ms
+	call	beep_f2
+	call	beep_f4
+	call	beep_f4
+	ret
+
 beep_signal_lost:
 	call	beep_f1
 	call	beep_f2
@@ -1490,7 +1507,7 @@ beacon_beep4:
 	sjmp	beacon_beep_exit
 
 beacon_beep5:
-	call	beep_f5
+	call play_beep_melody			; Play user beep melody
 
 beacon_beep_exit:
 	mov	Temp2, #Pgm_Beep_Strength	; Set normal beep strength
@@ -1528,7 +1545,7 @@ play_beep_melody_loop:
 	movc	A, @A+DPTR
 	inc	DPTR
 	mov	Temp4, A
-	jz	play_beep_melody_exit
+	jz	play_beep_melody_wait
 
 	; Read current location at Eep_Pgm_Beep_Melody to Temp3. If the value zero, that means this is a silent note
 	clr	A
@@ -1547,6 +1564,25 @@ play_beep_melody_item_wait_ms:
 play_beep_melody_loop_next_item:
 	inc	DPTR
 	djnz	Temp5, play_beep_melody_loop
+
+play_beep_melody_wait:
+	; Read the melody wait setting and wait a number of ms before exiting
+	; This is used to make playback on multiple ESCs at the same time.
+	mov	DPTR, #Eep_Pgm_Melody_End_Wait
+	clr	A
+	movc	A, @A+DPTR
+	mov	Temp3, A					; wait_ms (hi byte)
+
+	inc	DPTR
+	clr	A
+	movc	A, @A+DPTR
+	mov	Temp2, A					; wait_ms (lo byte)
+
+	; Exit if long wait time (60+ seconds), to safeguard against uninitialized flash
+	cpl	A
+	jz	play_beep_melody_exit		; Exit if Temp3 is 255
+
+	call	wait_ms
 
 play_beep_melody_exit:
 	ret
@@ -3632,7 +3668,7 @@ write_tag:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 read_melody:
-	mov	Temp3, #140				; Number of bytes
+	mov	Temp3, #142				; Number of bytes
 	mov	Temp2, #0					; Set XRAM address
 	mov	Temp1, #Bit_Access
 	mov	DPTR, #Eep_Pgm_Beep_Melody	; Set flash address
@@ -3652,7 +3688,7 @@ read_melody_byte:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 write_melody:
-	mov	Temp3, #140				; Number of bytes
+	mov	Temp3, #142				; Number of bytes
 	mov	Temp2, #0					; Set XRAM address
 	mov	DPTR, #Eep_Pgm_Beep_Melody	; Set flash address
 write_melody_byte:
@@ -3926,10 +3962,22 @@ ENDIF
 	; Initializing beeps
 	clr	IE_EA					; Disable interrupts explicitly
 	call	wait100ms					; Wait a bit to avoid audible resets if not properly powered
-	call	play_beep_melody			; Play startup beep melody
+
+	mov	Temp1, #Pgm_Startup_Beep		; Read programmed startup beep setting
+	mov	A, @Temp1
+	jz	init_leds					; No startup beeps
+	cjne	A, #2, beep_normal
+
+	call	play_beep_melody			; Play custom user beep melody
+	sjmp	init_leds
+
+beep_normal:
+	call	beep_startup				; Play normal beep melody
+
+init_leds:
 	call	led_control				; Set LEDs to programmed values
 
-	call	wait100ms					; Wait for flight controller to get ready
+	call	wait200ms					; Wait for flight controller to get ready
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
