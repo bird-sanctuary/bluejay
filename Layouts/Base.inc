@@ -333,45 +333,45 @@ TEMP_LIMIT_1S       EQU 92  ; When using 1.65V internal reference
 TEMP_LIMIT_STEP		EQU	9		; Temperature measurement ADC value increment for another 10degC
 
 Initialize_Adc MACRO
-    LOCAL initialize_adc_use_internal_1V65_vref initialize_adc_use_vdd_3V3_vref initialize_adc_vref_selected
-    IF MCU_TYPE < 2
-	    mov Temp1, #Pgm_Power_Rating
-        cjne @Temp1, #01h, initialize_adc_use_vdd_3V3_vref
+LOCAL initialize_adc_use_internal_1V65_vref initialize_adc_use_vdd_3V3_vref initialize_adc_vref_selected
+IF MCU_TYPE < 2
+    mov Temp1, #Pgm_Power_Rating
+    cjne @Temp1, #01h, initialize_adc_use_vdd_3V3_vref
 
-    initialize_adc_use_internal_1V65_vref:
-        mov	    REF0CN, #1Ch	    ;; Set internal 1.65V as reference on 1S. Enable temp sensor and bias
-        sjmp    initialize_adc_vref_selected
-    initialize_adc_use_vdd_3V3_vref:
-        mov     REF0CN, #0Ch        ;; Set vdd (3.3V) as reference on 2S+. Enable temp sensor and bias
+initialize_adc_use_internal_1V65_vref:
+    mov	    REF0CN, #1Ch	    ;; Set internal 1.65V as reference on 1S. Enable temp sensor and bias
+    sjmp    initialize_adc_vref_selected
+initialize_adc_use_vdd_3V3_vref:
+    mov     REF0CN, #0Ch        ;; Set vdd (3.3V) as reference on 2S+. Enable temp sensor and bias
 
-    initialize_adc_vref_selected:
-		IF MCU_TYPE == 0
-			mov	ADC0CF, #59h		;; ADC clock 2MHz, PGA gain 1
-		ELSEIF MCU_TYPE == 1
-			mov	ADC0CF, #0B9h		;; ADC clock 2MHz, PGA gain 1
-		ENDIF
-	ELSEIF MCU_TYPE == 2
-		mov	CLKGRP0, #18h			;; Enable SAR clock, at 12MHz
-		mov	ADC0CF1, #0Ah			;; 800ns tracking time
-		mov	ADC0CF2, #2Fh			;; 1.65V reference
-	ENDIF
+initialize_adc_vref_selected:
+    IF MCU_TYPE == 0
+        mov	ADC0CF, #59h		;; ADC clock 2MHz, PGA gain 1
+    ELSEIF MCU_TYPE == 1
+        mov	ADC0CF, #0B9h		;; ADC clock 2MHz, PGA gain 1
+    ENDIF
+ELSEIF MCU_TYPE == 2
+    mov	CLKGRP0, #18h			;; Enable SAR clock, at 12MHz
+    mov	ADC0CF1, #0Ah			;; 800ns tracking time
+    mov	ADC0CF2, #2Fh			;; 1.65V reference
+ENDIF
 
-	mov	ADC0MX, #10h				;; Select temp sensor input
-	IF MCU_TYPE < 2
-		mov	ADC0CN0, #80h			;; ADC enabled
-		mov	ADC0CN1, #01h			;; Common mode buffer enabled
-	ELSEIF MCU_TYPE == 2
-		mov	ADC0CN0, #85h			;; ADC enabled (gain 0.5, temp sensor enabled)
-		mov	ADC0CN1, #20h			;; 10bit mode
-	ENDIF
+    mov	ADC0MX, #10h				;; Select temp sensor input
+IF MCU_TYPE < 2
+    mov	ADC0CN0, #80h			;; ADC enabled
+    mov	ADC0CN1, #01h			;; Common mode buffer enabled
+ELSEIF MCU_TYPE == 2
+    mov	ADC0CN0, #85h			;; ADC enabled (gain 0.5, temp sensor enabled)
+    mov	ADC0CN1, #20h			;; 10bit mode
+ENDIF
 ENDM
 
 Start_Adc MACRO
-	IF MCU_TYPE < 2
-		mov	ADC0CN0, #90h			;; Initiate conversion
-	ELSEIF MCU_TYPE == 2
-		mov	ADC0CN0, #95h			;; Initiate conversion (gain 0.5, temp sensor enabled)
-	ENDIF
+IF MCU_TYPE < 2
+    mov	ADC0CN0, #90h			;; Initiate conversion
+ELSEIF MCU_TYPE == 2
+    mov	ADC0CN0, #95h			;; Initiate conversion (gain 0.5, temp sensor enabled)
+ENDIF
 ENDM
 
 Stop_Adc MACRO

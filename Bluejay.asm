@@ -1836,7 +1836,7 @@ scheduler_1024ms_switch_case_128ms:
 	; depending on an external voltage regulator is used or not.
 	; For BB51 (MCU_TYPE == 2) 1s power rating code path is mandatory
 	; ******************************************************************
-IF MCU_TYPE == 0 OR MCU_TYPE == 1
+IF MCU_TYPE < 2
 	mov Temp1, #Pgm_Power_Rating
     cjne @Temp1, #01h, scheduler_1024ms_power_rating_2s
 ENDIF
@@ -3809,7 +3809,7 @@ decode_demag_done:
 	; depending on an external voltage regulator is used or not.
 	; For BB51 (MCU_TYPE == 2) 1s power rating code path is mandatory
 	; ******************************************************************
-IF MCU_TYPE == 0 OR MCU_TYPE == 1
+IF MCU_TYPE < 2
 	; Read power rating and decode temperature limit
     mov Temp1, #Pgm_Power_Rating
     cjne @Temp1, #01h, decode_temp_use_adc_use_vdd_3V3_vref
