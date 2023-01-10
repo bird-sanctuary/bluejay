@@ -2,7 +2,7 @@
 source_path=$(dirname $(pwd))
 
 usage() {
-  echo "Usage: $0 [-l <A-W>] [-m <H|L>] [-d <integer>] [-p <24|48|96>]" 1>&2
+  echo "Usage: $0 [-l <A-W>] [-m <X|H|L>] [-d <integer>] [-p <24|48|96>]" 1>&2
   exit 1
 }
 

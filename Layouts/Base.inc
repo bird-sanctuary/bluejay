@@ -120,41 +120,41 @@ ENDIF
 Initialize_Comparator MACRO
 	mov	CMP_CN0, #80h				;; Comparator enabled, no hysteresis
 	mov	CMP_MD, #00h				;; Comparator response time 100ns
-IF COMPARATOR_INVERT == 1 AND MCU_48MHZ >= 1
+IF COMPARATOR_INVERT == 1 AND MCU_TYPE >= 1
 	mov	CMP_MD, #40h				;; Output polarity inverted (Only supported on BB2 and BB51)
 ENDIF
 ENDM
 
 Read_Comparator_Output MACRO
 	mov	A, CMP_CN0				;; Read comparator output
-IF COMPARATOR_INVERT == 1 AND MCU_48MHZ == 0
+IF COMPARATOR_INVERT == 1 AND MCU_TYPE == 0
 	cpl	A						;; Invert output polarity manually on BB1
 ENDIF
 ENDM
 
 ; Set comparator multiplexer to phase A
 Set_Comparator_Phase_A MACRO
-	IF MCU_48MHZ < 2
+	IF MCU_TYPE < 2
 		mov	CMP_MX, #((A_Mux SHL 4) + V_Mux)
-	ELSEIF MCU_48MHZ == 2
+	ELSEIF MCU_TYPE == 2
 		mov	CMP_MX, #12h
 	ENDIF
 ENDM
 
 ; Set comparator multiplexer to phase B
 Set_Comparator_Phase_B MACRO
-	IF MCU_48MHZ < 2
+	IF MCU_TYPE < 2
 		mov	CMP_MX, #((B_Mux SHL 4) + V_Mux)
-	ELSEIF MCU_48MHZ == 2
+	ELSEIF MCU_TYPE == 2
 		mov	CMP_MX, #10h
 	ENDIF
 ENDM
 
 ; Set comparator multiplexer to phase C
 Set_Comparator_Phase_C MACRO
-	IF MCU_48MHZ < 2
+	IF MCU_TYPE < 2
 		mov	CMP_MX, #((C_Mux SHL 4) + V_Mux)
-	ELSEIF MCU_48MHZ == 2
+	ELSEIF MCU_TYPE == 2
 		mov	CMP_MX, #11h
 	ENDIF
 ENDM
@@ -328,43 +328,50 @@ $endif
 ; ADC and temperature measurement
 ;**** **** **** **** ****
 ; Temperature measurement ADC value for which main motor power is limited at 80degC (low byte, assuming high byte is 1)
-IF MCU_48MHZ < 2
-	TEMP_LIMIT		    EQU	49
-ELSEIF MCU_48MHZ == 2
-	TEMP_LIMIT		    EQU	92	; 0degC is on the BB51 at 0x0114 so ((92 - 20) / 9 * 10) = 80degC
-ENDIF
+TEMP_LIMIT_2S		EQU	49  ; When using vdd 3.3V reference
+TEMP_LIMIT_1S       EQU 92  ; When using 1.65V internal reference
 TEMP_LIMIT_STEP		EQU	9		; Temperature measurement ADC value increment for another 10degC
 
 Initialize_Adc MACRO
-	IF MCU_48MHZ < 2
-		mov	REF0CN, #0Ch			;; Set vdd (3.3V) as reference. Enable temp sensor and bias
-		IF MCU_48MHZ == 0
-			mov	ADC0CF, #59h		;; ADC clock 2MHz, PGA gain 1
-		ELSEIF MCU_48MHZ == 1
-			mov	ADC0CF, #0B9h		;; ADC clock 2MHz, PGA gain 1
-		ENDIF
-	ELSEIF MCU_48MHZ == 2
-		mov	CLKGRP0, #18h			;; Enable SAR clock, at 12MHz
-		mov	ADC0CF1, #0Ah			;; 800ns tracking time
-		mov	ADC0CF2, #2Fh			;; 1.65V reference
-	ENDIF
+LOCAL initialize_adc_use_internal_1V65_vref initialize_adc_use_vdd_3V3_vref initialize_adc_vref_selected
+IF MCU_TYPE < 2
+    mov Temp1, #Pgm_Power_Rating
+    cjne @Temp1, #01h, initialize_adc_use_vdd_3V3_vref
 
-	mov	ADC0MX, #10h				;; Select temp sensor input
-	IF MCU_48MHZ < 2
-		mov	ADC0CN0, #80h			;; ADC enabled
-		mov	ADC0CN1, #01h			;; Common mode buffer enabled
-	ELSEIF MCU_48MHZ == 2
-		mov	ADC0CN0, #85h			;; ADC enabled (gain 0.5, temp sensor enabled)
-		mov	ADC0CN1, #20h			;; 10bit mode
-	ENDIF
+initialize_adc_use_internal_1V65_vref:
+    mov	    REF0CN, #1Ch	    ;; Set internal 1.65V as reference on 1S. Enable temp sensor and bias
+    sjmp    initialize_adc_vref_selected
+initialize_adc_use_vdd_3V3_vref:
+    mov     REF0CN, #0Ch        ;; Set vdd (3.3V) as reference on 2S+. Enable temp sensor and bias
+
+initialize_adc_vref_selected:
+    IF MCU_TYPE == 0
+        mov	ADC0CF, #59h		;; ADC clock 2MHz, PGA gain 1
+    ELSEIF MCU_TYPE == 1
+        mov	ADC0CF, #0B9h		;; ADC clock 2MHz, PGA gain 1
+    ENDIF
+ELSEIF MCU_TYPE == 2
+    mov	CLKGRP0, #18h			;; Enable SAR clock, at 12MHz
+    mov	ADC0CF1, #0Ah			;; 800ns tracking time
+    mov	ADC0CF2, #2Fh			;; 1.65V reference
+ENDIF
+
+    mov	ADC0MX, #10h				;; Select temp sensor input
+IF MCU_TYPE < 2
+    mov	ADC0CN0, #80h			;; ADC enabled
+    mov	ADC0CN1, #01h			;; Common mode buffer enabled
+ELSEIF MCU_TYPE == 2
+    mov	ADC0CN0, #85h			;; ADC enabled (gain 0.5, temp sensor enabled)
+    mov	ADC0CN1, #20h			;; 10bit mode
+ENDIF
 ENDM
 
 Start_Adc MACRO
-	IF MCU_48MHZ < 2
-		mov	ADC0CN0, #90h			;; Initiate conversion
-	ELSEIF MCU_48MHZ == 2
-		mov	ADC0CN0, #95h			;; Initiate conversion (gain 0.5, temp sensor enabled)
-	ENDIF
+IF MCU_TYPE < 2
+    mov	ADC0CN0, #90h			;; Initiate conversion
+ELSEIF MCU_TYPE == 2
+    mov	ADC0CN0, #95h			;; Initiate conversion (gain 0.5, temp sensor enabled)
+ENDIF
 ENDM
 
 Stop_Adc MACRO
