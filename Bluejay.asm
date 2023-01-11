@@ -184,6 +184,9 @@ Flags0:					DS	1			; State flags. Reset upon motor_start
 Flag_Startup_Phase			BIT	Flags0.0		; Set when in startup phase
 Flag_Initial_Run_Phase		BIT	Flags0.1		; Set when in initial run phase (or startup phase), before synchronized run is achieved.
 Flag_Motor_Dir_Rev			BIT	Flags0.2		; Set if the current spinning direction is reversed
+Flag_Demag_Notify			BIT	Flags0.3		; Set when motor demag has been detected but still not notified
+Flag_Desync_Notify			BIT	Flags0.4		; Set when motor desync has been detected but still not notified
+Flag_Stall_Notify			BIT	Flags0.5		; Set when motor stall detected but still not notified
 
 Flags1:					DS	1			; State flags. Reset upon motor_start
 Flag_Timer3_Pending			BIT	Flags1.0		; Timer3 pending flag
@@ -226,6 +229,7 @@ Startup_Zc_Timeout_Cntd:		DS	1	; Startup zero cross timeout counter (decrementin
 Initial_Run_Rot_Cntd:		DS	1	; Initial run rotations counter (decrementing)
 Startup_Stall_Cnt:			DS	1	; Counts start/run attempts that resulted in stall. Reset upon a proper stop
 Demag_Detected_Metric:		DS	1	; Metric used to gauge demag event frequency
+Demag_Detected_Metric_Max:	DS	1	; Metric used to gauge demag event frequency
 Demag_Pwr_Off_Thresh:		DS	1	; Metric threshold above which power is cut
 Low_Rpm_Pwr_Slope:			DS	1	; Sets the slope of power increase for low rpm
 
@@ -1893,11 +1897,33 @@ scheduler_1024ms_switch_case_384ms:
 	sjmp scheduler_exit
 
 scheduler_1024ms_switch_case_512ms:
-	cjne A, #16, scheduler_exit
+	cjne A, #16, scheduler_1024ms_switch_case_640ms
 
 	; Stub for debug 2
 	mov Ext_Telemetry_L, #0CCh			; Set telemetry low value with temperature data
 	mov Ext_Telemetry_H, #0Ch			; Set telemetry high value on first repeated dshot coding partition
+
+	sjmp scheduler_exit
+
+scheduler_1024ms_switch_case_640ms:
+	cjne A, #20, scheduler_exit
+
+	; Load demag metric max / 16 in the lowest nibble
+	mov A, Demag_Detected_Metric_Max
+	swap A
+	anl A, #0Fh
+
+	; Load flags
+	mov C, Flag_Demag_Notify
+	mov ACC.7, C
+	mov C, Flag_Desync_Notify
+	mov ACC.6, C
+	mov C, Flag_Stall_Notify
+	mov ACC.5, C
+
+	; Load status frame
+	mov Ext_Telemetry_L, A
+	mov Ext_Telemetry_H, #0Eh			; Set telemetry high value on first repeated dshot coding partition
 
 	; exit
 
@@ -2698,9 +2724,13 @@ wait_for_comm:
 	mov	B, #7
 	mul	AB						; Multiply by 7
 
-	jnb	Flag_Demag_Detected, ($+4)	; Add new value for current demag status
+	jnb	Flag_Demag_Detected, wait_for_comm_demag_event_added
+	; Add new value for current demag status
 	inc	B
+	; Signal demag
+	setb	Flag_Demag_Notify
 
+wait_for_comm_demag_event_added:
 	mov	C, B.0					; Divide by 8
 	rrc	A
 	mov	C, B.1
@@ -2713,10 +2743,22 @@ wait_for_comm:
 	jnc	($+5)
 	mov	Demag_Detected_Metric, #120
 
+	; Update demag metric max
 	clr	C
-	mov	A, Demag_Detected_Metric		; Check demag metric
+	mov	A, Demag_Detected_Metric
+	subb	A, Demag_Detected_Metric_Max
+	jc	wait_for_comm_demag_metric_max_updated
+	mov	Demag_Detected_Metric_Max, Demag_Detected_Metric
+
+wait_for_comm_demag_metric_max_updated:
+	; Check demag metric
+	clr	C
+	mov	A, Demag_Detected_Metric
 	subb	A, Demag_Pwr_Off_Thresh
 	jc	wait_for_comm_wait
+
+	; Signal desync
+	setb	Flag_Desync_Notify;
 
 	; Cut power if many consecutive demags. This will help retain sync during hard accelerations
 	All_Pwm_Fets_Off
@@ -3998,6 +4040,9 @@ setup_dshot:
 	jnb	Flag_Rcp_DShot_Inverted, ($+6)
 	mov	IT01CF, #(08h + (RTX_PIN SHL 4) + RTX_PIN) ; Route RCP input to Int0/1, with Int0 inverted
 
+	clr	Flag_Demag_Notify			; Clear motor events
+	clr	Flag_Desync_Notify
+	clr	Flag_Stall_Notify
 	clr	Flag_Telemetry_Pending		; Clear DShot telemetry flag
 	clr	Flag_Ext_Tele				; Clear extended telemetry enabled flag
 
@@ -4166,6 +4211,7 @@ motor_start:
 	mov	Flags0, A					; Clear run time flags
 	mov	Flags1, A
 	mov	Demag_Detected_Metric, A		; Clear demag metric
+	mov	Demag_Detected_Metric_Max, A	; Clear demag metric max
 
 	call	wait1ms
 
@@ -4469,12 +4515,15 @@ ENDIF
 	; Check if RCP is zero, then it is a normal stop or signal timeout
 	jb	Flag_Rcp_Stop, exit_run_mode_no_stall
 
+	; Signal stall
+	setb	Flag_Stall_Notify
+
 	clr	C						; Otherwise - it's a stall
 	mov	A, Startup_Stall_Cnt
 	subb	A, #4					; Maximum consecutive stalls
 	jnc	exit_run_mode_stall_done
 
-	call	wait100ms					; Wait for a bit between stall restarts
+	call	wait100ms				; Wait for a bit between stall restarts
 	ljmp	motor_start				; Go back and try starting motors again
 
 exit_run_mode_stall_done:
