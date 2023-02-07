@@ -71,7 +71,7 @@
 				; PORT 0					PORT 1					PWM	COM	PWM	LED
 				; P0 P1 P2 P3 P4 P5 P6 P7	P0 P1 P2 P3 P4 P5 P6 P7		inv	inv	side	n
 				; -----------------------	-----------------------		------------------
-IF MCU_48MHZ < 2
+IF MCU_TYPE < 2
 A_	EQU	1	; Vn Am Bm Cm __ RX __ __	Ap Ac Bp Bc Cp Cc __ __		no	no	high	_
 B_	EQU	2	; Vn Am Bm Cm __ RX __ __	Cc Cp Bc Bp Ac Ap __ __		no	no	high	_
 C_	EQU	3	; RX __ Vn Am Bm Cm Ap Ac	Bp Bc Cp Cc __ __ __ __		no	no	high	_
@@ -101,7 +101,7 @@ Z_	EQU	26	; Bm Cm Am Vn __ RX __ __	Ac Ap Bc Bp Cc Cp __ __		yes	no	high	_	Pinou
 ENDIF
 
 ; BB51 - Required
-IF MCU_48MHZ = 2
+IF MCU_TYPE = 2
 A_	EQU	1	; __ Bm Cm Am Vn RX __ __	Ap Ac Bp Bc Cp Cc __ __		no	no	low	_
 B_	EQU	2	; __ Bm Cm Am Vn RX __ __	Ac Ap Bc Bp Cc Cp __ __		no	yes	high	_
 C_	EQU	3	; __ Bm Cm Am Vn RX __ __	Ac Ap Bc Bp Cc Cp __ __		yes	yes	high	_
@@ -113,9 +113,9 @@ ENDIF
 
 ;**** **** **** **** ****
 ; Select the MCU type (or unselect for use with external batch compile file)
-;MCU_48MHZ		EQU	0	; BB1
-;MCU_48MHZ		EQU	1	; BB2
-;MCU_48MHZ		EQU	2	; BB51
+;MCU_TYPE		EQU	0	; BB1
+;MCU_TYPE		EQU	1	; BB2
+;MCU_TYPE		EQU	2	; BB51
 
 ;**** **** **** **** ****
 ; Select the FET dead time (or unselect for use with external batch compile file)
@@ -125,16 +125,15 @@ ENDIF
 ; Select the pwm frequency (or unselect for use with external batch compile file)
 ;PWM_FREQ			EQU	0	; 0=24, 1=48, 2=96 kHz
 
-
 PWM_CENTERED	EQU	DEADTIME > 0			; Use center aligned pwm on ESCs with dead time
 
-IF MCU_48MHZ == 0
+IF MCU_TYPE == 0
 	IS_MCU_48MHZ	EQU	0
 ELSE
 	IS_MCU_48MHZ	EQU	1
 ENDIF
 
-IF MCU_48MHZ < 3 AND PWM_FREQ < 3
+IF MCU_TYPE < 3 AND PWM_FREQ < 3
 	; Number of bits in pwm high byte
 	PWM_BITS_H	EQU	(2 + IS_MCU_48MHZ - PWM_CENTERED - PWM_FREQ)
 ENDIF
@@ -151,6 +150,8 @@ DEFAULT_PGM_BEEP_STRENGTH		EQU	40	; 0..255 (BLHeli_S is 1..255)
 DEFAULT_PGM_BEACON_STRENGTH		EQU	80	; 0..255
 DEFAULT_PGM_BEACON_DELAY			EQU	4	; 1=1m		2=2m			3=5m			4=10m		5=Infinite
 DEFAULT_PGM_ENABLE_TEMP_PROT		EQU	7	; 0=Disabled	1=80C	2=90C	3=100C	4=110C	5=120C	6=130C	7=140C
+
+DEFAULT_PGM_POWER_RATING		EQU	1	; 1=1S, 2=2S+
 
 DEFAULT_PGM_BRAKE_ON_STOP		EQU	0	; 1=Enabled	0=Disabled
 DEFAULT_PGM_LED_CONTROL			EQU	0	; Byte for LED control. 2 bits per LED, 0=Off, 1=On
@@ -328,6 +329,7 @@ _Pgm_Enable_Pwm_Input:		DS	1	; Enable PWM input signal
 _Pgm_Pwm_Dither:			DS	1	; Output PWM dither
 Pgm_Brake_On_Stop:			DS	1	; Braking when throttle is zero
 Pgm_LED_Control:			DS	1	; LED control
+Pgm_Power_Rating:			DS	1	; Power rating
 
 ISEG AT 0B0h
 Stack:					DS	16	; Reserved stack space
@@ -341,14 +343,15 @@ Temp_Storage:				DS	48	; Temporary storage (internal memory)
 ;**** **** **** **** ****
 ; EEPROM code segments
 ; A segment of the flash is used as "EEPROM", which is not available in SiLabs MCUs
-IF MCU_48MHZ == 2
+IF MCU_TYPE == 2
 	CSEG AT 3000h
 ELSE
 	CSEG AT 1A00h
 ENDIF
 EEPROM_FW_MAIN_REVISION		EQU	0	; Main revision of the firmware
 EEPROM_FW_SUB_REVISION		EQU	18	; Sub revision of the firmware
-EEPROM_LAYOUT_REVISION		EQU	204	; Revision of the EEPROM layout
+EEPROM_LAYOUT_REVISION		EQU	206	; Revision of the EEPROM layout
+EEPROM_B2_PARAMETERS_COUNT  EQU 27  ; Number of parameters
 
 Eep_FW_Main_Revision:		DB	EEPROM_FW_MAIN_REVISION		; EEPROM firmware main revision number
 Eep_FW_Sub_Revision:		DB	EEPROM_FW_SUB_REVISION		; EEPROM firmware sub revision number
@@ -366,6 +369,8 @@ Eep_Pgm_Direction:			DB	DEFAULT_PGM_DIRECTION		; EEPROM copy of programmed rotat
 _Eep__Pgm_Input_Pol:		DB	0FFh
 Eep_Initialized_L:			DB	055h						; EEPROM initialized signature (lo byte)
 Eep_Initialized_H:			DB	0AAh						; EEPROM initialized signature (hi byte)
+
+; EEPROM parameters block 2 (B2)
 _Eep_Enable_TX_Program:		DB	0FFh						; EEPROM TX programming enable
 Eep_Pgm_Braking_Strength:	DB	DEFAULT_PGM_BRAKING_STRENGTH
 _Eep_Pgm_Gov_Setup_Target:	DB	0FFh
@@ -392,17 +397,18 @@ _Eep_Pgm_Enable_Pwm_Input:	DB	0FFh
 _Eep_Pgm_Pwm_Dither:		DB	0FFh
 Eep_Pgm_Brake_On_Stop:		DB	DEFAULT_PGM_BRAKE_ON_STOP	; EEPROM copy of programmed braking when throttle is zero
 Eep_Pgm_LED_Control:		DB	DEFAULT_PGM_LED_CONTROL		; EEPROM copy of programmed LED control
+Eep_Pgm_Power_Rating:		DB	DEFAULT_PGM_POWER_RATING	; EEPROM copy of programmed power rating
 
 Eep_Dummy:				DB	0FFh						; EEPROM address for safety reason
 
-IF MCU_48MHZ == 2
+IF MCU_TYPE == 2
 	CSEG AT 3060h
 ELSE
 	CSEG AT 1A60h
 ENDIF
 Eep_Name:					DB	"Bluejay         "			; Name tag (16 Bytes)
 
-IF MCU_48MHZ == 2
+IF MCU_TYPE == 2
 	CSEG AT 3070h
 ELSE
 	CSEG AT 1A70h
@@ -426,13 +432,13 @@ CSEG AT 80h						; Code segment after interrupt vectors
 
 DSHOT_TLM_CLOCK		EQU	24500000				; 24.5MHz
 DSHOT_TLM_START_DELAY	EQU	-(5 * 25 / 4)			; Start telemetry after 5 us (~30 us after receiving DShot cmd)
-IF MCU_48MHZ == 0
+IF MCU_TYPE == 0
 DSHOT_TLM_PREDELAY		EQU	9					; 9 Timer0 ticks inherent delay
 ELSE
 DSHOT_TLM_PREDELAY		EQU	7					; 7 Timer0 ticks inherent delay
 ENDIF
 
-IF MCU_48MHZ >= 1
+IF MCU_TYPE >= 1
 	DSHOT_TLM_CLOCK_48		EQU	49000000			; 49MHz
 	DSHOT_TLM_START_DELAY_48	EQU	-(16 * 49 / 4)		; Start telemetry after 16 us (~30 us after receiving DShot cmd)
 	DSHOT_TLM_PREDELAY_48	EQU	11				; 11 Timer0 ticks inherent delay
@@ -445,7 +451,7 @@ Set_DShot_Tlm_Bitrate MACRO rate
 
 	mov	DShot_GCR_Start_Delay, #DSHOT_TLM_START_DELAY
 
-IF MCU_48MHZ >= 1
+IF MCU_TYPE >= 1
 	mov	DShot_GCR_Pulse_Time_1_Tmp, #(DSHOT_TLM_PREDELAY_48 - (1 * DSHOT_TLM_CLOCK_48 / 4 / rate))
 	mov	DShot_GCR_Pulse_Time_2_Tmp, #(DSHOT_TLM_PREDELAY_48 - (2 * DSHOT_TLM_CLOCK_48 / 4 / rate))
 	mov	DShot_GCR_Pulse_Time_3_Tmp, #(DSHOT_TLM_PREDELAY_48 - (3 * DSHOT_TLM_CLOCK_48 / 4 / rate))
@@ -1066,7 +1072,7 @@ IF DEADTIME != 0
 	; Damping pwm duty cycle will be higher because numbers are inverted
 	clr	C
 	mov	A, Temp2					; Skew damping FET timing
-IF MCU_48MHZ == 0
+IF MCU_TYPE == 0
 	subb	A, #((DEADTIME + 1) SHR 1)
 ELSE
 	subb	A, #(DEADTIME)
@@ -1673,7 +1679,7 @@ set_pwm_limit_low_rpm_exit:
 set_pwm_limit_high_rpm:
 	clr	C
 	mov	A, Comm_Period4x_L
-IF MCU_48MHZ >= 1
+IF MCU_TYPE >= 1
 	subb	A, #0A0h					; Limit Comm_Period4x to 160, which is ~510k erpm
 ELSE
 	subb	A, #0E4h					; Limit Comm_Period4x to 228, which is ~358k erpm
@@ -1730,9 +1736,14 @@ scheduler_128ms_switch_case_32ms:
 	mov	Temp_Pwm_Level_Setpoint, #255				; Remove setpoint
 
 	; Check TEMP_LIMIT in Base.inc and make calculations to understand temperature readings
-	; Is temperature reading below 256? (ADC 10bit value corresponding to about 25ºC)
+	; Is temperature reading below 256?
+	; On BB1 & BB21
+	;    - Using external voltage regulator and vdd 3.3V as ADC reference -> ADC 10bit value corresponding to about 25ºC
+	;    - Using external voltage regulator and internal 1.65V as ADC reference -> ADC 10bit value corresponding to about 0ºC
+	; On BB51
+	;    - Using external voltage regulator and internal 1.65V as ADC reference -> ADC 10bit value corresponding to about 0ºC
 	mov	A, ADC0H									; Load temp hi
-	jz scheduler_1024ms_switch_case					; Temperature below 25ºC (on BB1 or BB2) and below 0ºC (on BB51) do not update setpoint
+	jz scheduler_1024ms_switch_case					; Temperature below 25ºC (on 2S+ (BB1, BB2)) and below 0ºC (on 1S (BB1, BB21), BB51) do not update setpoint
 
 	mov	A, ADC0L									; Load temp lo
 
@@ -1810,6 +1821,7 @@ scheduler_128ms_switch_case_96ms:
 
 
 
+
 ;****************** 1024 ms scheduler *******************
 ;************ For Extended Dshot Telemetry **************
 scheduler_1024ms_switch_case:
@@ -1820,52 +1832,67 @@ scheduler_1024ms_switch_case:
 	mov A, Scheduler_Counter
 	anl A, #01Fh
 
-IF MCU_48MHZ < 2
-	scheduler_1024ms_switch_case_128ms:
-		cjne A, #4, scheduler_1024ms_switch_case_256ms
 
-		; Prepare extended telemetry temperature value for next telemetry transmission
-		; Check value above or below 20ºC - this is an approximation ADCOH having a value
-		; of 0x01 equals to around 22.5ºC.
-		mov A, ADC0H
-		jnz scheduler_1024ms_do_extended_telemetry_temp_above_20
+scheduler_1024ms_switch_case_128ms:
+	cjne A, #4, scheduler_1024ms_switch_case_256ms
 
-	scheduler_1024ms_do_extended_telemetry_temp_below_20:
-		; Value below 20ºC -> to code between 0-20
-		mov A, ADC0L
-		clr C
-		subb A, #(255 - 20)
-		jnc scheduler_1024ms_do_extended_telemetry_temp_load
-
-		; Value below 0ºC -> clamp to 0
-		clr A
-		sjmp scheduler_1024ms_do_extended_telemetry_temp_load
-
-	scheduler_1024ms_do_extended_telemetry_temp_above_20:
-		; Value above 20ºC -> to code between 20-255
-		mov A, ADC0L						; This is an approximation: 9 ADC steps @10 Bit are 10 degrees
-		add A, #20
-ELSEIF MCU_48MHZ == 2
-	scheduler_1024ms_switch_case_128ms:
-		cjne A, #4, scheduler_1024ms_switch_case_256ms
-
-		mov A, ADC0H
-		jnz scheduler_1024ms_do_extended_telemetry_temp_above_0
-
-	scheduler_1024ms_do_extended_telemetry_temp_below_0:
-		; If Hi Byte is not 0x01 we are definetly below 0, thus
-		; clamp to 0.
-		clr A
-		sjmp scheduler_1024ms_do_extended_telemetry_temp_load
-
-	scheduler_1024ms_do_extended_telemetry_temp_above_0:
-		; Prepare extended telemetry temperature value for next telemetry transmission
-		; On BB51 they hi byte is always 1 if the temperature is above 0ºC.
-		; In fact the value is 0x0114 at 0ºC, thus we ignore the hi byte and normalize
-		; the low byte to
-		mov A, ADC0L
-		subb A, #14h
+	; ******************************************************************
+	; Power rating only applies to BB21 because voltage references behave diferently
+	; depending on an external voltage regulator is used or not.
+	; For BB51 (MCU_TYPE == 2) 1s power rating code path is mandatory
+	; ******************************************************************
+IF MCU_TYPE < 2
+	mov Temp1, #Pgm_Power_Rating
+    cjne @Temp1, #01h, scheduler_1024ms_power_rating_2s
 ENDIF
+
+scheduler_1024ms_power_rating_1s:
+	; ******************************************************************
+	; ON BB51 and BB1, BB2 at 1S, all using internal 1.65V ADC reference
+	; ******************************************************************
+	mov A, ADC0H
+	jnz scheduler_1024ms_pr1s_do_extended_telemetry_temp_above_0
+
+scheduler_1024ms_pr1s_do_extended_telemetry_temp_below_0:
+	; If Hi Byte is not 0x01 we are definetly below 0, thus
+	; clamp to 0.
+	clr A
+	sjmp scheduler_1024ms_do_extended_telemetry_temp_load
+
+scheduler_1024ms_pr1s_do_extended_telemetry_temp_above_0:
+	; Prepare extended telemetry temperature value for next telemetry transmission
+	; On BB51 they hi byte is always 1 if the temperature is above 0ºC.
+	; In fact the value is 0x0114 at 0ºC, thus we ignore the hi byte and normalize
+	; the low byte to
+	mov A, ADC0L
+	subb A, #14h
+	sjmp scheduler_1024ms_do_extended_telemetry_temp_load
+
+scheduler_1024ms_power_rating_2s:
+	; *****************************************************
+	; ON BB1, BB2 at more than 1S, using vdd V3.3 ADC reference
+	; *****************************************************
+	; Prepare extended telemetry temperature value for next telemetry transmission
+	; Check value above or below 20ºC - this is an approximation ADCOH having a value
+	; of 0x01 equals to around 22.5ºC.
+	mov A, ADC0H
+	jnz scheduler_1024ms_pr2s_do_extended_telemetry_temp_above_20
+
+scheduler_1024ms_pr2s_do_extended_telemetry_temp_below_20:
+	; Value below 20ºC -> to code between 0-20
+	mov A, ADC0L
+	clr C
+	subb A, #(255 - 20)
+	jnc scheduler_1024ms_do_extended_telemetry_temp_load
+
+	; Value below 0ºC -> clamp to 0
+	clr A
+	sjmp scheduler_1024ms_do_extended_telemetry_temp_load
+
+scheduler_1024ms_pr2s_do_extended_telemetry_temp_above_20:
+	; Value above 20ºC -> to code between 20-255
+	mov A, ADC0L						; This is an approximation: 9 ADC steps @10 Bit are 10 degrees
+	add A, #20
 
 scheduler_1024ms_do_extended_telemetry_temp_load:
 	mov Ext_Telemetry_L, A				; Set telemetry low value with temperature data
@@ -1874,11 +1901,12 @@ scheduler_1024ms_do_extended_telemetry_temp_load:
 	; Exit switch case
 	sjmp scheduler_exit
 
+
 scheduler_1024ms_switch_case_256ms:
 	cjne A, #8, scheduler_1024ms_switch_case_384ms
 
 	; Stub for debug 0
-	mov Ext_Telemetry_L, #088h			; Set telemetry low value with temperature data
+	mov Ext_Telemetry_L, #088h			; Set telemetry low value to dummy value
 	mov Ext_Telemetry_H, #08h			; Set telemetry high value on first repeated dshot coding partition
 
 	sjmp scheduler_exit
@@ -1887,7 +1915,7 @@ scheduler_1024ms_switch_case_384ms:
 	cjne A, #12, scheduler_1024ms_switch_case_512ms
 
 	; Stub for debug 1
-	mov Ext_Telemetry_L, #0AAh			; Set telemetry low value with temperature data
+	mov Ext_Telemetry_L, #0AAh			; Set telemetry low value to dummy value
 	mov Ext_Telemetry_H, #0Ah			; Set telemetry high value on first repeated dshot coding partition
 
 	sjmp scheduler_exit
@@ -1951,7 +1979,7 @@ calc_next_comm_period:
 	setb	TMR2CN0_TR2				; Timer2 enabled
 	setb	IE_EA
 
-IF MCU_48MHZ >= 1
+IF MCU_TYPE >= 1
 	clr	C						; Divide time by 2 on 48MHz
 	rrca	Temp3
 	rrca	Temp2
@@ -1969,7 +1997,7 @@ ENDIF
 	mov	A, Temp2
 	subb	A, Prev_Comm_H
 	mov	Prev_Comm_H, Temp2			; Save timestamp as previous commutation
-IF MCU_48MHZ >= 1
+IF MCU_TYPE >= 1
 	anl	A, #7Fh
 ENDIF
 	mov	Temp2, A					; Store commutation period in Temp2 (hi byte)
@@ -1993,7 +2021,7 @@ calc_next_comm_startup:
 	subb	A, Temp5
 	mov	A, Temp3
 	subb	A, Temp6					; Calculate the new extended commutation time
-IF MCU_48MHZ >= 1
+IF MCU_TYPE >= 1
 	anl	A, #7Fh
 ENDIF
 	jz	calc_next_comm_startup_no_X
@@ -2243,7 +2271,7 @@ calc_new_wait_times:
 	clr	A
 	subb	A, Temp4
 	mov	Temp2, A
-IF MCU_48MHZ >= 1
+IF MCU_TYPE >= 1
 	clr	C
 	rlca	Temp1					; Multiply by 2
 	rlca	Temp2
@@ -2445,7 +2473,7 @@ setup_zc_scan_timeout:
 	clr	C
 	rrca	Temp2
 	rrca	Temp1
-IF MCU_48MHZ == 0
+IF MCU_TYPE == 0
 	clr	C
 	rrca	Temp2
 	rrca	Temp1
@@ -2518,7 +2546,7 @@ comp_not_startup:
 	; Too high a value (~>35) causes the RCT4215 630 to run rough on full throttle
 	mov	Temp4, #(20 SHL IS_MCU_48MHZ)
 	mov	A, Comm_Period4x_H			; Set number of readings higher for lower speeds
-IF MCU_48MHZ == 0
+IF MCU_TYPE == 0
 	clr	C
 	rrc	A
 ENDIF
@@ -2605,7 +2633,7 @@ comp_read_wrong_low_rpm:
 	mov	A, Comm_Period4x_H			; Set timeout to ~4x comm period 4x value
 	mov	Temp7, #0FFh				; Default to long timeout
 
-IF MCU_48MHZ >= 1
+IF MCU_TYPE >= 1
 	clr	C
 	rlc	A
 	jc	comp_read_wrong_load_timeout
@@ -3444,9 +3472,11 @@ read_eeprom_block1:
 	inc	Temp1
 	djnz	Temp4, read_eeprom_block1
 
+    ; Read eeprom after Eep_Initialized_x flags
+    ; Temp4 = EEPROM_B2_PARAMETERS_COUNT parameters: [_Eep_Enable_TX_Program - Eep_Pgm_Power_Rating]
 	mov	DPTR, #_Eep_Enable_TX_Program
 	mov	Temp1, #_Pgm_Enable_TX_Program
-	mov	Temp4, #26				; 26 parameters
+	mov	Temp4, #EEPROM_B2_PARAMETERS_COUNT
 read_eeprom_block2:
 	call	read_eeprom_byte
 	inc	DPTR
@@ -3482,29 +3512,36 @@ erase_and_store_all_in_eeprom:
 	mov	A, #EEPROM_LAYOUT_REVISION
 	call	write_eeprom_byte_from_acc
 
-	; Write eeprom
+	; Write eeprom before Eep_Initialized_x flags
+	; Temp4 = 10 parameters [_Eep_Pgm_Gov_P_Gain - Eep_Initialized_x]
 	mov	DPTR, #_Eep_Pgm_Gov_P_Gain
 	mov	Temp1, #_Pgm_Gov_P_Gain
-	mov	Temp4, #10				; 10 parameters
+	mov	Temp4, #10
 write_eeprom_block1:
 	call	write_eeprom_byte
 	inc	DPTR
 	inc	Temp1
 	djnz	Temp4, write_eeprom_block1
 
+	; Write eeprom after Eep_Initialized_x flags
+	; Temp4 = EEPROM_B2_PARAMETERS_COUNT parameters: [_Eep_Enable_TX_Program - Eep_Pgm_Power_Rating]
 	mov	DPTR, #_Eep_Enable_TX_Program
 	mov	Temp1, #_Pgm_Enable_TX_Program
-	mov	Temp4, #26				; 26 parameters
+	mov	Temp4, #EEPROM_B2_PARAMETERS_COUNT
 write_eeprom_block2:
 	call	write_eeprom_byte
 	inc	DPTR
 	inc	Temp1
 	djnz	Temp4, write_eeprom_block2
 
+	; Now write tags, melogy and signature
 	call	write_tags
 	call	write_melody
 	call	write_eeprom_signature
 	mov	DPTR, #Eep_Dummy			; Set pointer to uncritical area
+
+	; Give time to flash controller to settle data down
+	call	wait200ms
 	ret
 
 
@@ -3539,7 +3576,7 @@ write_eeprom_byte_from_acc:
 	mov	Temp8, A
 	clr	C
 	mov	A, DPH					; Check that address is not in bootloader area
-	IF MCU_48MHZ == 2
+	IF MCU_TYPE == 2
 		subb	A, #0F0h
 	ELSE
 		subb	A, #1Ch
@@ -3723,6 +3760,7 @@ set_default_parameters:
 	imov	Temp1, #0FFh						; _Pgm_Pwm_Dither
 	imov	Temp1, #DEFAULT_PGM_BRAKE_ON_STOP		; Pgm_Brake_On_Stop
 	imov	Temp1, #DEFAULT_PGM_LED_CONTROL		; Pgm_LED_Control
+	imov	Temp1, #DEFAULT_PGM_POWER_RATING	; Pgm_Power_Rating
 
 	ret
 
@@ -3778,14 +3816,33 @@ decode_demag_done:
 	mov Temp_Prot_Limit, #0
 	mov	Temp1, #Pgm_Enable_Temp_Prot
 	mov	A, @Temp1
-	mov	Temp1, A
+	mov	Temp2, A                   ; Temp2 = *Pgm_Enable_Temp_Prot;
 	jz	decode_temp_done
 
-	mov	A, #(TEMP_LIMIT-TEMP_LIMIT_STEP)
+	; ******************************************************************
+	; Power rating only applies to BB21 because voltage references behave diferently
+	; depending on an external voltage regulator is used or not.
+	; For BB51 (MCU_TYPE == 2) 1s power rating code path is mandatory
+	; ******************************************************************
+IF MCU_TYPE < 2
+	; Read power rating and decode temperature limit
+    mov Temp1, #Pgm_Power_Rating
+    cjne @Temp1, #01h, decode_temp_use_adc_use_vdd_3V3_vref
+ENDIF
+
+    ; Set A to temperature limit depending on power rating
+decode_temp_use_adc_use_internal_1V65_vref:
+	mov	A, #(TEMP_LIMIT_1S - TEMP_LIMIT_STEP)
+	sjmp	decode_temp_step
+decode_temp_use_adc_use_vdd_3V3_vref:
+	mov	A, #(TEMP_LIMIT_2S - TEMP_LIMIT_STEP)
+
+    ; Increase A while Temp2-- != 0;
 decode_temp_step:
 	add	A, #TEMP_LIMIT_STEP
-	djnz	Temp1, decode_temp_step
+	djnz	Temp2, decode_temp_step
 
+    ; Set Temp_Prot_Limit to the temperature limit calculated in A
 decode_temp_done:
 	mov	Temp_Prot_Limit, A
 
@@ -3881,7 +3938,7 @@ pgm_start:
 	mov	WDTCN, #0DEh				; Disable watchdog (WDT)
 	mov	WDTCN, #0ADh
 	mov	SP, #Stack				; Initialize stack (16 bytes of indirect RAM)
-	IF MCU_48MHZ < 2
+	IF MCU_TYPE < 2
 		orl	VDM0CN, #080h			; Enable the VDD monitor
 	ENDIF
 	mov	RSTSRC, #06h				; Set missing clock and VDD monitor as a reset source if not 1S capable
@@ -3899,11 +3956,11 @@ pgm_start:
 	mov	P1, #P1_INIT
 	mov	P1SKIP, #P1_SKIP
 	mov	P2MDOUT, #P2_PUSHPULL
-IF MCU_48MHZ >= 1
+IF MCU_TYPE >= 1
 	; Not available on BB1
 	mov	SFRPAGE, #20h
 	mov	P2MDIN, #P2_DIGITAL
-	IF MCU_48MHZ == 1
+	IF MCU_TYPE == 1
 		; Not available on BB51
 		mov	P2SKIP, #P2_SKIP
 	ENDIF
@@ -3943,7 +4000,7 @@ init_no_signal:
 	mov	Flash_Key_2, #0
 	call	switch_power_off
 
-IF MCU_48MHZ >= 1
+IF MCU_TYPE >= 1
 	Set_MCU_Clk_24MHz				; Set clock frequency
 ENDIF
 
@@ -3958,7 +4015,7 @@ input_high_check:
 
 	call	beep_enter_bootloader
 
-	IF MCU_48MHZ == 2
+	IF MCU_TYPE == 2
 		ljmp	0F000h				; Jump to bootloader
 	ELSE
 		ljmp	1C00h				; Jump to bootloader
@@ -4009,7 +4066,7 @@ setup_dshot:
 	setb	IE_EA					; Enable all interrupts
 
 	; Setup variables for DShot150 (Only on 24MHz because frame length threshold cannot be scaled up)
-IF MCU_48MHZ == 0
+IF MCU_TYPE == 0
 	mov	DShot_Timer_Preset, #-64		; Load DShot sync timer preset (for DShot150)
 	mov	DShot_Pwm_Thr, #8			; Load DShot qualification pwm threshold (for DShot150)
 	mov	DShot_Frame_Length_Thr, #160	; Load DShot frame length criteria
@@ -4039,7 +4096,7 @@ ENDIF
 	jz	arming_begin
 
 	; Setup variables for DShot600 (Only on 48MHz for performance reasons)
-IF MCU_48MHZ >= 1
+IF MCU_TYPE >= 1
 	mov	DShot_Timer_Preset, #-64		; Load DShot sync timer preset (for DShot600)
 	mov	DShot_Pwm_Thr, #8			; Load DShot pwm threshold (for DShot600)
 	mov	DShot_Frame_Length_Thr, #40	; Load DShot frame length criteria
@@ -4180,7 +4237,7 @@ motor_start:
 	mov	Temp_Pwm_Level_Setpoint, Pwm_Limit_Beg
 
 	; Begin startup sequence
-IF MCU_48MHZ >= 1
+IF MCU_TYPE >= 1
 	Set_MCU_Clk_48MHz
 
 	; Scale DShot criteria for 48MHz
@@ -4443,7 +4500,7 @@ exit_run_mode:
 	mov	Flags0, #0				; Clear run time flags (in case they are used in interrupts)
 	mov	Flags1, #0
 
-IF MCU_48MHZ >= 1
+IF MCU_TYPE >= 1
 	Set_MCU_Clk_24MHz
 
 	; Scale DShot criteria for 24MHz
@@ -4508,7 +4565,7 @@ exit_run_mode_brake_done:
 ; as code flash after offset 1A00 is used for EEPROM storage
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-IF MCU_48MHZ == 2
+IF MCU_TYPE == 2
 	CSEG AT 2FFDh
 ELSE
 	CSEG AT 19FDh
