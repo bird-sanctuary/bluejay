@@ -133,11 +133,6 @@ ELSE
 	IS_MCU_48MHZ	EQU	1
 ENDIF
 
-IF MCU_TYPE < 3 AND PWM_FREQ < 3
-	; Number of bits in pwm high byte
-	PWM_BITS_H	EQU	(2 + IS_MCU_48MHZ - PWM_CENTERED - PWM_FREQ)
-ENDIF
-
 $include (Common.inc)					; Include common source code for EFM8BBx based ESCs
 
 ;**** **** **** **** ****
@@ -291,6 +286,7 @@ DShot_GCR_Start_Delay:		DS	1
 Ext_Telemetry_L:			DS	1	; Extended telemetry data to be sent
 Ext_Telemetry_H:			DS	1
 Scheduler_Counter:			DS	1	; Scheduler Heartbeat
+PwmBitsCount:				DS  1	; 0 = 8 bit pwm, 1 = 9 bit pwm, 2 = 10 bit pwm, 3 = 11 bit pwm
 
 ;**** **** **** **** ****
 ; Indirect addressing data segments
@@ -971,7 +967,7 @@ t1_int_zero_rcp_checked:
 	jz	($+4)
 	dec	Rcp_Outside_Range_Cnt
 
-	; Set pwm limit
+	; Get minimum pwm limit between pwm rpm limit and pwm temperature limit (Pwm_Limit)
 	clr	C
 	mov	A, Pwm_Limit				; Limit to the smallest
 	mov	Temp6, A					; Store limit in Temp6
@@ -979,26 +975,29 @@ t1_int_zero_rcp_checked:
 	jc	($+4)
 	mov	Temp6, Pwm_Limit_By_Rpm
 
-	; Check against limit
+
+	; Limit PWM and scale pwm resolution and invert (duty cycle is defined inversely)
+	; depending on pwm bits count
+	mov A, PwmBitsCount
+
+t1_int_pwm_limit_scale_dithering_pwm11bit:
+	cjne	A, #3, t1_int_pwm_limit_scale_dithering_pwm10bit
+
+	; Check against pwm limit
 	clr	C
 	mov	A, Temp6
-	subb	A, Temp2					; 8-bit rc pulse
-	jnc	t1_int_scale_pwm_resolution
+	subb	A, Temp2				; Compare against 8-bit rc pulse
+	jnc	t1_int_pwm_limit_scale_dithering_pwm11bit_limited
 
-IF PWM_BITS_H == 0					; 8-bit pwm
-	mov	A, Temp6
-	mov	Temp2, A
-ELSE
+	; Limit pwm to 9, 10, 11 bit pwm limit
 	mov	A, Temp6					; Multiply limit by 8 for 11-bit pwm
 	mov	B, #8
 	mul	AB
 	mov	Temp4, A
 	mov	Temp5, B
-ENDIF
 
-t1_int_scale_pwm_resolution:
-; Scale pwm resolution and invert (duty cycle is defined inversely)
-IF PWM_BITS_H == 3					; 11-bit pwm
+t1_int_pwm_limit_scale_dithering_pwm11bit_limited:
+	; 11-bit pwm
 	mov	A, Temp5
 	cpl	A
 	anl	A, #7
@@ -1006,7 +1005,28 @@ IF PWM_BITS_H == 3					; 11-bit pwm
 	mov	A, Temp4
 	cpl	A
 	mov	Temp2, A
-ELSEIF PWM_BITS_H == 2				; 10-bit pwm
+
+	; 11bit does not need 11bit dithering, only for 10, 9, and 8 bit pwm
+	jmp	t1_int_set_pwm
+
+t1_int_pwm_limit_scale_dithering_pwm10bit:
+	cjne	A, #2, t1_int_pwm_limit_scale_dithering_pwm9bit
+
+	; Check against pwm limit
+	clr	C
+	mov	A, Temp6
+	subb	A, Temp2				; Compare against 8-bit rc pulse
+	jnc	t1_int_pwm_limit_scale_dithering_pwm10bit_limited
+
+	; Limit pwm to 9, 10, 11 bit pwm limit
+	mov	A, Temp6					; Multiply limit by 8 for 11-bit pwm
+	mov	B, #8
+	mul	AB
+	mov	Temp4, A
+	mov	Temp5, B
+
+t1_int_pwm_limit_scale_dithering_pwm10bit_limited:
+	; 10-bit pwm scaling
 	clr	C
 	mov	A, Temp5
 	rrc	A
@@ -1017,7 +1037,56 @@ ELSEIF PWM_BITS_H == 2				; 10-bit pwm
 	rrc	A
 	cpl	A
 	mov	Temp2, A
-ELSEIF PWM_BITS_H == 1				; 9-bit pwm
+
+	; 11-bit effective dithering of 10-bit pwm
+	jb Flag_Dithering, t1_int_pwm_limit_scale_dithering_pwm10bit_scaled
+	jmp	t1_int_set_pwm				; Long jmp needed here
+
+t1_int_pwm_limit_scale_dithering_pwm10bit_scaled:
+	mov A, Temp4					; 11-bit low byte
+	cpl A
+	anl A, #((1 SHL (3 - 2)) - 1)	; Get index into dithering pattern table
+
+	add A, #Dithering_Patterns
+	mov Temp1, A					; Reuse DShot pwm pointer since it is not currently in use.
+	mov A, @Temp1					; Retrieve pattern
+	rl  A							; Rotate pattern
+	mov @Temp1, A					; Store pattern
+
+	jnb ACC.0, t1_int_set_pwm		; Increment if bit is set
+
+	mov A, Temp2
+	add A, #1
+	mov Temp2, A
+	jnz t1_int_set_pwm
+
+	mov A, Temp3
+	addc	A, #0
+	mov Temp3, A
+	jnb ACC.2, t1_int_set_pwm
+	dec Temp3						; Reset on overflow
+
+	dec Temp2
+	sjmp t1_int_set_pwm
+
+t1_int_pwm_limit_scale_dithering_pwm9bit:
+	cjne	A, #1, t1_int_pwm_limit_scale_dithering_pwm8bit
+
+	; Check against pwm limit
+	clr	C
+	mov	A, Temp6
+	subb	A, Temp2				; Compare against 8-bit rc pulse
+	jnc	t1_int_pwm_limit_scale_dithering_pwm9bit_limited
+
+	; Limit pwm to 9, 10, 11 bit pwm limit
+	mov	A, Temp6					; Multiply limit by 8 for 11-bit pwm
+	mov	B, #8
+	mul	AB
+	mov	Temp4, A
+	mov	Temp5, B
+
+t1_int_pwm_limit_scale_dithering_pwm9bit_limited:
+	; 9-bit pwm scaling
 	mov	B, Temp5
 	mov	A, Temp4
 	mov	C, B.0
@@ -1032,42 +1101,77 @@ ELSEIF PWM_BITS_H == 1				; 9-bit pwm
 	cpl	A
 	anl	A, #1
 	mov	Temp3, A
-ELSEIF PWM_BITS_H == 0				; 8-bit pwm
+
+	; 11-bit effective dithering of 9-bit pwm
+	jnb Flag_Dithering, t1_int_set_pwm
+
+	mov A, Temp4					; 11-bit low byte
+	cpl A
+	anl A, #((1 SHL (3 - 1)) - 1)	; Get index into dithering pattern table
+
+	add A, #Dithering_Patterns
+	mov Temp1, A					; Reuse DShot pwm pointer since it is not currently in use.
+	mov A, @Temp1					; Retrieve pattern
+	rl  A							; Rotate pattern
+	mov @Temp1, A					; Store pattern
+
+	jnb ACC.0, t1_int_set_pwm		; Increment if bit is set
+
+	mov A, Temp2
+	add A, #1
+	mov Temp2, A
+	jnz t1_int_set_pwm
+
+	mov A, Temp3
+	addc	A, #0
+	mov Temp3, A
+	jnb ACC.1, t1_int_set_pwm
+	dec Temp3						; Reset on overflow
+
+	dec Temp2
+	sjmp t1_int_set_pwm
+
+
+t1_int_pwm_limit_scale_dithering_pwm8bit:
+	; Check against pwm limit
+	clr	C
+	mov	A, Temp6
+	subb	A, Temp2				; Compare against 8-bit rc pulse
+	jnc	t1_int_pwm_limit_scale_dithering_pwm8bit_limited
+
+	; Limit pwm to 8-bit pwm limit
+	mov	A, Temp6
+	mov	Temp2, A
+
+t1_int_pwm_limit_scale_dithering_pwm8bit_limited:
+	; 8-bit pwm scaling
 	mov	A, Temp2					; Temp2 already 8-bit
 	cpl	A
 	mov	Temp2, A
 	mov	Temp3, #0
-ENDIF
 
-; 11-bit effective dithering of 8/9/10-bit pwm
-IF PWM_BITS_H < 3
-	jnb	Flag_Dithering, t1_int_set_pwm
+	; 11-bit effective dithering of 8-bit pwm
+	jnb Flag_Dithering, t1_int_set_pwm
 
-	mov	A, Temp4					; 11-bit low byte
-	cpl	A
-	anl	A, #((1 SHL (3 - PWM_BITS_H)) - 1); Get index into dithering pattern table
+	mov A, Temp4					; 11-bit low byte
+	cpl A
+	anl A, #((1 SHL (3 - 0)) - 1)	; Get index into dithering pattern table
 
-	add	A, #Dithering_Patterns
-	mov	Temp1, A					; Reuse DShot pwm pointer since it is not currently in use.
-	mov	A, @Temp1					; Retrieve pattern
-	rl	A						; Rotate pattern
-	mov	@Temp1, A					; Store pattern
+	add A, #Dithering_Patterns
+	mov Temp1, A					; Reuse DShot pwm pointer since it is not currently in use.
+	mov A, @Temp1					; Retrieve pattern
+	rl  A							; Rotate pattern
+	mov @Temp1, A					; Store pattern
 
-	jnb	ACC.0, t1_int_set_pwm		; Increment if bit is set
+	jnb ACC.0, t1_int_set_pwm		; Increment if bit is set
 
-	mov	A, Temp2
-	add	A, #1
-	mov	Temp2, A
-	jnz	t1_int_set_pwm
-IF PWM_BITS_H != 0
-	mov	A, Temp3
-	addc	A, #0
-	mov	Temp3, A
-	jnb	ACC.PWM_BITS_H, t1_int_set_pwm
-	dec	Temp3					; Reset on overflow
-ENDIF
-	dec	Temp2
-ENDIF
+	mov A, Temp2
+	add A, #1
+	mov Temp2, A
+	jnz t1_int_set_pwm
+
+	dec Temp2
+
 
 t1_int_set_pwm:
 ; Set pwm registers
@@ -1105,26 +1209,30 @@ t1_int_max_braking_set:
 t1_int_pwm_braking_set:
 ENDIF
 
+
 	; Note: Interrupts are not explicitly disabled
 	; Assume higher priority interrupts (Int0, Timer0) to be disabled at this point
-IF PWM_BITS_H != 0
-	; Set power pwm auto-reload registers
+	; Set power and damp pwm auto-reload registers
+	mov	A, PwmBitsCount
+	jz	t1_int_set_power_eq_8bits
+
+t1_int_set_power_neq_8bits:
 	Set_Power_Pwm_Reg_L	Temp2
 	Set_Power_Pwm_Reg_H	Temp3
-ELSE
-	Set_Power_Pwm_Reg_H Temp2
-ENDIF
-
 IF DEADTIME != 0
-	; Set damp pwm auto-reload registers
-	IF PWM_BITS_H != 0
-		Set_Damp_Pwm_Reg_L	Temp4
-		Set_Damp_Pwm_Reg_H	Temp5
-	ELSE
-		Set_Damp_Pwm_Reg_H	Temp4
-	ENDIF
+	Set_Damp_Pwm_Reg_L	Temp4
+	Set_Damp_Pwm_Reg_H	Temp5
+ENDIF
+	sjmp	t1_int_set_power_done
+
+t1_int_set_power_eq_8bits:
+	Set_Power_Pwm_Reg_H Temp2
+IF DEADTIME != 0
+	Set_Damp_Pwm_Reg_H	Temp4
 ENDIF
 
+
+t1_int_set_power_done:
 	mov	Rcp_Timeout_Cntd, #10		; Set timeout count
 
 	; Prepare DShot telemetry
@@ -1747,7 +1855,7 @@ scheduler_steps_even:
 
 	; Check temp protection enabled, and skip when protection is disabled
 	mov	A, Temp_Prot_Limit
-	jz	scheduler_steps_even_telemetry_demag_metric
+	jz	scheduler_steps_even_demag_metric_frame
 
 	; Set setpoint maximum value
 	mov	Temp_Pwm_Level_Setpoint, #255
@@ -1760,37 +1868,37 @@ scheduler_steps_even:
 	; On BB51
 	;    - Using external voltage regulator and internal 1.65V as ADC reference -> ADC 10bit value corresponding to about 0ºC
 	mov	A, ADC0H									; Load temp hi
-	jz scheduler_steps_even_telemetry_demag_metric	; Temperature below 25ºC (on 2S+ (BB1, BB2)) and below 0ºC (on 1S (BB1, BB21), BB51) do not update setpoint
+	jz scheduler_steps_even_demag_metric_frame	; Temperature below 25ºC (on 2S+ (BB1, BB2)) and below 0ºC (on 1S (BB1, BB21), BB51) do not update setpoint
 
-	mov	A, ADC0L									; Load temp lo
+	mov	A, ADC0L								; Load temp lo
 
 	clr	C
-	subb	A, Temp_Prot_Limit						; Is temperature below first limit?
-	jc	scheduler_steps_even_telemetry_demag_metric	; Yes - Jump to next scheduler
+	subb	A, Temp_Prot_Limit					; Is temperature below first limit?
+	jc	scheduler_steps_even_demag_metric_frame	; Yes - Jump to next scheduler
 
-	mov	Temp_Pwm_Level_Setpoint, #200				; No - update pwm limit (about 80%)
+	mov	Temp_Pwm_Level_Setpoint, #200			; No - update pwm limit (about 80%)
 
-	subb	A, #(TEMP_LIMIT_STEP / 2)				; Is temperature below second limit
-	jc	scheduler_steps_even_telemetry_demag_metric	; Yes - Jump to next scheduler
+	subb	A, #(TEMP_LIMIT_STEP / 2)			; Is temperature below second limit
+	jc	scheduler_steps_even_demag_metric_frame	; Yes - Jump to next scheduler
 
-	mov	Temp_Pwm_Level_Setpoint, #150				; No - update pwm limit (about 60%)
+	mov	Temp_Pwm_Level_Setpoint, #150			; No - update pwm limit (about 60%)
 
-	subb	A, #(TEMP_LIMIT_STEP / 2)				; Is temperature below third limit
-	jc	scheduler_steps_even_telemetry_demag_metric	; Yes - Jump to next scheduler
+	subb	A, #(TEMP_LIMIT_STEP / 2)			; Is temperature below third limit
+	jc	scheduler_steps_even_demag_metric_frame	; Yes - Jump to next scheduler
 
-	mov	Temp_Pwm_Level_Setpoint, #100				; No - update pwm limit (about 40% allowing landing)
+	mov	Temp_Pwm_Level_Setpoint, #100			; No - update pwm limit (about 40% allowing landing)
 
-	subb	A, #(TEMP_LIMIT_STEP / 2)				; Is temperature below final limit
-	jc	scheduler_steps_even_telemetry_demag_metric	; Yes - Jump to next scheduler
+	subb	A, #(TEMP_LIMIT_STEP / 2)			; Is temperature below final limit
+	jc	scheduler_steps_even_demag_metric_frame	; Yes - Jump to next scheduler
 
-	mov	Temp_Pwm_Level_Setpoint, #50				; No - update pwm limit (about 20% forced landing)
+	mov	Temp_Pwm_Level_Setpoint, #50			; No - update pwm limit (about 20% forced landing)
 	; Zero pwm cannot be set because of set_pwm_limit algo restrictions
 	; Otherwise hard stuttering is produced
 
-scheduler_steps_even_telemetry_demag_metric:
+scheduler_steps_even_demag_metric_frame:
 	; ********************* [TELEMETRY] SEND DEMAG METRIC FRAME *****************
-	mov Ext_Telemetry_L, Demag_Detected_Metric		; Set telemetry low value to demag metric data
-	mov Ext_Telemetry_H, #0Ch						; Set telemetry high value to demag metric frame ID
+	mov Ext_Telemetry_L, Demag_Detected_Metric	; Set telemetry low value to demag metric data
+	mov Ext_Telemetry_H, #0Ch					; Set telemetry high value to demag metric frame ID
 
 	; No more work to do
 	jmp scheduler_exit
@@ -1829,9 +1937,9 @@ scheduler_steps_odd_choose_step:
 	mov A, Scheduler_Counter
 	anl A, #07h
 
-scheduler_steps_odd_step_1:
+scheduler_steps_odd_status_frame:
 	; ********************* [TELEMETRY] SEND STATUS FRAME *****************
-	cjne A, #1, scheduler_steps_odd_step_3
+	cjne A, #1, scheduler_steps_odd_debug1_frame
 
 	; if (Demag_Detected_Metric_Max >= 120)
 	; 	stat.demagMetricMax = (Demag_Detected_Metric_Max - 120) / 9
@@ -1840,15 +1948,15 @@ scheduler_steps_odd_step_1:
 	clr	C
 	mov	A, Demag_Detected_Metric_Max
 	subb	A, #120						; 120: substract the minimum
-	jnc	scheduler_steps_odd_demag_metric_max_load
+	jnc	scheduler_steps_odd_status_frame_max_load
 	clr	A
-	sjmp	scheduler_steps_odd_demag_metric_max_loaded
+	sjmp	scheduler_steps_odd_status_frame_max_loaded
 
-scheduler_steps_odd_demag_metric_max_load:
+scheduler_steps_odd_status_frame_max_load:
 	mov	B, #9
 	div	AB								; Ranges: [0 - 135] / 9 == [0 - 15]
 
-scheduler_steps_odd_demag_metric_max_loaded:
+scheduler_steps_odd_status_frame_max_loaded:
 	; Load flags
 	mov C, Flag_Demag_Notify
 	mov ACC.7, C
@@ -1869,9 +1977,9 @@ scheduler_steps_odd_demag_metric_max_loaded:
 	; Now restart ADC conversion
 	sjmp scheduler_steps_odd_restart_ADC
 
-scheduler_steps_odd_step_3:
+scheduler_steps_odd_debug1_frame:
 	; ********************* [TELEMETRY] SEND DEBUG1 FRAME *****************
-	cjne A, #3, scheduler_steps_odd_step_5
+	cjne A, #3, scheduler_steps_odd_debug2_frame
 
 	; Stub for debug 1
 	mov Ext_Telemetry_L, #088h			; Set telemetry low value
@@ -1880,9 +1988,9 @@ scheduler_steps_odd_step_3:
 	; Now restart ADC conversion
 	sjmp scheduler_steps_odd_restart_ADC
 
-scheduler_steps_odd_step_5:
+scheduler_steps_odd_debug2_frame:
 	; ********************* [TELEMETRY] SEND DEBUG2 FRAME *****************
-	cjne A, #5, scheduler_steps_odd_step_7
+	cjne A, #5, scheduler_steps_odd_temperature_frame
 
 	; Stub for debug 2
 	mov Ext_Telemetry_L, #0AAh			; Set telemetry low value
@@ -1891,7 +1999,7 @@ scheduler_steps_odd_step_5:
 	; Now restart ADC conversion
 	sjmp scheduler_steps_odd_restart_ADC
 
-scheduler_steps_odd_step_7:
+scheduler_steps_odd_temperature_frame:
 	; ********************* [TELEMETRY] SEND TEMPERATURE FRAME *****************
 	cjne A, #7, scheduler_steps_odd_restart_ADC
 
@@ -1902,32 +2010,32 @@ scheduler_steps_odd_step_7:
     ; ******************************************************************
 IF MCU_TYPE < 2
     mov Temp1, #Pgm_Power_Rating
-    cjne @Temp1, #01h, scheduler_steps_odd_step_7_power_rating_2s
+    cjne @Temp1, #01h, scheduler_steps_odd_temperature_frame_power_rating_2s
 ENDIF
 
-scheduler_steps_odd_step_7_power_rating_1s:
+scheduler_steps_odd_temperature_frame_power_rating_1s:
     ; ******************************************************************
     ; ON BB51 and BB1, BB2 at 1S, all using internal 1.65V ADC reference
     ; ******************************************************************
     mov A, ADC0H
-    jnz scheduler_steps_odd_step_7_pr1s_temperature_above_0
+    jnz scheduler_steps_odd_temperature_frame_pr1s_temperature_above_0
 
-scheduler_steps_odd_step_7_pr1s_temperature_below_0:
+scheduler_steps_odd_temperature_frame_pr1s_temperature_below_0:
     ; If Hi Byte is not 0x01 we are definetly below 0, thus
     ; clamp to 0.
     clr A
-    sjmp scheduler_steps_odd_step_7_temp_load
+    sjmp scheduler_steps_odd_temperature_frame_temp_load
 
-scheduler_steps_odd_step_7_pr1s_temperature_above_0:
+scheduler_steps_odd_temperature_frame_pr1s_temperature_above_0:
     ; Prepare extended telemetry temperature value for next telemetry transmission
     ; On BB51 they hi byte is always 1 if the temperature is above 0ºC.
     ; In fact the value is 0x0114 at 0ºC, thus we ignore the hi byte and normalize
     ; the low byte to
     mov A, ADC0L
     subb A, #14h
-    sjmp scheduler_steps_odd_step_7_temp_load
+    sjmp scheduler_steps_odd_temperature_frame_temp_load
 
-scheduler_steps_odd_step_7_power_rating_2s:
+scheduler_steps_odd_temperature_frame_power_rating_2s:
     ; *****************************************************
     ; ON BB1, BB2 at more than 1S, using vdd V3.3 ADC reference
     ; *****************************************************
@@ -1935,25 +2043,25 @@ scheduler_steps_odd_step_7_power_rating_2s:
     ; Check value above or below 20ºC - this is an approximation ADCOH having a value
     ; of 0x01 equals to around 22.5ºC.
     mov A, ADC0H
-    jnz scheduler_steps_odd_step_7_pr2s_temperature_above_20
+    jnz scheduler_steps_odd_temperature_frame_pr2s_temperature_above_20
 
-scheduler_steps_odd_step_7_pr2s_temperature_below_20:
+scheduler_steps_odd_temperature_frame_pr2s_temperature_below_20:
     ; Value below 20ºC -> to code between 0-20
     mov A, ADC0L
     clr C
     subb A, #(255 - 20)
-    jnc scheduler_steps_odd_step_7_temp_load
+    jnc scheduler_steps_odd_temperature_frame_temp_load
 
     ; Value below 0ºC -> clamp to 0
     clr A
-    sjmp scheduler_steps_odd_step_7_temp_load
+    sjmp scheduler_steps_odd_temperature_frame_temp_load
 
-scheduler_steps_odd_step_7_pr2s_temperature_above_20:
+scheduler_steps_odd_temperature_frame_pr2s_temperature_above_20:
     ; Value above 20ºC -> to code between 20-255
     mov A, ADC0L                        ; This is an approximation: 9 ADC steps @10 Bit are 10 degrees
     add A, #20
 
-scheduler_steps_odd_step_7_temp_load:
+scheduler_steps_odd_temperature_frame_temp_load:
 	mov Ext_Telemetry_L, A				; Set telemetry low value with temperature data
 	mov Ext_Telemetry_H, #02h			; Set telemetry high value on first repeated dshot coding partition
 
@@ -3915,8 +4023,8 @@ decode_temp_step:
 	add	A, #TEMP_LIMIT_STEP
 	djnz	Temp2, decode_temp_step
 
-    ; Set Temp_Prot_Limit to the temperature limit calculated in A
 decode_temp_done:
+	; Set Temp_Prot_Limit to the temperature limit calculated in A
 	mov	Temp_Prot_Limit, A
 
 	mov	Temp1, #Pgm_Beep_Strength	; Read programmed beep strength setting
@@ -3924,7 +4032,14 @@ decode_temp_done:
 
 	mov	Temp1, #Pgm_Braking_Strength	; Read programmed braking strength setting
 	mov	A, @Temp1
-IF PWM_BITS_H == 3					; Scale braking strength to pwm resolution
+
+	; Decode braking strength depending on PwmBitsCount
+	mov Temp2, PwmBitsCount
+
+decode_braking_strength_pwm11bits:
+	cjne Temp2, #3, decode_braking_strength_pwm10bits
+
+	; Scale braking strength to pwm resolution
 	; Note: Added for completeness
 	; Currently 11-bit pwm is only used on targets with built-in dead time insertion
 	rl	A
@@ -3936,7 +4051,11 @@ IF PWM_BITS_H == 3					; Scale braking strength to pwm resolution
 	mov	A, Temp2
 	anl	A, #0F8h
 	mov	Pwm_Braking_L, A
-ELSEIF PWM_BITS_H == 2
+	sjmp decode_braking_strength_done
+
+decode_braking_strength_pwm10bits:
+	cjne Temp2, #2, decode_braking_strength_pwm9bits
+
 	rl	A
 	rl	A
 	mov	Temp2, A
@@ -3945,7 +4064,11 @@ ELSEIF PWM_BITS_H == 2
 	mov	A, Temp2
 	anl	A, #0FCh
 	mov	Pwm_Braking_L, A
-ELSEIF PWM_BITS_H == 1
+	sjmp decode_braking_strength_done
+
+decode_braking_strength_pwm9bits:
+	cjne Temp2, #1, decode_braking_strength_pwm8bits
+
 	rl	A
 	mov	Temp2, A
 	anl	A, #01h
@@ -3953,10 +4076,13 @@ ELSEIF PWM_BITS_H == 1
 	mov	A, Temp2
 	anl	A, #0FEh
 	mov	Pwm_Braking_L, A
-ELSEIF PWM_BITS_H == 0
+	sjmp decode_braking_strength_done
+
+decode_braking_strength_pwm8bits:
 	mov	Pwm_Braking_H, #0
 	mov	Pwm_Braking_L, A
-ENDIF
+
+decode_braking_strength_done:
 	cjne	@Temp1, #0FFh, decode_pwm_dithering
 	mov	Pwm_Braking_L, #0FFh		; Apply full braking if setting is max
 
@@ -3966,17 +4092,31 @@ decode_pwm_dithering:
 	add	A, #0FFh					; Carry set if A is not zero
 	mov	Flag_Dithering, C			; Set dithering enabled
 
-IF PWM_BITS_H == 2					; Initialize pwm dithering bit patterns
+	; Decode dithering pattern depending on PwmBitsCount
+	mov A, PwmBitsCount
+
+decode_pwm_dithering_pwm10bit:
+	cjne A, #2, decode_pwm_dithering_pwm9bit
+
+	; Initialize pwm dithering bit patterns
 	mov	Temp1, #Dithering_Patterns	; 1-bit dithering (10-bit to 11-bit)
 	mov	@Temp1, #00h				; 00000000
 	imov	Temp1, #55h				; 01010101
-ELSEIF PWM_BITS_H == 1
+	sjmp	decode_pwm_dithering_done
+
+decode_pwm_dithering_pwm9bit:
+	cjne A, #1, decode_pwm_dithering_pwm8bit
+
 	mov	Temp1, #Dithering_Patterns	; 2-bit dithering (9-bit to 11-bit)
 	mov	@Temp1, #00h				; 00000000
 	imov	Temp1, #11h				; 00010001
 	imov	Temp1, #55h				; 01010101
 	imov	Temp1, #77h				; 01110111
-ELSEIF PWM_BITS_H == 0
+	sjmp	decode_pwm_dithering_done
+
+decode_pwm_dithering_pwm8bit:
+	cjne A, #0, decode_pwm_dithering_done
+
 	mov	Temp1, #Dithering_Patterns	; 3-bit dithering (8-bit to 11-bit)
 	mov	@Temp1, #00h				; 00000000
 	imov	Temp1, #01h				; 00000001
@@ -3986,7 +4126,44 @@ ELSEIF PWM_BITS_H == 0
 	imov	Temp1, #5Bh				; 01011011
 	imov	Temp1, #77h				; 01110111
 	imov	Temp1, #7fh				; 01111111
-ENDIF
+
+decode_pwm_dithering_done:
+	ret
+
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
+; pwm bits count calculation
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+calculate_pwm_bits:
+	; Number of bits in pwm high byte
+	; PWM_BITS_H  EQU (2 + IS_MCU_48MHZ - PWM_CENTERED - PWM_FREQ)
+	clr C
+	mov A, #2
+	add A, #IS_MCU_48MHZ
+	subb	A, #PWM_CENTERED
+
+    ; Load and decode Pgm_Pwm_Freq [24, 48, 96] -> [0, 1, 2]
+    ; Let Temp1 = Pgm_Pwm_Freq / 24
+	mov Temp1, #Pgm_Pwm_Freq
+
+calculate_pwm_bits_pwm96bits:
+	; If pwm is 96 khz substract 2
+	cjne	@Temp1, #96, calculate_pwm_bits_pwm48bits
+	subb	A, #2
+	sjmp	calculate_pwm_bits_pwm_decoded
+
+calculate_pwm_bits_pwm48bits:
+	; If pwm is 48 khz substract 1, otherwise do not substract (24khz)
+	cjne	@Temp1, #48, calculate_pwm_bits_pwm_decoded
+	subb	A, #1
+
+calculate_pwm_bits_pwm_decoded:
+	; Clip result to [0-3] and store result
+	anl A, #03h
+	mov PwmBitsCount, A
+
+calculate_pwm_bits_done:
 	ret
 
 
@@ -4051,6 +4228,7 @@ ENDIF
 
 	call	set_default_parameters		; Set default programmed parameters
 	call	read_all_eeprom_parameters	; Read all programmed parameters
+	call	calculate_pwm_bits			; Calculates pwm bits
 	call	decode_settings			; Decode programmed settings
 
 	; Initializing beeps
