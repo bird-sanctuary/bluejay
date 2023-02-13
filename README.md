@@ -14,7 +14,7 @@ Bluejay aims to be an open source successor to BLHeli_S adding several improveme
 ## Current Features
 
 - Digital signal protocol: DShot 150, 300 and 600
-- Bidirectional DShot: RPM telemetry
+- Bidirectional DShot: RPM telemetry and [extended DSHOT telemetry](https://github.com/bird-sanctuary/extended-dshot-telemetry)
 - Selectable PWM frequency: 24, 48 and 96 kHz
 - PWM dithering: 11-bit effective throttle resolution
 - Power configuration: Startup power and RPM protection
@@ -24,6 +24,15 @@ Bluejay aims to be an open source successor to BLHeli_S adding several improveme
 - Numerous optimizations and bug fixes
 
 See the project [changelog](CHANGELOG.md) for a list of changes.
+
+## Supported Platforms
+- SiLabs EFM8 BB21
+- SiLabs EFM8 BB51
+
+### Deprecated Platforms
+The `SiLabs EFM8 BB10` has been deprecated. Thas last official release is [0.18.1](https://github.com/bird-sanctuary/bluejay/releases/tag/v0.18.1). The BB10 has it's limitations in comparison to the BB21 and BB51. Not many of those seem to be around anymore and the team does not have a single one for testing, thus decided to drop support.
+
+> You will still be able to manually build for it, but we can not guarantee compatibility and do not want to suffer from it's limitations during further development.
 
 ## Flashing ESCs
 Bluejay firmware can be flashed to BLHeli_S compatible ESCs and configured using the following configurator tools:

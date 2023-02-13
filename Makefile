@@ -4,7 +4,7 @@ VERSION		?= $(TAG)
 
 # Target parameters
 LAYOUTS		= A B C D E F G H I J K L M N O P Q R S T U V W Z
-MCUS			= H L
+MCUS			= H
 LAYOUTS_X		= A B C
 MCUS_X		= X
 DEADTIMES		= 0 5 10 15 20 25 30 40 50 70 90 120
