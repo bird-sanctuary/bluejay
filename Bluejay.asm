@@ -123,7 +123,7 @@ ENDIF
 
 ;**** **** **** **** ****
 ; Select the pwm frequency (or unselect for use with external batch compile file)
-;PWM_FREQ			EQU	0	; 0=24, 1=48, 2=96 kHz
+;PWM_FREQ			EQU	0	; 0=24, 1=48, 2=96 kHz 3=Dynamic frequency
 
 PWM_CENTERED	EQU	DEADTIME > 0			; Use center aligned pwm on ESCs with dead time
 
@@ -157,6 +157,8 @@ DEFAULT_PGM_DITHERING			EQU	1	; 0=Disabled, 1=Enabled
 
 DEFAULT_PGM_STARTUP_POWER_MAX		EQU	25	; 0..255 => (1000..2000 Throttle): Maximum startup power
 DEFAULT_PGM_BRAKING_STRENGTH		EQU	255	; 0..255 => 0..100 % Braking
+DEFAULT_VAR_PWM_LO_THRES		EQU	100		; About 40% rc pulse
+DEFAULT_VAR_PWM_HI_THRES		EQU	150		; About 60% rc pulse
 
 ;**** **** **** **** ****
 ; Temporary register definitions
@@ -194,7 +196,7 @@ Flag_Dir_Change_Brake		BIT	Flags1.5		; Set when braking before direction change 
 Flag_High_Rpm				BIT	Flags1.6		; Set when motor rpm is high (Comm_Period4x_H less than 2)
 
 Flags2:					DS	1			; State flags. NOT reset upon motor_start
-;						BIT	Flags2.0
+Flag_Variable_Pwm_Bits		BIT	Flags2.0		; Set when programmed variable pwm
 Flag_Pgm_Dir_Rev			BIT	Flags2.1		; Set if the programmed direction is reversed
 Flag_Pgm_Bidir				BIT	Flags2.2		; Set if the programmed control mode is bidirectional operation
 Flag_32ms_Elapsed			BIT	Flags2.3		; Set when timer2 interrupt is triggered
@@ -330,6 +332,8 @@ _Pgm_Pwm_Dither:			DS	1	; Output PWM dither
 Pgm_Brake_On_Stop:			DS	1	; Braking when throttle is zero
 Pgm_LED_Control:			DS	1	; LED control
 Pgm_Power_Rating:			DS	1	; Power rating
+Pgm_Var_PWM_lo_thres:		DS	1	; Variable PWM low rcpulse threshold
+Pgm_Var_PWM_hi_thres:		DS	1	; Variable PWM high rcpulse threshold
 
 ISEG AT 0B0h
 Stack:					DS	16	; Reserved stack space
@@ -350,8 +354,8 @@ ELSE
 ENDIF
 EEPROM_FW_MAIN_REVISION		EQU	0	; Main revision of the firmware
 EEPROM_FW_SUB_REVISION		EQU	18	; Sub revision of the firmware
-EEPROM_LAYOUT_REVISION		EQU	206	; Revision of the EEPROM layout
-EEPROM_B2_PARAMETERS_COUNT  EQU 27  ; Number of parameters
+EEPROM_LAYOUT_REVISION		EQU	207	; Revision of the EEPROM layout
+EEPROM_B2_PARAMETERS_COUNT  EQU 29  ; Number of parameters
 
 Eep_FW_Main_Revision:		DB	EEPROM_FW_MAIN_REVISION		; EEPROM firmware main revision number
 Eep_FW_Sub_Revision:		DB	EEPROM_FW_SUB_REVISION		; EEPROM firmware sub revision number
@@ -398,6 +402,8 @@ _Eep_Pgm_Pwm_Dither:		DB	0FFh
 Eep_Pgm_Brake_On_Stop:		DB	DEFAULT_PGM_BRAKE_ON_STOP	; EEPROM copy of programmed braking when throttle is zero
 Eep_Pgm_LED_Control:		DB	DEFAULT_PGM_LED_CONTROL		; EEPROM copy of programmed LED control
 Eep_Pgm_Power_Rating:		DB	DEFAULT_PGM_POWER_RATING	; EEPROM copy of programmed power rating
+Eep_Pgm_Var_PWM_lo_thres:	DB	DEFAULT_VAR_PWM_LO_THRES	; EEPROM copy of variable PWM low rcpulse threshold
+Eep_Pgm_Var_PWM_hi_thres:	DB	(DEFAULT_VAR_PWM_HI_THRES - DEFAULT_VAR_PWM_LO_THRES)	; EEPROM copy of variable PWM high rcpulse threshold
 
 Eep_Dummy:				DB	0FFh						; EEPROM address for safety reason
 
@@ -976,6 +982,47 @@ t1_int_zero_rcp_checked:
 	mov	Temp6, Pwm_Limit_By_Rpm
 
 
+	; Check variable pwm
+	jnb Flag_Variable_Pwm_Bits, t1_int_variable_pwm_done
+
+	; If variable pwm, set pwm bits depending on PWM_CENTERED 1 [3-1] or 0 [2-0]
+	; and 8 bit rc pulse Temp2
+	clr C
+	mov A, Temp2	; Load 8bit rc pulse
+
+t1_int_variable_pwm_lt_lo_rcpulse:
+	; Compare rc pulse to Pgm_Var_PWM_lo_thres
+	mov Temp1, #Pgm_Var_PWM_lo_thres					; Load low rc pulse threshold pointer
+	subb	A, @Temp1
+	jnc t1_int_variable_pwm_gt_lo_rcpulse
+
+	; rc pulse <= Pgm_Var_PWM_lo_thres -> choose 96khz
+	mov PwmBitsCount, #0
+	sjmp t1_int_variable_pwm_centered
+
+t1_int_variable_pwm_gt_lo_rcpulse:
+	; rc pulse > Pgm_Var_PWM_lo_thres -> choose 48khz or 24khz
+	mov Temp1, #Pgm_Var_PWM_hi_thres					; Load high rc pulse threshold pointer
+	subb	A, @Temp1
+	jnc t1_int_variable_pwm_gt_hi_rcpulse
+
+	; rc pulse <= Pgm_Var_PWM_hi_thres -> choose 48khz
+	mov PwmBitsCount, #1
+	sjmp t1_int_variable_pwm_centered
+
+t1_int_variable_pwm_gt_hi_rcpulse:
+	; rc pulse > Pgm_Var_PWM_hi_thres -> choose 24khz
+	mov PwmBitsCount, #2
+
+t1_int_variable_pwm_centered:
+IF PWM_CENTERED == 0
+	; Increment PwmBits count
+	inc PwmBitsCount
+ENDIF
+
+t1_int_variable_pwm_done:
+
+
 	; Limit PWM and scale pwm resolution and invert (duty cycle is defined inversely)
 	; depending on pwm bits count
 	mov A, PwmBitsCount
@@ -1045,7 +1092,11 @@ t1_int_pwm_limit_scale_dithering_pwm10bit_limited:
 t1_int_pwm_limit_scale_dithering_pwm10bit_scaled:
 	mov A, Temp4					; 11-bit low byte
 	cpl A
-	anl A, #((1 SHL (3 - 2)) - 1)	; Get index into dithering pattern table
+	anl A, #((1 SHL (3 - 2)) - 1)	; Get index [0,1] into dithering pattern table
+
+	; Multiplying by 4, select pattern [0, 4] on unified dithering pattern table
+	rl A
+	rl A
 
 	add A, #Dithering_Patterns
 	mov Temp1, A					; Reuse DShot pwm pointer since it is not currently in use.
@@ -1107,7 +1158,10 @@ t1_int_pwm_limit_scale_dithering_pwm9bit_limited:
 
 	mov A, Temp4					; 11-bit low byte
 	cpl A
-	anl A, #((1 SHL (3 - 1)) - 1)	; Get index into dithering pattern table
+	anl A, #((1 SHL (3 - 1)) - 1)	; Get index [0-3] into dithering pattern table
+
+	; Multiplying by 2, select pattern [0, 2, 4, 6] on unified dithering pattern table
+	rl A
 
 	add A, #Dithering_Patterns
 	mov Temp1, A					; Reuse DShot pwm pointer since it is not currently in use.
@@ -1209,6 +1263,11 @@ t1_int_max_braking_set:
 t1_int_pwm_braking_set:
 ENDIF
 
+
+	; Update pwm cycle length (8-11 bits)
+	mov A, #80h
+	add A, PwmBitsCount
+	mov	PCA0PWM, A
 
 	; Note: Interrupts are not explicitly disabled
 	; Assume higher priority interrupts (Int0, Timer0) to be disabled at this point
@@ -3942,6 +4001,8 @@ set_default_parameters:
 	imov	Temp1, #DEFAULT_PGM_BRAKE_ON_STOP		; Pgm_Brake_On_Stop
 	imov	Temp1, #DEFAULT_PGM_LED_CONTROL		; Pgm_LED_Control
 	imov	Temp1, #DEFAULT_PGM_POWER_RATING	; Pgm_Power_Rating
+	imov	Temp1, #DEFAULT_VAR_PWM_LO_THRES	; Pgm_Var_PWM_lo_thres
+	imov	Temp1, #(DEFAULT_VAR_PWM_HI_THRES - DEFAULT_VAR_PWM_LO_THRES)	; Pgm_Var_PWM_hi_thres
 
 	ret
 
@@ -4092,31 +4153,7 @@ decode_pwm_dithering:
 	add	A, #0FFh					; Carry set if A is not zero
 	mov	Flag_Dithering, C			; Set dithering enabled
 
-	; Decode dithering pattern depending on PwmBitsCount
-	mov A, PwmBitsCount
-
-decode_pwm_dithering_pwm10bit:
-	cjne A, #2, decode_pwm_dithering_pwm9bit
-
-	; Initialize pwm dithering bit patterns
-	mov	Temp1, #Dithering_Patterns	; 1-bit dithering (10-bit to 11-bit)
-	mov	@Temp1, #00h				; 00000000
-	imov	Temp1, #55h				; 01010101
-	sjmp	decode_pwm_dithering_done
-
-decode_pwm_dithering_pwm9bit:
-	cjne A, #1, decode_pwm_dithering_pwm8bit
-
-	mov	Temp1, #Dithering_Patterns	; 2-bit dithering (9-bit to 11-bit)
-	mov	@Temp1, #00h				; 00000000
-	imov	Temp1, #11h				; 00010001
-	imov	Temp1, #55h				; 01010101
-	imov	Temp1, #77h				; 01110111
-	sjmp	decode_pwm_dithering_done
-
-decode_pwm_dithering_pwm8bit:
-	cjne A, #0, decode_pwm_dithering_done
-
+	; Initialize unified dithering pattern table
 	mov	Temp1, #Dithering_Patterns	; 3-bit dithering (8-bit to 11-bit)
 	mov	@Temp1, #00h				; 00000000
 	imov	Temp1, #01h				; 00000001
@@ -4127,7 +4164,7 @@ decode_pwm_dithering_pwm8bit:
 	imov	Temp1, #77h				; 01110111
 	imov	Temp1, #7fh				; 01111111
 
-decode_pwm_dithering_done:
+	; All decoding done
 	ret
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -4146,6 +4183,12 @@ calculate_pwm_bits:
     ; Load and decode Pgm_Pwm_Freq [24, 48, 96] -> [0, 1, 2]
     ; Let Temp1 = Pgm_Pwm_Freq / 24
 	mov Temp1, #Pgm_Pwm_Freq
+
+calculate_pwm_bits_variable_pwm_bits:
+	; If pwm is variable do not substract and set variable pwm flag
+	cjne	@Temp1, #192, calculate_pwm_bits_pwm96bits
+	setb	Flag_Variable_Pwm_Bits
+	sjmp	calculate_pwm_bits_pwm_decoded
 
 calculate_pwm_bits_pwm96bits:
 	; If pwm is 96 khz substract 2
