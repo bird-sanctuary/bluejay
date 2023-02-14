@@ -8,7 +8,7 @@ MCUS			= H L
 LAYOUTS_X		= A B C
 MCUS_X		= X
 DEADTIMES		= 0 5 10 15 20 25 30 40 50 70 90 120
-PWM_FREQS		= 24 48 96
+PWM_FREQS		= 24 48 96 DYNAMIC
 
 # Example single target
 LAYOUT		?= A
@@ -65,7 +65,7 @@ $(OUTPUT_DIR)/$(1)_$(2)_$(3)_$(4)_$(VERSION).OBJ : $(ASM_SRC) $(ASM_INC)
 	$(eval _ESCNO		:= $(shell echo $$(( $(_ESC_INT) - 65 + 1))))
 	$(eval _MCU_TYPE	:= $(subst L,0,$(subst H,1,$(subst X,2,$(2)))))
 	$(eval _DEADTIME	:= $(3))
-	$(eval _PWM_FREQ	:= $(subst 24,0,$(subst 48,1,$(subst 96,2,$(4)))))
+	$(eval _PWM_FREQ	:= $(subst 24,0,$(subst 48,1,$(subst 96,2,$(subst DYNAMIC,3,$(4))))))
 	$$(eval _LST		:= $$(patsubst %.OBJ,%.LST,$$@))
 	@mkdir -p $(OUTPUT_DIR)
 	@echo "AX51 : $$@"
