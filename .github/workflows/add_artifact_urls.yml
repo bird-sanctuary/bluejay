@@ -1,21 +1,16 @@
-name: add artifact links to pull request and related issues
+name: Add Artifact Link to PR
+
 on:
   workflow_run:
     workflows: ['Build Firmware']
     types: [completed]
 
 jobs:
-  artifacts-url-comments:
-    name: add artifact links to pull request and related issues job
-    runs-on: windows-2019
+  comment-action:
+    runs-on: ubuntu-latest
     steps:
-      - name: add artifact links to pull request and related issues step
-        uses: tonyhallett/artifacts-url-comments@v1.1.0
-        env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Link Artifacts via action
+        uses: stylesuxx/link-artifacts-in-pr-action@v1
         with:
-            prefix: Here are the build results
-            suffix: Artifacts will only be retained for 30 days.
-            format: name
-            addTo: pull
-        continue-on-error: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          whitelist: "[]"
