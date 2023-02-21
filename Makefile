@@ -38,7 +38,22 @@ LX51_FLAGS	=
 
 # Source files
 ASM_SRC		= Bluejay.asm
-ASM_INC		= $(LAYOUTS:%=Layouts/%.inc) Layouts/Base.inc Common.inc BLHeliBootLoad.inc Silabs/SI_EFM8BB1_Defs.inc Silabs/SI_EFM8BB2_Defs.inc
+ASM_INC		= \
+	$(LAYOUTS:%=Layouts/%.inc) \
+	Layouts/Base.inc \
+	Bluejay_Common.asm \
+	Bluejay_Commutation.asm \
+	Bluejay_Dshot.asm \
+	Bluejay_Edt.asm \
+	Bluejay_Fx.asm \
+	Bluejay_Isrs.asm \
+	Bluejay_NvM.asm \
+	Bluejay_PowerCtl.asm \
+	Bluejay_Settings.asm \
+	Bluejay_Timing.asm \
+	BLHeliBootLoad.asm \
+	Silabs/SI_EFM8BB1_Defs.inc \
+	Silabs/SI_EFM8BB2_Defs.inc
 
 # Check that wine/simplicity studio is available
 EXECUTABLES	= $(AX51_BIN) $(LX51_BIN) $(OX51_BIN)
