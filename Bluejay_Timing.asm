@@ -53,42 +53,26 @@ initialize_timing:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 calc_next_comm_period:
-    ; Read commutation time
+    ; Read commutation time into Temp3:2:1
     clr IE_EA
-    clr TMR2CN0_TR2             ; Timer2 disabled
+    clr TMR2CN0_TR2                 ; Timer2 disabled
     mov Temp1, TMR2L                ; Load Timer2 value
     mov Temp2, TMR2H
     mov Temp3, Timer2_X
     jnb TMR2CN0_TF2H, ($+4)         ; Check if interrupt is pending
-    inc Temp3                   ; If it is pending, then timer has already wrapped
+    inc Temp3                       ; If it is pending, then timer has already wrapped
     setb    TMR2CN0_TR2             ; Timer2 enabled
     setb    IE_EA
 
 IF MCU_TYPE >= 1
-    clr C                       ; Divide time by 2 on 48MHz
+    ; Divide time by 2 on 48MHz MCUs
+    clr C
     rrca    Temp3
     rrca    Temp2
     rrca    Temp1
 ENDIF
 
-    jb  Flag_Startup_Phase, calc_next_comm_startup
-
-    ; Calculate this commutation time
-    clr C
-    mov A, Temp1
-    subb    A, Prev_Comm_L              ; Calculate the new commutation time
-    mov Prev_Comm_L, Temp1          ; Save timestamp as previous commutation
-    mov Temp1, A                    ; Store commutation period in Temp1 (lo byte)
-    mov A, Temp2
-    subb    A, Prev_Comm_H
-    mov Prev_Comm_H, Temp2          ; Save timestamp as previous commutation
-IF MCU_TYPE >= 1
-    anl A, #7Fh
-ENDIF
-    mov Temp2, A                    ; Store commutation period in Temp2 (hi byte)
-
-    jnb Flag_High_Rpm, calc_next_comm_normal    ; Branch normal rpm
-    ajmp    calc_next_comm_period_fast          ; Branch high rpm
+    jnb  Flag_Startup_Phase, calc_next_comm_normal
 
 calc_next_comm_startup:
     ; Calculate this commutation time
@@ -101,22 +85,22 @@ calc_next_comm_startup:
 
     clr C
     mov A, Temp1
-    subb    A, Temp4                    ; Calculate the new commutation time
+    subb    A, Temp4                ; Calculate the new commutation time
     mov A, Temp2
     subb    A, Temp5
     mov A, Temp3
-    subb    A, Temp6                    ; Calculate the new extended commutation time
+    subb    A, Temp6                ; Calculate the new extended commutation time
 IF MCU_TYPE >= 1
     anl A, #7Fh
 ENDIF
-    jz  calc_next_comm_startup_no_X
+    jz  calc_next_comm_startup_no_zero_cross
 
     ; Extended byte is not zero, so commutation time is above 0xFFFF
     mov Comm_Period4x_L, #0FFh
     mov Comm_Period4x_H, #0FFh
     ajmp    calc_next_comm_done
 
-calc_next_comm_startup_no_X:
+calc_next_comm_startup_no_zero_cross:
     ; Extended byte = 0, so commutation time fits within two bytes
     mov Temp7, Prev_Prev_Comm_L
     mov Temp8, Prev_Prev_Comm_H
@@ -132,77 +116,52 @@ calc_next_comm_startup_no_X:
     subb    A, Temp8
     mov Temp2, A
 
-    mov Temp3, Comm_Period4x_L      ; Comm_Period4x holds the time of 4 commutations
+    ; Comm_Period4x holds the time of 4 commutations
+    mov Temp3, Comm_Period4x_L
     mov Temp4, Comm_Period4x_H
 
-    sjmp    calc_next_comm_div_4_1
-
-calc_next_comm_normal:
-    ; Prepare averaging by dividing Comm_Period4x and current commutation period (Temp2/1) according to speed.
-    mov Temp3, Comm_Period4x_L      ; Comm_Period4x holds the time of 4 commutations
-    mov Temp4, Comm_Period4x_H
-
-    clr C
-    mov A, Temp4                    ; Is Comm_Period4x_H below 4? (above ~80k erpm)
-    subb    A, #4
-    jc  calc_next_comm_div_16_4     ; Yes - Use averaging for high speeds
-
-    subb    A, #4                   ; Is Comm_Period4x_H below 8? (above ~40k erpm)
-    jc  calc_next_comm_div_8_2      ; Yes - Use averaging for low speeds
-
-    ; No - Use averaging for even lower speeds
-
-    ; Do not average very fast during initial run
-    jb  Flag_Initial_Run_Phase, calc_next_comm_div_8_2_slow
-
-calc_next_comm_div_4_1:
     ; Update Comm_Period4x from 1 new commutation period
+    ; Comm_Period4x = Comm_Period4x - (Comm_Period4x / 4) + (Comm_Period / 1)
 
-    ; Divide Temp4/3 by 4 and store in Temp6/5
+    ; Divide Temp4:3 by 4 and store in Temp6:5
     Divide_By_4 Temp4, Temp3, Temp6, Temp5
 
-    sjmp    calc_next_comm_average_and_update
+    ; Comm_Period / 1 does not need to be divided
+    sjmp calc_next_comm_average_and_update
 
-calc_next_comm_div_8_2:
-    ; Update Comm_Period4x from 1/2 new commutation period
+calc_next_comm_normal:
+    ; Calculate this commutation time and store in Temp2:1
+    clr C
+    mov A, Temp1
+    subb    A, Prev_Comm_L          ; Calculate the new commutation time
+    mov Prev_Comm_L, Temp1          ; Save timestamp as previous commutation
+    mov Temp1, A                    ; Store commutation period in Temp1 (lo byte)
+    mov A, Temp2
+    subb    A, Prev_Comm_H
+    mov Prev_Comm_H, Temp2          ; Save timestamp as previous commutation
+IF MCU_TYPE >= 1
+    anl A, #7Fh
+ENDIF
+    mov Temp2, A                    ; Store commutation period in Temp2 (hi byte)
 
-    ; Divide Temp4/3 by 8 and store in Temp5
-    Divide_11Bit_By_8   Temp4, Temp3, Temp5
-    mov Temp6, #0
+    ; Comm_Period4x holds the time of 4 commutations
+    mov Temp3, Comm_Period4x_L
+    mov Temp4, Comm_Period4x_H
 
-    clr C                       ; Divide by 2
-    rrca    Temp2
-    rrca    Temp1
-
-    sjmp    calc_next_comm_average_and_update
-
-calc_next_comm_div_8_2_slow:
-    ; Update Comm_Period4x from 1/2 new commutation period
-
-    ; Divide Temp4/3 by 8 and store in Temp6/5
-    Divide_By_8 Temp4, Temp3, Temp6, Temp5
-
-    clr C                       ; Divide by 2
-    rrca    Temp2
-    rrca    Temp1
-
-    sjmp    calc_next_comm_average_and_update
-
-calc_next_comm_div_16_4:
     ; Update Comm_Period4x from 1/4 new commutation period
+    ; Comm_Period4x = Comm_Period4x - (Comm_Period4x / 16) + (Comm_Period / 4)
 
-    ; Divide Temp4/3 by 16 and store in Temp5
-    Divide_12Bit_By_16  Temp4, Temp3, Temp5
-    mov Temp6, #0
+    ; Divide Temp4:3 by 16 and store in Temp6:5
+    Divide_By_16 Temp4, Temp3, Temp6, Temp5
 
-    ; Divide Temp2/1 by 4 and store in Temp2/1
+    ; Divide Temp2:1 by 4 and store in Temp2:1
     Divide_By_4 Temp2, Temp1, Temp2, Temp1
 
 calc_next_comm_average_and_update:
-    ; Comm_Period4x = Comm_Period4x - (Comm_Period4x / (16, 8 or 4)) + (Comm_Period / (4, 2 or 1))
+    ; Comm_Period4x = Comm_Period4x - (Comm_Period4x / (16 or 4)) + (Comm_Period / (4 or 1))
 
-    ; Temp6/5: Comm_Period4x divided by (16, 8 or 4)
-    clr C                       ; Subtract a fraction
+    ; Temp6/5: Comm_Period4x divided by (16 or 4)
+    clr C                           ; Subtract a fraction
     mov A, Temp3                    ; Comm_Period4x_L
     subb    A, Temp5
     mov Temp3, A
@@ -210,7 +169,7 @@ calc_next_comm_average_and_update:
     subb    A, Temp6
     mov Temp4, A
 
-    ; Temp2/1: This commutation period divided by (4, 2 or 1)
+    ; Temp2/1: This commutation period divided by (4 or 1)
     mov A, Temp3                    ; Add the divided new time
     add A, Temp1
     mov Comm_Period4x_L, A
@@ -223,11 +182,11 @@ calc_next_comm_average_and_update:
     mov Comm_Period4x_H, #0FFh
 
 calc_next_comm_done:
+    ; C = Comm_Period4x_H < 2 (above ~160k erpm)
     clr C
     mov A, Comm_Period4x_H
-    subb    A, #2                   ; Is Comm_Period4x_H below 2? (above ~160k erpm)
-    jnc ($+4)
-    setb    Flag_High_Rpm               ; Yes - Set high rpm flag
+    subb    A, #2
+    mov Flag_High_Rpm, C
 
 calc_next_comm_15deg:
     ; Commutation period: 360 deg / 6 runs = 60 deg
@@ -256,59 +215,6 @@ calc_next_comm_15deg_set_min:
     mov Temp4, #0
 
     sjmp    calc_next_comm_period_exit
-
-;**** **** **** **** ****
-; Calculate next commutation period (fast)
-; Fast calculation (Comm_Period4x_H less than 2)
-calc_next_comm_period_fast:
-    ; Calculate new commutation time
-    mov Temp3, Comm_Period4x_L      ; Comm_Period4x holds the time of 4 commutations
-    mov Temp4, Comm_Period4x_H
-
-    ; Divide by 16 and store in Temp5
-    Divide_12Bit_By_16  Temp4, Temp3, Temp5
-
-    clr C
-    mov A, Temp3                    ; Subtract a fraction
-    subb    A, Temp5
-    mov Temp3, A
-    mov A, Temp4
-    subb    A, #0
-    mov Temp4, A
-
-    ; Note: Temp2 is assumed to be zero (approx. Comm_Period4x_H / 4)
-    mov A, Temp1                    ; Divide by 4
-    rr  A
-    rr  A
-    anl A, #03Fh
-
-    add A, Temp3                    ; Add the divided new time
-    mov Temp3, A
-    mov A, Temp4
-    addc    A, #0
-    mov Temp4, A
-
-    mov Comm_Period4x_L, Temp3      ; Store Comm_Period4x
-    mov Comm_Period4x_H, Temp4
-
-    clr C
-    subb    A, #2                   ; Is Comm_Period4x_H 2 or more? (below ~160k erpm)
-    jc  ($+4)
-    clr Flag_High_Rpm               ; Yes - Clear high rpm bit
-
-    mov A, Temp4                    ; Divide Comm_Period4x by 16 and store in Temp4/3
-    swap    A
-    mov Temp7, A
-    mov Temp4, #0                   ; Clear waiting time high byte
-    mov A, Temp3
-    swap    A
-    anl A, #0Fh
-    orl A, Temp7
-    clr C
-    subb    A, #2                   ; Timing reduction
-    mov Temp3, A
-    jc  calc_next_comm_fast_set_min ; Check that result is still positive
-    jnz calc_next_comm_period_exit  ; Check that result is still above minimum
 
 calc_next_comm_fast_set_min:
     mov Temp3, #1                   ; Set minimum waiting time (Timers cannot wait for a delay of 0)
