@@ -4,7 +4,7 @@ VERSION		?= $(TAG)
 
 # Target parameters
 LAYOUTS		= A B C D E F G H I J K L M N O P Q R S T U V W Z
-MCUS			= H L
+MCUS			= H
 LAYOUTS_X		= A B C
 MCUS_X		= X
 DEADTIMES		= 0 5 10 15 20 25 30 40 50 70 90 120
@@ -63,7 +63,7 @@ $(OUTPUT_DIR)/$(1)_$(2)_$(3)_$(4)_$(VERSION).OBJ : $(ASM_SRC) $(ASM_INC)
 	$(eval _ESC			:= $(1))
 	$(eval _ESC_INT		:= $(shell printf "%d" "'${_ESC}"))
 	$(eval _ESCNO		:= $(shell echo $$(( $(_ESC_INT) - 65 + 1))))
-	$(eval _MCU_48MHZ	:= $(subst L,0,$(subst H,1,$(subst X,2,$(2)))))
+	$(eval _MCU_TYPE	:= $(subst L,0,$(subst H,1,$(subst X,2,$(2)))))
 	$(eval _DEADTIME	:= $(3))
 	$(eval _PWM_FREQ	:= $(subst 24,0,$(subst 48,1,$(subst 96,2,$(4)))))
 	$$(eval _LST		:= $$(patsubst %.OBJ,%.LST,$$@))
@@ -71,7 +71,7 @@ $(OUTPUT_DIR)/$(1)_$(2)_$(3)_$(4)_$(VERSION).OBJ : $(ASM_SRC) $(ASM_INC)
 	@echo "AX51 : $$@"
 	@$(AX51) $(ASM_SRC) \
 		"DEFINE(ESCNO=$(_ESCNO)) " \
-		"DEFINE(MCU_48MHZ=$(_MCU_48MHZ)) "\
+		"DEFINE(MCU_TYPE=$(_MCU_TYPE)) "\
 		"DEFINE(DEADTIME=$(_DEADTIME)) "\
 		"DEFINE(PWM_FREQ=$(_PWM_FREQ)) "\
 		"OBJECT($$@) "\
