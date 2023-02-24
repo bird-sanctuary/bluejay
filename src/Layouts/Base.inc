@@ -275,6 +275,7 @@ ELSE
 ENDIF
 ENDM
 
+; Turns off all HSS (high side switch - half bridge arm)
 All_Pwm_Fets_Off MACRO
 	A_Pwm_Fet_Off
 	B_Pwm_Fet_Off
@@ -315,6 +316,7 @@ C_Com_Fet_Off MACRO
 	cOFF	P_C_Com
 ENDM
 
+; Turns off all LSS (low side switch - half bridge leg)
 All_Com_Fets_Off MACRO
 	A_Com_Fet_Off
 	B_Com_Fet_Off
