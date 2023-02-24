@@ -353,7 +353,7 @@ ELSE
 	CSEG AT 1A00h
 ENDIF
 EEPROM_FW_MAIN_REVISION		EQU	0	; Main revision of the firmware
-EEPROM_FW_SUB_REVISION		EQU	18	; Sub revision of the firmware
+EEPROM_FW_SUB_REVISION		EQU	19	; Sub revision of the firmware
 EEPROM_LAYOUT_REVISION		EQU	206	; Revision of the EEPROM layout
 EEPROM_B2_PARAMETERS_COUNT  EQU 27  ; Number of parameters
 
