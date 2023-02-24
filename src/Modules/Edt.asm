@@ -79,6 +79,11 @@ scheduler_steps_even:
     ; Otherwise hard stuttering is produced
 
 scheduler_steps_even_demag_metric_frame:
+    ; Check telemetry is enable to produce telemetry frames
+    jb Flag_Ext_Tele, scheduler_steps_even_demag_metric_frame_generate
+    jmp scheduler_exit
+
+scheduler_steps_even_demag_metric_frame_generate:
     ; ********************* [TELEMETRY] SEND DEMAG METRIC FRAME *****************
     mov Ext_Telemetry_L, Demag_Detected_Metric  ; Set telemetry low value to demag metric data
     mov Ext_Telemetry_H, #0Ch                   ; Set telemetry high value to demag metric frame ID
@@ -116,6 +121,9 @@ scheduler_steps_odd_temp_pwm_limit_inc:
     ; Now run speciffic odd scheduler step
 
 scheduler_steps_odd_choose_step:
+    ; Check telemetry is enabled to produce telemetry frames
+    jnb Flag_Ext_Tele, scheduler_steps_odd_restart_ADC
+
     ; Let A = Scheduler_Counter % 8, so A = [0 - 7] value
     mov A, Scheduler_Counter
     anl A, #07h
@@ -165,7 +173,7 @@ scheduler_steps_odd_debug1_frame:
     cjne A, #3, scheduler_steps_odd_debug2_frame
 
     ; Stub for debug 1
-    mov Ext_Telemetry_L, #088h          ; Set telemetry low value
+    mov Ext_Telemetry_L, PCA0PWM        ; Publish PWM config
     mov Ext_Telemetry_H, #08h           ; Set telemetry high value to debug1 frame ID
 
     ; Now restart ADC conversion
@@ -176,8 +184,8 @@ scheduler_steps_odd_debug2_frame:
     cjne A, #5, scheduler_steps_odd_temperature_frame
 
     ; Stub for debug 2
-    mov Ext_Telemetry_L, #0AAh          ; Set telemetry low value
-    mov Ext_Telemetry_H, #0Ah           ; Set telemetry high value to debug2 frame ID
+    mov Ext_Telemetry_L, DShot_Err_Counter  ; Publish dshot error counter as temporal bf request
+    mov Ext_Telemetry_H, #0Ah               ; Set telemetry high value to debug2 frame ID
 
     ; Now restart ADC conversion
     sjmp scheduler_steps_odd_restart_ADC

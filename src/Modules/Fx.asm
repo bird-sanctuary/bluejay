@@ -179,6 +179,12 @@ beep_motor_stalled:
     call    beep_f1
     ret
 
+beep_safety_no_arm:
+    call    beep_f2_short
+    call    beep_f1_short
+    ret
+
+
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
