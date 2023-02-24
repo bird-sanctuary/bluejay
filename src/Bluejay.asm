@@ -24,7 +24,7 @@
 ;
 ; Bluejay is a fork of BLHeli_S <https://github.com/bitdump/BLHeli> by Steffen Skaug.
 ;
-; The input signal can be DShot with rates: DShot150, DShot300 and DShot600.
+; The input signal can be DShot with rates: DShot300 and DShot600.
 ;
 ; This file is best viewed with tab width set to 5.
 ;
@@ -32,7 +32,6 @@
 ; Master clock is internal 24MHz oscillator (or 48MHz, for which the times below are halved)
 ; Although 24/48 are used in the code, the exact clock frequencies are 24.5MHz or 49.0 MHz
 ; Timer0 (41.67ns counts) always counts up and is used for
-; - RC pulse measurement
 ; - DShot telemetry pulse timing
 ; Timer1 (41.67ns counts) always counts up and is used for
 ; - DShot frame sync detection
@@ -123,7 +122,7 @@ ENDIF
 
 ;**** **** **** **** ****
 ; Select the pwm frequency (or unselect for use with external batch compile file)
-;PWM_FREQ			EQU	0	; 0=24, 1=48, 2=96 kHz 3=Dynamic frequency
+PWM_FREQ			EQU	3	; 0=24, 1=48, 2=96 kHz 3=Dynamic frequency
 
 PWM_CENTERED	EQU	DEADTIME > 0			; Use center aligned pwm on ESCs with dead time
 
@@ -133,7 +132,7 @@ ELSE
 	IS_MCU_48MHZ	EQU	1
 ENDIF
 
-$include (Bluejay_Common.asm)			; Include common source code for EFM8BBx based ESCs
+$include (Modules/Common.asm)			; Include common source code for EFM8BBx based ESCs
 
 ;**** **** **** **** ****
 ; Programming defaults
@@ -159,6 +158,8 @@ DEFAULT_PGM_STARTUP_POWER_MAX		EQU	25	; 0..255 => (1000..2000 Throttle): Maximum
 DEFAULT_PGM_BRAKING_STRENGTH		EQU	255	; 0..255 => 0..100 % Braking
 DEFAULT_VAR_PWM_LO_THRES		EQU	100		; About 40% rc pulse
 DEFAULT_VAR_PWM_HI_THRES		EQU	150		; About 60% rc pulse
+DEFAULT_FORCE_EDT_ARM           EQU 0       ; Do not require EDT enable to arm
+DEFAULT_ENABLE_RCPULSE_FILTER   EQU 1       ; Enable RC pulse input noise filter by default
 
 ;**** **** **** **** ****
 ; Temporary register definitions
@@ -209,6 +210,8 @@ Flags3:					DS	1			; State flags. NOT reset upon motor_start
 Flag_Telemetry_Pending		BIT	Flags3.0		; DShot telemetry data packet is ready to be sent
 Flag_Dithering				BIT	Flags3.1		; PWM dithering enabled
 Flag_Had_Signal			BIT	Flags3.2		; Used to detect reset after having had a valid signal
+Flag_Stm_Select				BIT Flags3.3		; Allows to choose between rcpulse or telemetry stms
+Flag_Forced_Rev_Operation   BIT Flags3.4        ; Reversed operation is being forced by Dshot command 21
 
 Tlm_Data_L:				DS	1			; DShot telemetry data (lo byte)
 Tlm_Data_H:				DS	1			; DShot telemetry data (hi byte)
@@ -225,7 +228,7 @@ Beacon_Delay_Cnt:			DS	1	; Counter to trigger beacon during wait for start
 Startup_Cnt:				DS	1	; Startup phase commutations counter (incrementing)
 Startup_Zc_Timeout_Cntd:		DS	1	; Startup zero cross timeout counter (decrementing)
 Initial_Run_Rot_Cntd:		DS	1	; Initial run rotations counter (decrementing)
-Startup_Stall_Cnt:			DS	1	; Counts start/run attempts that resulted in stall. Reset upon a proper stop
+Stall_Counter:			DS	1	; Counts start/run attempts that resulted in stall. Reset upon a proper stop
 Demag_Detected_Metric:		DS	1	; Metric used to gauge demag event frequency
 Demag_Detected_Metric_Max:	DS	1	; Metric used to gauge demag event frequency
 Demag_Pwr_Off_Thresh:		DS	1	; Metric threshold above which power is cut
@@ -285,10 +288,22 @@ DShot_GCR_Pulse_Time_3_Tmp:	DS	1
 
 DShot_GCR_Start_Delay:		DS	1
 
+DShot_Err_Counter:          DS  1   ; Increases when dshot frame error
+
 Ext_Telemetry_L:			DS	1	; Extended telemetry data to be sent
 Ext_Telemetry_H:			DS	1
 Scheduler_Counter:			DS	1	; Scheduler Heartbeat
 PwmBitsCount:				DS  1	; 0 = 8 bit pwm, 1 = 9 bit pwm, 2 = 10 bit pwm, 3 = 11 bit pwm
+
+DShot_rcpulse_stm_state:    DS  1   ; RC pulse state machine state or step
+DShot_rcpulse_stm_pwm_t2:   DS  1   ; RC pulse state machine temp2
+DShot_rcpulse_stm_pwm_t3:   DS  1   ; RC pulse state machine temp3
+DShot_rcpulse_stm_pwm_t4:   DS  1   ; RC pulse state machine temp4
+DShot_rcpulse_stm_pwm_t5:   DS  1   ; RC pulse state machine temp5
+
+DShot_rcpulse_prev_lo:      DS  1   ; Previous RC pulse lo byte for rc input filtering
+DShot_rcpulse_prev_hi:      DS  1   ; Previous RC pulse hi byte for rc input filtering
+
 
 ;**** **** **** **** ****
 ; Indirect addressing data segments
@@ -334,12 +349,14 @@ Pgm_LED_Control:			DS	1	; LED control
 Pgm_Power_Rating:			DS	1	; Power rating
 Pgm_Var_PWM_lo_thres:		DS	1	; Variable PWM low rcpulse threshold
 Pgm_Var_PWM_hi_thres:		DS	1	; Variable PWM high rcpulse threshold
+Pgm_Flag_Settings:          DS  1   ; Various flag settings: bit 0 is require edt enable to arm
+Pgm_Enable_RcPulse_Filter:  DS  1   ; When it is 1 it enables rcpulse input noise filter
 
 ISEG AT 0B0h
-Stack:					DS	16	; Reserved stack space
+Stack:					    DS	16	; Reserved stack space
 
 ISEG AT 0C0h
-Dithering_Patterns:			DS	16	; Bit patterns for pwm dithering
+Dithering_Patterns:			DS	8	; Unified bit patterns for pwm dithering
 
 ISEG AT 0D0h
 Temp_Storage:				DS	48	; Temporary storage (internal memory)
@@ -353,9 +370,9 @@ ELSE
 	CSEG AT 1A00h
 ENDIF
 EEPROM_FW_MAIN_REVISION		EQU	0	; Main revision of the firmware
-EEPROM_FW_SUB_REVISION		EQU	18	; Sub revision of the firmware
+EEPROM_FW_SUB_REVISION		EQU	20	; Sub revision of the firmware
 EEPROM_LAYOUT_REVISION		EQU	207	; Revision of the EEPROM layout
-EEPROM_B2_PARAMETERS_COUNT  EQU 29  ; Number of parameters
+EEPROM_B2_PARAMETERS_COUNT  EQU 31  ; Number of parameters
 
 Eep_FW_Main_Revision:		DB	EEPROM_FW_MAIN_REVISION		; EEPROM firmware main revision number
 Eep_FW_Sub_Revision:		DB	EEPROM_FW_SUB_REVISION		; EEPROM firmware sub revision number
@@ -403,7 +420,9 @@ Eep_Pgm_Brake_On_Stop:		DB	DEFAULT_PGM_BRAKE_ON_STOP	; EEPROM copy of programmed
 Eep_Pgm_LED_Control:		DB	DEFAULT_PGM_LED_CONTROL		; EEPROM copy of programmed LED control
 Eep_Pgm_Power_Rating:		DB	DEFAULT_PGM_POWER_RATING	; EEPROM copy of programmed power rating
 Eep_Pgm_Var_PWM_lo_thres:	DB	DEFAULT_VAR_PWM_LO_THRES	; EEPROM copy of variable PWM low rcpulse threshold
-Eep_Pgm_Var_PWM_hi_thres:	DB	(DEFAULT_VAR_PWM_HI_THRES - DEFAULT_VAR_PWM_LO_THRES)	; EEPROM copy of variable PWM high rcpulse threshold
+Eep_Pgm_Var_PWM_hi_thres:	DB	DEFAULT_VAR_PWM_HI_THRES	; EEPROM copy of variable PWM high rcpulse threshold
+Eep_Pgm_Flag_Settings:      DB  DEFAULT_FORCE_EDT_ARM       ; Various flag settings: bit 0 is require edt enable to arm
+Eep_Pgm_Enable_RcPulse_Filter:  DB  DEFAULT_ENABLE_RCPULSE_FILTER   ; When it is 1 it enables rcpulse input noise filter
 
 Eep_Dummy:				DB	0FFh						; EEPROM address for safety reason
 
@@ -426,15 +445,15 @@ Interrupt_Table_Definition			; SiLabs interrupts
 CSEG AT 80h						; Code segment after interrupt vectors where Bluejay beggins
 
 ; Submodule includes
-$include (Bluejay_Isrs.asm)
-$include (Bluejay_Fx.asm)
-$include (Bluejay_PowerCtl.asm)
-$include (Bluejay_Edt.asm)
-$include (Bluejay_Timing.asm)
-$include (Bluejay_Commutation.asm)
-$include (Bluejay_Dshot.asm)
-$include (Bluejay_NvM.asm)
-$include (Bluejay_Settings.asm)
+$include (Modules/Isrs.asm)
+$include (Modules/Fx.asm)
+$include (Modules/PowerCtl.asm)
+$include (Modules/Edt.asm)
+$include (Modules/Timing.asm)
+$include (Modules/Commutation.asm)
+$include (Modules/Dshot.asm)
+$include (Modules/NvM.asm)
+$include (Modules/Settings.asm)
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -552,7 +571,7 @@ bootloader_done:
 setup_dshot:
 	; Setup timers for DShot
 	mov	TCON, #51h				; Timer0/1 run and Int0 edge triggered
-	mov	CKCON0, #01h				; Timer0/1 clock is system clock divided by 4 (for DShot150)
+	mov	CKCON0, #01h				; Timer0/1 clock is system clock divided by 4 (for DShot150/300)
 	mov	TMOD, #0AAh				; Timer0/1 set to 8-bits auto reload and gated by Int0/1
 	mov	TH0, #0					; Auto reload value zero
 	mov	TH1, #0
@@ -588,6 +607,9 @@ setup_dshot:
 
 	setb	IE_EA					; Enable all interrupts
 
+	; Set Flag_Timer3_Pending so dshot rcpulse stm can run all states in a single run
+	setb	Flag_Timer3_Pending
+
 	; Setup variables for DShot150 (Only on 24MHz because frame length threshold cannot be scaled up)
 IF MCU_TYPE == 0
 	mov	DShot_Timer_Preset, #-64		; Load DShot sync timer preset (for DShot150)
@@ -598,7 +620,15 @@ IF MCU_TYPE == 0
 
 	; Test whether signal is DShot150
 	mov	Rcp_Outside_Range_Cnt, #10	; Set out of range counter
-	call	wait100ms					; Wait for new RC pulse
+	mov Temp6, #100
+
+setup_dshot_150_wait:
+	; Wait for new RC pulse
+	call	wait1ms
+	call	dshot_rcpulse_stm
+	djnz	Temp6, setup_dshot_150_wait
+
+	; Check rcpulse
 	mov	A, Rcp_Outside_Range_Cnt		; Check if pulses were accepted
 	jz	arming_begin
 ENDIF
@@ -614,7 +644,15 @@ ENDIF
 
 	; Test whether signal is DShot300
 	mov	Rcp_Outside_Range_Cnt, #10	; Set out of range counter
-	call	wait100ms					; Wait for new RC pulse
+	mov Temp6, #100
+
+setup_dshot_300_wait:
+	; Wait for new RC pulse
+	call	wait1ms
+	call	dshot_rcpulse_stm
+	djnz	Temp6, setup_dshot_300_wait
+
+	; Check rcpulse
 	mov	A, Rcp_Outside_Range_Cnt		; Check if pulses were accepted
 	jz	arming_begin
 
@@ -628,7 +666,15 @@ IF MCU_TYPE >= 1
 
 	; Test whether signal is DShot600
 	mov	Rcp_Outside_Range_Cnt, #10	; Set out of range counter
-	call	wait100ms					; Wait for new RC pulse
+	mov Temp6, #100
+
+setup_dshot_600_wait:
+	; Wait for new RC pulse
+	call	wait1ms
+	call	dshot_rcpulse_stm
+	djnz	Temp6, setup_dshot_600_wait
+
+	; Check rcpulse
 	mov	A, Rcp_Outside_Range_Cnt		; Check if pulses were accepted
 	jz	arming_begin
 ENDIF
@@ -642,13 +688,17 @@ arming_begin:
 	pop	PSW
 
 	setb	Flag_Had_Signal			; Mark that a signal has been detected
-	mov	Startup_Stall_Cnt, #0		; Reset stall count
+	mov	Stall_Counter, #0		; Reset stall count
 
 	clr	IE_EA
 	call	beep_f1_short				; Beep signal that RC pulse is ready
 	setb	IE_EA
 
 arming_wait:
+	; Process rc pulses and wait 10 x 32ms t2 ticks reading rcpulse stop frames before arming
+	call	dshot_rcpulse_stm
+
+	; Check time rcpulse stop count >= 10
 	clr	C
 	mov	A, Rcp_Stop_Cnt
 	subb	A, #10
@@ -666,13 +716,16 @@ wait_for_start:					; Armed and waiting for power on
 	mov	DShot_Cmd_Cnt, A
 	mov	Beacon_Delay_Cnt, A			; Clear beacon wait counter
 	mov	Timer2_X, A				; Clear Timer2 extended byte
+	mov DShot_rcpulse_prev_lo, A	; Clear previous rcpulse value
+	mov DShot_rcpulse_prev_hi, A	; Clear previous rcpulse value
 
 wait_for_start_loop:
 	clr	C
 	mov	A, Timer2_X
 	subb	A, #94
-	jc	wait_for_start_no_beep		; Counter wrapping (about 3 sec)
+	jc	wait_for_start_no_beep		; Counter wrapping (about 3 sec - 94 * 32ms)
 
+    ; Reset Timer2_X counter (increases every 32ms)
 	mov	Timer2_X, #0
 	inc	Beacon_Delay_Cnt			; Increment beacon wait counter
 
@@ -711,25 +764,51 @@ beep_delay_set:
 	setb	IE_EA					; Enable all interrupts
 
 wait_for_start_no_beep:
-	jb	Flag_Telemetry_Pending, wait_for_start_check_rcp
-	call	dshot_tlm_create_packet		; Create telemetry packet (0 rpm)
-	call 	scheduler_run
+	call 	scheduler_run			; Run scheduler
+	call	dshot_rcpulse_stm		; Process rcpulses
+	call	dshot_cmd_check			; Check and process DShot command
+	call	dshot_tlmpacket_stm		; Create telemetry packets
 
 wait_for_start_check_rcp:
 	jnb	Flag_Rcp_Stop, wait_for_start_nonzero	; Higher than stop, Yes - proceed
 
 	mov	A, Rcp_Timeout_Cntd			; Load RC pulse timeout counter value
 	ljz	init_no_signal				; If pulses are missing - go back to detect input signal
-
-	call	dshot_cmd_check			; Check and process DShot command
-
 	sjmp	wait_for_start_loop			; Go back to beginning of wait loop
 
 wait_for_start_nonzero:
-	call	wait100ms					; Wait to see if start pulse was glitch
+    ; Reset Timer2_X counter (increases every 32ms)
+    mov     Timer2_X, #0
+
+wait_for_start_nonzero_wait:
+    call    scheduler_run           ; Run scheduler
+    call    dshot_rcpulse_stm       ; Process rcpulses
+	call	dshot_cmd_check			; Check and process DShot command
+    call    dshot_tlmpacket_stm     ; Create telemetry packets
 
 	; If Rcp returned to stop - start over
 	jb	Flag_Rcp_Stop, wait_for_start_loop
+
+    ; Check Timer2_X reached 4 (4 * 32ms = 128ms)
+    mov A, Timer2_X
+    cjne    A, #4, wait_for_start_nonzero_wait
+
+wait_for_edt_enable:
+    ; Check edt enable required to arm flag
+    mov Temp1, #Pgm_Flag_Settings
+    mov A, @Temp1
+    anl A, #FLAG_SETTINGS_EDT_REQUIRED_ARM_FLAG
+
+    ; If edt enable required to arm flag is 0 start
+    jz motor_start
+
+    ; If edt enable required to arm flaf is set check EDT is enabled
+    jb Flag_Ext_Tele, motor_start
+
+    ; If EDT is not enabled beep safety no arm
+    call beep_safety_no_arm
+    jmp wait_for_start_loop
+
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -756,9 +835,9 @@ motor_start:
 	clr	IE_EA					; Disable interrupts
 	mov	Temp2, #Pgm_Startup_Power_Max
 	mov	Pwm_Limit_Beg, @Temp2		; Set initial pwm limit
-	mov	Pwm_Limit, Pwm_Limit_Beg
+	mov	Pwm_Limit, #255
 	mov	Pwm_Limit_By_Rpm, Pwm_Limit_Beg
-	mov	Temp_Pwm_Level_Setpoint, Pwm_Limit_Beg
+	mov	Temp_Pwm_Level_Setpoint, #255
 
 	; Begin startup sequence
 IF MCU_TYPE >= 1
@@ -900,7 +979,6 @@ run6:
 	jnb	Flag_Startup_Phase, initial_run_phase
 
 	; Startup phase
-	mov	Pwm_Limit, Pwm_Limit_Beg		; Set initial max power
 	clr	C
 	mov	A, Startup_Cnt				; Load startup counter
 	subb	A, #24					; Is counter above requirement?
@@ -910,11 +988,11 @@ run6:
 	sjmp	exit_run_mode
 
 startup_phase_done:
-	; Clear startup phase flag & remove pwm limits
+	; Clear startup phase flag
 	clr	Flag_Startup_Phase
-	mov	Pwm_Limit, #255					; Reset temperature level pwm limit
+
+	; Remove limit by RPM
 	mov	Pwm_Limit_By_Rpm, #255
-	mov	Temp_Pwm_Level_Setpoint, #255	; Reset temperature level setpoint
 
 initial_run_phase:
 	; If it is a direction change - branch
@@ -940,7 +1018,7 @@ initial_run_phase_done:
 
 normal_run_checks:
 	; Reset stall count
-	mov	Startup_Stall_Cnt, #0
+	mov	Stall_Counter, #0
 	setb	Flag_Motor_Running
 
 	jnb	Flag_Rcp_Stop, run6_check_bidir	; Check if stop
@@ -986,12 +1064,9 @@ run6_bidir_check_reversal:
 run6_bidir_reversal:
 	; Initiate direction and start braking
 	setb	Flag_Dir_Change_Brake		; Set brake flag
-	mov	Pwm_Limit, Pwm_Limit_Beg		; Set max power while braking to initial power limit
 	jmp	run4						; Go back to run 4, thereby changing force direction
 
 run6_bidir_braking:
-	mov	Pwm_Limit, Pwm_Limit_Beg		; Set max power while braking to initial power limit
-
 	clr	C
 	mov	A, Comm_Period4x_H			; Is Comm_Period4x below minimum speed?
 	subb	A, #20h					; Bidirectional braking termination speed (~9970 erpm)
@@ -1003,7 +1078,6 @@ run6_bidir_braking:
 	mov	Flag_Motor_Dir_Rev, C		; Set spinning direction
 	setb	Flag_Initial_Run_Phase
 	mov	Initial_Run_Rot_Cntd, #18
-	mov	Pwm_Limit, Pwm_Limit_Beg		; Set initial max power
 
 run6_bidir_continue:
 	jmp	run1						; Go back to run 1
@@ -1016,12 +1090,10 @@ run6_bidir_continue:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 exit_run_mode_on_timeout:
-	jb	Flag_Motor_Running, exit_run_mode
-	inc	Startup_Stall_Cnt			; Increment stall count if motors did not properly start
+	inc	Stall_Counter			; Increment stall counter
 
 exit_run_mode:
 	clr	IE_EA					; Disable all interrupts
-	clr Flag_Ext_Tele			; Clear extended DSHOT telemetry flag
 	call	switch_power_off
 	mov	Flags0, #0				; Clear run time flags (in case they are used in interrupts)
 	mov	Flags1, #0
@@ -1055,15 +1127,27 @@ ENDIF
 	; Signal stall
 	setb	Flag_Stall_Notify
 
-	clr	C						; Otherwise - it's a stall
-	mov	A, Startup_Stall_Cnt
-	subb	A, #4					; Maximum consecutive stalls
+	; Otherwise - it's a stall
+	; Stalls are a dangerous situation, they can cause motors and escs to burn
+	; Maximum consecutive stalls have to be limited to avoid damage
+	clr	C
+	mov	A, Stall_Counter
+	subb	A, #3					; 3 Maximum consecutive stalls
 	jnc	exit_run_mode_stall_done
 
 	call	wait100ms				; Wait for a bit between stall restarts
 	ljmp	motor_start				; Go back and try starting motors again
 
 exit_run_mode_stall_done:
+    ; Clear extended DSHOT telemetry flag if turtle mode is not active
+    ; This flag is also used for EDT safety arm flag
+    ; We don't want to deactivate extended telemetry during turtle mode
+    ; Extended telemetry flag is important because it is involved in
+    ; EDT safety feature. We don't want to disable EDT arming during
+    ; turtle mode.
+    jb Flag_Forced_Rev_Operation, ($+5)
+    clr Flag_Ext_Tele
+
 	; Stalled too many times
 	clr	IE_EA
 	call	beep_motor_stalled
@@ -1072,7 +1156,17 @@ exit_run_mode_stall_done:
 	ljmp	arming_begin				; Go back and wait for arming
 
 exit_run_mode_no_stall:
-	mov	Startup_Stall_Cnt, #0
+    ; Clear extended DSHOT telemetry flag if turtle mode is not active
+    ; This flag is also used for EDT safety arm flag
+    ; We don't want to deactivate extended telemetry during turtle mode
+    ; Extended telemetry flag is important because it is involved in
+    ; EDT safety feature. We don't want to disable EDT arming during
+    ; turtle mode.
+    jb Flag_Forced_Rev_Operation, ($+5)
+    clr Flag_Ext_Tele
+
+    ; Clear startup stall counter
+	mov	Stall_Counter, #0
 
 	mov	Temp1, #Pgm_Brake_On_Stop	; Check if using brake on stop
 	mov	A, @Temp1

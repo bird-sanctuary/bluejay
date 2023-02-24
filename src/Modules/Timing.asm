@@ -32,12 +32,10 @@ initialize_timing:
 ; commutations. This routine Removes one the fraction of that time
 ; and adds the same fraction of the new commutation time. Depending
 ; on the spinning speed it uses some or other dividers of the formula:
-; Comm_Period4x = Comm_Period4x - (Comm_Period4x / (16, 8 or 4)) + (Comm_Period / (4, 2 or 1))
-; Above 80k erpm:
+; Comm_Period4x = Comm_Period4x - (Comm_Period4x / (16 or 4)) + (Comm_Period / (4 or 1))
+; Normal regime:
 ; Comm_Period4x = Comm_Period4x - (Comm_Period4x / 16) + (Comm_Period / 4)
-; Between 40k to 80k erpm:
-; Comm_Period4x = Comm_Period4x - (Comm_Period4x / 8) + (Comm_Period / 2)
-; Below 40k erpm:
+; During startup:
 ; Comm_Period4x = Comm_Period4x - (Comm_Period4x / 4) + (Comm_Period / 1)
 ;
 ; Simple example using 16 and 4 divisors:
@@ -199,27 +197,23 @@ calc_next_comm_15deg:
     ; Subtract timing reduction
     clr C
     mov A, Temp3
-    subb    A, #2                   ; Set timing reduction
-    mov Temp3, A
+    subb    A, #2                       ; Set timing reduction
+    mov Temp6, A
     mov A, Temp4
     subb    A, #0
-    mov Temp4, A
+    mov Temp7, A
 
     jc  calc_next_comm_15deg_set_min    ; Check that result is still positive
-    jnz calc_next_comm_period_exit  ; Check that result is still above minimum
-    mov A, Temp3
+    jnz calc_next_comm_period_exit      ; Check that result is still above minimum
+    mov A, Temp6
     jnz calc_next_comm_period_exit
 
 calc_next_comm_15deg_set_min:
-    mov Temp3, #1                   ; Set minimum waiting time (Timers cannot wait for a delay of 0)
-    mov Temp4, #0
-
-    sjmp    calc_next_comm_period_exit
-
-calc_next_comm_fast_set_min:
-    mov Temp3, #1                   ; Set minimum waiting time (Timers cannot wait for a delay of 0)
+    mov Temp6, #1                       ; Set minimum waiting time (Timers cannot wait for a delay of 0)
+    mov Temp7, #0
 
 calc_next_comm_period_exit:
+
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -228,7 +222,7 @@ calc_next_comm_period_exit:
 ;
 ; Waits for the advance timing to elapse
 ;
-; NOTE: Be VERY careful if using temp registers. They are passed over this routine
+; WARNING: Be VERY careful if using temp6 and temp7 registers. They are passed over this routine
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 wait_advance_timing:
@@ -239,8 +233,8 @@ wait_advance_timing:
     ; In case this delay has also elapsed, Timer3 has been reloaded with a short delay any number of times.
     ; - The interrupt flag is set and the pending flag will clear immediately after enabling the interrupt.
 
-    mov TMR3RLL, Wt_ZC_Tout_Start_L ; Setup next wait time
-    mov TMR3RLH, Wt_ZC_Tout_Start_H
+    mov TMR3RLL, Wt_Zc_Tout_Start_L ; Setup next wait time
+    mov TMR3RLH, Wt_Zc_Tout_Start_H
     setb    Flag_Timer3_Pending
     orl EIE1, #80h              ; Enable Timer3 interrupts
 
@@ -257,10 +251,10 @@ calc_new_wait_times:
 
     clr C
     clr A
-    subb    A, Temp3                    ; Negate
+    subb    A, Temp6                    ; Negate
     mov Temp1, A
     clr A
-    subb    A, Temp4
+    subb    A, Temp7
     mov Temp2, A
 IF MCU_TYPE >= 1
     clr C
@@ -300,11 +294,13 @@ adjust_comm_timing:
     mov Temp8, #5                   ; Set timing to max (if timing 6 or above)
 
 load_comm_timing_done:
+    ; Temp2:1 = 15deg Timer2 period
     mov A, Temp1                    ; Copy values
     mov Temp3, A
     mov A, Temp2
     mov Temp4, A
 
+    ; Temp6:5 = (15deg Timer2 period) / 2
     setb    C                       ; Negative numbers - set carry
     mov A, Temp2                    ; Store 7.5deg in Temp5/6 (15deg / 2)
     rrc A
@@ -327,14 +323,14 @@ load_comm_timing_done:
     jb  ACC.0, adjust_timing_two_steps; If an odd number - branch
 
     ; Commutation timing setting is 2 or 4
-    mov A, Temp1                    ; Store 22.5deg in Temp1/2 (15deg + 7.5deg)
+    mov A, Temp1                    ; Store 22.5deg in Temp2:1 (15deg + 7.5deg)
     add A, Temp5
     mov Temp1, A
     mov A, Temp2
     addc    A, Temp6
     mov Temp2, A
 
-    mov A, Temp5                    ; Store 7.5deg in Temp3/4
+    mov A, Temp5                    ; Store 7.5deg in Temp4:3
     mov Temp3, A
     mov A, Temp6
     mov Temp4, A
@@ -397,7 +393,7 @@ calc_new_wait_times_fast:
     mov Wt_Zc_Tout_Start_L, Temp1   ; Set 15deg time for zero cross scan timeout
 
     clr C
-    mov A, Temp8                    ; (Temp8 has Pgm_Comm_Timing)
+    mov A, Temp8                    ; (Temp8 has Pgm_Comm_Timing - commutation timing setting)
     subb    A, #3                   ; Is timing normal?
     jz  store_times_decrease_fast   ; Yes - branch
 
@@ -407,6 +403,7 @@ calc_new_wait_times_fast:
     mov A, Temp1                    ; Add 7.5deg and store in Temp1
     add A, Temp5
     mov Temp1, A
+
     mov A, Temp5                    ; Store 7.5deg in Temp3
     mov Temp3, A
     sjmp    store_times_up_or_down_fast
@@ -692,6 +689,10 @@ evaluate_comparator_integrity:
     jb  Flag_Initial_Run_Phase, eval_comp_exit  ; Do not exit run mode if initial run phase
     jb  Flag_Dir_Change_Brake, eval_comp_exit   ; Do not exit run mode if braking
     jb  Flag_Demag_Detected, eval_comp_exit ; Do not exit run mode if it is a demag situation
+
+    ; Inmediately cut power on timeout to avoid damage
+    All_Pwm_Fets_Off
+    Set_All_Pwm_Phases_Off
 
     dec SP                              ; Routine exit without "ret" command
     dec SP
