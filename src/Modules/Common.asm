@@ -269,37 +269,43 @@ GCR_Add_Time MACRO reg
 ENDM
 
 ; Prepare telemetry packet while waiting for Timer3 to wrap
+; Uses temp1:2:3:4:5
 Wait_For_Timer3 MACRO
-LOCAL wait_for_t3 done_waiting
-    jb  Flag_Telemetry_Pending, wait_for_t3
+LOCAL wait_begin wait_run_rcpulse_stm_first wait_run_telemetry_stm_first wait_for_t3 wait_end
+wait_begin:
+	cpl Flag_Stm_Select
+	jnb Flag_Stm_Select, wait_run_telemetry_stm_first
 
-    jnb Flag_Timer3_Pending, done_waiting
-    call    dshot_tlm_create_packet
+wait_run_rcpulse_stm_first:
+    ; Run at least 1 state of rcpulse stm, so firmware cannot get
+    ; stuck at max PWM
+    call    dshot_rcpulse_stm
+
+    ; If no Flag_Timer3_Pending end
+    jnb Flag_Timer3_Pending, wait_end
+
+    ; Run telemetry packet state machine only if telemetry is
+    ; pending and timer3 is pending
+    call    dshot_tlmpacket_stm
+    sjmp wait_for_t3
+
+wait_run_telemetry_stm_first:
+    ; Run telemetry packet state machine only if telemetry is
+    ; pending and timer3 is pending
+    call    dshot_tlmpacket_stm
+
+    ; If no Flag_Timer3_Pending end
+    jnb Flag_Timer3_Pending, wait_end
+
+    ; Run at least 1 state of rcpulse stm, so firmware cannot get
+    ; stuck at max PWM
+    call    dshot_rcpulse_stm
 
 wait_for_t3:
-    jnb Flag_Timer3_Pending, done_waiting
-    sjmp    wait_for_t3
+    ; Now wait until timer3 overflows
+    jb Flag_Timer3_Pending, wait_for_t3
 
-done_waiting:
-ENDM
-
-; Used for subdividing the DShot telemetry routine into chunks,
-; that will return if Timer3 has wrapped
-Early_Return_Packet_Stage MACRO num
-    Early_Return_Packet_Stage_ num, %(num + 1)
-ENDM
-
-Early_Return_Packet_Stage_ MACRO num next
-IF num > 0
-    inc Temp7                               ;; Increment current packet stage
-    jb  Flag_Timer3_Pending, dshot_packet_stage_&num    ;; Return early if Timer3 has wrapped
-    pop PSW
-    ret
-dshot_packet_stage_&num:
-ENDIF
-IF num < 5
-    cjne    Temp7, #(num), dshot_packet_stage_&next     ;; If this is not current stage, skip to next
-ENDIF
+wait_end:
 ENDM
 
 Decode_DShot_2Bit MACRO dest, decode_fail
@@ -453,4 +459,25 @@ Divide_By_4 MACRO ih, il, oh, ol
     mov A, ol
     rrc A
     mov ol, A
+ENDM
+
+; Mul u16 x u8
+;     18 cycles
+; o2:1:0 = a2:1 * b0
+MulU16xU8 MACRO a1o2, a0o1, b0o0
+    mov B, a0o1
+    mov A, b0o0
+    mul AB
+
+    xch A, b0o0
+    mov a0o1, B
+    mov B, a1o2
+    mul AB
+
+    add A, a0o1
+    mov a0o1, A
+
+    mov A, B
+    addc A, #0
+    mov a1o2, A
 ENDM

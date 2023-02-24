@@ -6,6 +6,8 @@
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
+FLAG_SETTINGS_EDT_REQUIRED_ARM_FLAG     EQU 001h
+
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
@@ -58,7 +60,8 @@ set_default_parameters:
     imov    Temp1, #DEFAULT_PGM_LED_CONTROL     ; Pgm_LED_Control
     imov    Temp1, #DEFAULT_PGM_POWER_RATING    ; Pgm_Power_Rating
     imov    Temp1, #DEFAULT_VAR_PWM_LO_THRES    ; Pgm_Var_PWM_lo_thres
-    imov    Temp1, #(DEFAULT_VAR_PWM_HI_THRES - DEFAULT_VAR_PWM_LO_THRES)   ; Pgm_Var_PWM_hi_thres
+    imov    Temp1, #DEFAULT_VAR_PWM_HI_THRES	; Pgm_Var_PWM_hi_thres
+    imov    Temp1, #DEFAULT_FORCE_EDT_ARM       ; Pgm_Flag_Settings
 
     ret
 
@@ -220,6 +223,23 @@ decode_pwm_dithering:
     imov    Temp1, #77h             ; 01110111
     imov    Temp1, #7fh             ; 01111111
 
+    ; Update Pgm_Var_PWM_hi_thres
+    ; Bluejay needs hi threshold to be the loaded one minus lo threshold for later fast comparations
+    clr C
+    mov Temp1, #Pgm_Var_PWM_hi_thres
+    mov A, @Temp1
+    mov Temp1, #Pgm_Var_PWM_lo_thres
+    subb A, @Temp1
+    jnc decode_variable_pwm_threshold_update
+decode_variable_pwm_threshold_correction:
+    ; This makes hi threshold is the same than lo so 48khz is skipped
+    clr A
+decode_variable_pwm_threshold_update:
+    ; Update hi threshold
+    mov Temp1, #Pgm_Var_PWM_hi_thres
+    mov @Temp1, A
+
+decode_done:
     ; All decoding done
     ret
 
