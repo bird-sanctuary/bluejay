@@ -1788,6 +1788,10 @@ scheduler_steps_even:
 	; Otherwise hard stuttering is produced
 
 scheduler_steps_even_demag_metric_frame:
+	; Check telemetry is enable to produce telemetry frames
+	jb Flag_Ext_Tele, scheduler_steps_even_demag_metric_frame
+	jmp scheduler_exit
+
 	; ********************* [TELEMETRY] SEND DEMAG METRIC FRAME *****************
 	mov Ext_Telemetry_L, Demag_Detected_Metric	; Set telemetry low value to demag metric data
 	mov Ext_Telemetry_H, #0Ch					; Set telemetry high value to demag metric frame ID
@@ -1825,6 +1829,9 @@ scheduler_steps_odd_temp_pwm_limit_inc:
 	; Now run speciffic odd scheduler step
 
 scheduler_steps_odd_choose_step:
+    ; Check telemetry is enable to produce telemetry frames
+    jnb Flag_Ext_Tele, scheduler_steps_odd_restart_ADC
+
 	; Let A = Scheduler_Counter % 8, so A = [0 - 7] value
 	mov A, Scheduler_Counter
 	anl A, #07h
