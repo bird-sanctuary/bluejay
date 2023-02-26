@@ -1789,9 +1789,10 @@ scheduler_steps_even:
 
 scheduler_steps_even_demag_metric_frame:
 	; Check telemetry is enable to produce telemetry frames
-	jb Flag_Ext_Tele, scheduler_steps_even_demag_metric_frame
+	jb Flag_Ext_Tele, scheduler_steps_even_demag_metric_frame_prepare
 	jmp scheduler_exit
 
+scheduler_steps_even_demag_metric_frame_prepare:
 	; ********************* [TELEMETRY] SEND DEMAG METRIC FRAME *****************
 	mov Ext_Telemetry_L, Demag_Detected_Metric	; Set telemetry low value to demag metric data
 	mov Ext_Telemetry_H, #0Ch					; Set telemetry high value to demag metric frame ID
