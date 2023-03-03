@@ -955,9 +955,22 @@ t1_int_startup_boosted:
 
 	jnz	t1_int_rcp_not_zero
 
-	mov	A, Temp4					; Only set Rcp_Stop if all all 11 bits are zero
-	jnz	t1_int_rcp_not_zero
+	; Set Flag_Rcp_Stop if rcpulse is less or equal to deadtime.
+	; This way damp register is always set to a value smaller
+	; than power register in the edge aligned pwm
+	clr C
+	mov	A, Temp4
+IF MCU_TYPE == 0
+	subb	A, #(((DEADTIME + 1) SHR 1) + 1)
+ELSE
+	subb	A, #((DEADTIME) + 1)
+ENDIF
+	jnc	t1_int_rcp_not_zero
 
+	; Set rc pulse to 0
+	mov	Temp2, #0
+	moV	Temp3, #0
+	mov	Temp4, #0
 	setb	Flag_Rcp_Stop
 	sjmp	t1_int_zero_rcp_checked
 
