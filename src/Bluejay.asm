@@ -299,6 +299,8 @@ DShot_rcpulse_stm_pwm_t3:   DS  1   ; RC pulse state machine temp3
 DShot_rcpulse_stm_pwm_t4:   DS  1   ; RC pulse state machine temp4
 DShot_rcpulse_stm_pwm_t5:   DS  1   ; RC pulse state machine temp5
 
+Debug1:                     DS  1
+
 ;**** **** **** **** ****
 ; Indirect addressing data segments
 ISEG AT 080h						; The variables below must be in this sequence
@@ -713,8 +715,9 @@ wait_for_start_loop:
 	clr	C
 	mov	A, Timer2_X
 	subb	A, #94
-	jc	wait_for_start_no_beep		; Counter wrapping (about 3 sec)
+	jc	wait_for_start_no_beep		; Counter wrapping (about 3 sec - 94 * 32ms)
 
+    ; Reset Timer2_X counter (increases every 32ms)
 	mov	Timer2_X, #0
 	inc	Beacon_Delay_Cnt			; Increment beacon wait counter
 
@@ -766,16 +769,18 @@ wait_for_start_check_rcp:
 	sjmp	wait_for_start_loop			; Go back to beginning of wait loop
 
 wait_for_start_nonzero:
-    ; Wait to see if start pulse was glitch
-    mov     Temp6, #100
+    ; Reset Timer2_X counter (increases every 32ms)
+    mov     Timer2_X, #0
 
 wait_for_start_nonzero_wait:
-	call	wait1ms
     call    scheduler_run           ; Run scheduler
     call    dshot_rcpulse_stm       ; Process rcpulses
 	call	dshot_cmd_check			; Check and process DShot command
     call    dshot_tlmpacket_stm     ; Create telemetry packets
-    djnz    Temp6, wait_for_start_nonzero_wait
+
+    ; Check Timer2_X reached 4 (4 * 32ms = 128ms)
+    mov A, Timer2_X
+    cjne    A, #4, wait_for_start_nonzero_wait
 
 	; If Rcp returned to stop - start over
 	jb	Flag_Rcp_Stop, wait_for_start_loop

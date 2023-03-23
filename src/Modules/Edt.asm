@@ -173,7 +173,7 @@ scheduler_steps_odd_debug1_frame:
     cjne A, #3, scheduler_steps_odd_debug2_frame
 
     ; Stub for debug 1
-    mov Ext_Telemetry_L, PCA0PWM        ; Publish PWM config
+    mov Ext_Telemetry_L, Debug1        ; Publish PWM config
     mov Ext_Telemetry_H, #08h           ; Set telemetry high value to debug1 frame ID
 
     ; Now restart ADC conversion

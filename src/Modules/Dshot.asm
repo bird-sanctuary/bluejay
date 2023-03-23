@@ -119,6 +119,8 @@ dshot_cmd_direction_user_normal:
     ; Set motor spinning direction to user programmed direction
     cjne    Temp1, #20, dshot_cmd_direction_user_reverse
 
+    mov Debug1, #1
+
     mov Temp2, #Pgm_Direction       ; Read programmed direction
     mov A, @Temp2
     dec A
@@ -130,6 +132,8 @@ dshot_cmd_direction_user_normal:
 dshot_cmd_direction_user_reverse:       ; Temporary reverse
     ; Set motor spinning direction to reverse of user programmed direction
     cjne    Temp1, #21, dshot_cmd_save_settings
+
+    mov Debug1, #2
 
     mov Temp2, #Pgm_Direction       ; Read programmed direction
     mov A, @Temp2
