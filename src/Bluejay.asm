@@ -122,7 +122,7 @@ ENDIF
 
 ;**** **** **** **** ****
 ; Select the pwm frequency (or unselect for use with external batch compile file)
-PWM_FREQ			EQU	0	; 0=24, 1=48, 2=96 kHz 3=Dynamic frequency
+PWM_FREQ			EQU	3	; 0=24, 1=48, 2=96 kHz 3=Dynamic frequency
 
 PWM_CENTERED	EQU	DEADTIME > 0			; Use center aligned pwm on ESCs with dead time
 
@@ -778,12 +778,12 @@ wait_for_start_nonzero_wait:
 	call	dshot_cmd_check			; Check and process DShot command
     call    dshot_tlmpacket_stm     ; Create telemetry packets
 
+	; If Rcp returned to stop - start over
+	jb	Flag_Rcp_Stop, wait_for_start_loop
+
     ; Check Timer2_X reached 4 (4 * 32ms = 128ms)
     mov A, Timer2_X
     cjne    A, #4, wait_for_start_nonzero_wait
-
-	; If Rcp returned to stop - start over
-	jb	Flag_Rcp_Stop, wait_for_start_loop
 
 wait_for_edt_enable:
     ; Check edt enable required to arm flag
