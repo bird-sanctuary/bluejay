@@ -52,14 +52,15 @@ dshot_cmd_beeps_check:
     call    wait200ms           ; Wait a bit for next beep
     setb    IE_EA               ; Enable all interrupts
 
-    sjmp    dshot_cmd_exit
+    jmp    dshot_cmd_exit
 
 dshot_cmd_check_count:
     ; Remaining commands must be received 6 times in a row
     clr C
     mov A, DShot_Cmd_Cnt
     subb    A, #6
-    jc  dshot_cmd_exit_no_clear
+    jnc dshot_cmd_direction_normal
+    jmp dshot_cmd_exit_no_clear
 
 dshot_cmd_direction_normal:
     ; Set motor spinning direction to normal
@@ -67,7 +68,7 @@ dshot_cmd_direction_normal:
 
     clr Flag_Pgm_Dir_Rev
 
-    sjmp    dshot_cmd_exit
+    jmp    dshot_cmd_exit
 
 dshot_cmd_direction_reverse:
     ; Set motor spinning direction to reversed
@@ -75,7 +76,7 @@ dshot_cmd_direction_reverse:
 
     setb    Flag_Pgm_Dir_Rev
 
-    sjmp    dshot_cmd_exit
+    jmp    dshot_cmd_exit
 
 dshot_cmd_direction_bidir_off:
     ; Set motor control mode to normal (not bidirectional)
@@ -120,6 +121,12 @@ dshot_cmd_direction_user_normal:
     cjne    Temp1, #20, dshot_cmd_direction_user_reverse
 
     mov Debug1, #1
+	clr	IE_EA
+	call	beep_f1_short				; Beep signal that RC pulse is ready
+	setb	IE_EA
+
+	call wait250ms
+	call wait250ms
 
     mov Temp2, #Pgm_Direction       ; Read programmed direction
     mov A, @Temp2
@@ -134,6 +141,12 @@ dshot_cmd_direction_user_reverse:       ; Temporary reverse
     cjne    Temp1, #21, dshot_cmd_save_settings
 
     mov Debug1, #2
+	clr	IE_EA
+	call	beep_f2_short				; Beep signal that RC pulse is ready
+	setb	IE_EA
+
+	call wait250ms
+	call wait250ms
 
     mov Temp2, #Pgm_Direction       ; Read programmed direction
     mov A, @Temp2
