@@ -690,9 +690,10 @@ evaluate_comparator_integrity:
     jb  Flag_Dir_Change_Brake, eval_comp_exit   ; Do not exit run mode if braking
     jb  Flag_Demag_Detected, eval_comp_exit ; Do not exit run mode if it is a demag situation
 
-    dec SP                              ; Routine exit without "ret" command
-    dec SP
-    ljmp    exit_run_mode_on_timeout                ; Exit run mode if timeout has elapsed
+    ; Signal desync and increment stall count
+    setb    Flag_Stall_Notify
+    inc Startup_Stall_Cnt
+    ret
 
 eval_comp_startup:
     inc Startup_Cnt                     ; Increment startup counter

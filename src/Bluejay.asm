@@ -1085,10 +1085,6 @@ run6_bidir_continue:
 ; on normal stop or comparator timeout
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-exit_run_mode_on_timeout:
-	jb	Flag_Motor_Running, exit_run_mode
-	inc	Startup_Stall_Cnt			; Increment stall count if motors did not properly start
-
 exit_run_mode:
 	clr	IE_EA					; Disable all interrupts
 	call	switch_power_off
@@ -1118,38 +1114,6 @@ ENDIF
 
 	setb	IE_EA					; Enable all interrupts
 
-	; Check if RCP is zero, then it is a normal stop or signal timeout
-	jb	Flag_Rcp_Stop, exit_run_mode_no_stall
-
-	; Signal stall
-	setb	Flag_Stall_Notify
-
-	clr	C						; Otherwise - it's a stall
-	mov	A, Startup_Stall_Cnt
-	subb	A, #4					; Maximum consecutive stalls
-	jnc	exit_run_mode_stall_done
-
-	call	wait100ms				; Wait for a bit between stall restarts
-	ljmp	motor_start				; Go back and try starting motors again
-
-exit_run_mode_stall_done:
-    ; Clear extended DSHOT telemetry flag if turtle mode is not active
-    ; This flag is also used for EDT safety arm flag
-    ; We don't want to deactivate extended telemetry during turtle mode
-    ; Extended telemetry flag is important because it is involved in
-    ; EDT safety feature. We don't want to disable EDT arming during
-    ; turtle mode.
-    jb Flag_Forced_Rev_Operation, ($+5)
-    clr Flag_Ext_Tele
-
-	; Stalled too many times
-	clr	IE_EA
-	call	beep_motor_stalled
-	setb	IE_EA
-
-	ljmp	arming_begin				; Go back and wait for arming
-
-exit_run_mode_no_stall:
     ; Clear extended DSHOT telemetry flag if turtle mode is not active
     ; This flag is also used for EDT safety arm flag
     ; We don't want to deactivate extended telemetry during turtle mode
