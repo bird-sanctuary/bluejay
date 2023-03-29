@@ -692,7 +692,6 @@ evaluate_comparator_integrity:
 
     ; Signal desync and increment stall count
     setb    Flag_Stall_Notify
-    inc Startup_Stall_Cnt
     ret
 
 eval_comp_startup:

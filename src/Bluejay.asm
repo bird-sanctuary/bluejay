@@ -1016,11 +1016,8 @@ normal_run_checks:
 	jnb	Flag_Rcp_Stop, run6_check_bidir	; Check if stop
 	jb	Flag_Pgm_Bidir, run6_check_timeout	; Check if bidirectional operation
 
-	mov	Temp2, #Pgm_Brake_On_Stop	; Check if using brake on stop
-	mov	A, @Temp2
-	jz	run6_check_timeout
-
-	; Exit run mode after 100ms when using brake on stop
+	; Exit run mode after 100ms so when using brake on stop it has time to brake
+	; If no brake on stop it also exits after 100ms
 	clr	C
 	mov	A, Rcp_Stop_Cnt			; Load stop RC pulse counter value
 	subb	A, #3					; Is number of stop RC pulses above limit?

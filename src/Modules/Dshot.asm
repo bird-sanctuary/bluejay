@@ -794,10 +794,9 @@ dshot_rcpulse_stm_boost_state:
     mov Temp4, B
 
 dshot_rcpulse_stm_stall_boost:
-    mov A, Startup_Stall_Cnt        ; Check stall count
-    jz  dshot_rcpulse_stm_startup_boosted
-    mov B, #40                  ; Note: Stall count should be less than 6
-    mul AB
+	; Use counter for startup
+	inc Startup_Stall_Cnt
+    mov A, Startup_Stall_Cnt
 
     add A, Temp4                    ; Add more power when failing to start motor (stalling)
     mov Temp4, A
