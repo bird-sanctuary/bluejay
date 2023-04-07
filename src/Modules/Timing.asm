@@ -684,22 +684,51 @@ setup_comm_wait:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 evaluate_comparator_integrity:
     jb  Flag_Startup_Phase, eval_comp_startup   ; Do not exit run mode during startup phases
-
-    jnb Flag_Comp_Timed_Out, eval_comp_exit ; Has timeout elapsed?
     jb  Flag_Initial_Run_Phase, eval_comp_exit  ; Do not exit run mode if initial run phase
     jb  Flag_Dir_Change_Brake, eval_comp_exit   ; Do not exit run mode if braking
-    jb  Flag_Demag_Detected, eval_comp_exit ; Do not exit run mode if it is a demag situation
 
+	; Do not exit run mode if commutation has not timed out
+    jnb Flag_Comp_Timed_Out, eval_comp_timeout_level_dec_n_exit
+
+	; Check motor is running
+	jnb Flag_Motor_Running, eval_comp_check_demag
+
+    ; Timed out so increase accumulated comparator timeout events
+    inc Comparator_Timeout_Level
+
+    ; If accumulated comparator timeout events is bigger than threshold give up
+	; Give up on 96 accumulated comparator timeout events
+    clr C
+    mov	A, Comparator_Timeout_Level
+    subb A, #96
+    jnc	eval_comp_timeout
+
+eval_comp_check_demag:
+	; Do not exit run mode if it is a demag situation
+    jb  Flag_Demag_Detected, eval_comp_exit
+
+    ; Stall detected
+	sjmp	eval_comp_timeout
+
+eval_comp_timeout_level_dec_n_exit:
+	; Comparator timeout level is good
+	; Decrease comparator timeout level and exit
+	mov A, Comparator_Timeout_Level
+	jz	($+4)
+	dec	Comparator_Timeout_Level
+	sjmp	eval_comp_exit
+
+eval_comp_timeout:
     ; Inmediately cut power on timeout to avoid damage
     All_Pwm_Fets_Off
     Set_All_Pwm_Phases_Off
 
     dec SP                              ; Routine exit without "ret" command
     dec SP
-    ljmp    exit_run_mode_on_timeout                ; Exit run mode if timeout has elapsed
+    ljmp    exit_run_mode_on_timeout	; Exit run mode if timeout has elapsed
 
 eval_comp_startup:
-    inc Startup_Cnt                     ; Increment startup counter
+    inc Startup_Cnt                     ; Increment commutations startup counter
 
 eval_comp_exit:
     ret

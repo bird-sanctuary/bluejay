@@ -225,7 +225,7 @@ Rcp_Stop_Cnt:				DS	1	; Counter for RC pulses below stop value
 
 Beacon_Delay_Cnt:			DS	1	; Counter to trigger beacon during wait for start
 
-Startup_Cnt:				DS	1	; Startup phase commutations counter (incrementing)
+Startup_Cnt:				DS	1	; Startup commutations counter (incrementing)
 Startup_Zc_Timeout_Cntd:		DS	1	; Startup zero cross timeout counter (decrementing)
 Initial_Run_Rot_Cntd:		DS	1	; Initial run rotations counter (decrementing)
 Stall_Counter:			DS	1	; Counts start/run attempts that resulted in stall. Reset upon a proper stop
@@ -243,6 +243,7 @@ Prev_Prev_Comm_H:			DS	1	; Pre-previous commutation Timer2 timestamp (hi byte)
 Comm_Period4x_L:			DS	1	; Timer2 ticks between the last 4 commutations (lo byte)
 Comm_Period4x_H:			DS	1	; Timer2 ticks between the last 4 commutations (hi byte)
 Comparator_Read_Cnt:		DS	1	; Number of comparator reads done
+Comparator_Timeout_Level:	DS	1	; Number of accumulated comparator timeouts
 
 Wt_Adv_Start_L:			DS	1	; Timer3 start point for commutation advance timing (lo byte)
 Wt_Adv_Start_H:			DS	1	; Timer3 start point for commutation advance timing (hi byte)
@@ -838,6 +839,7 @@ motor_start:
 	mov	Pwm_Limit, #255
 	mov	Pwm_Limit_By_Rpm, Pwm_Limit_Beg
 	mov	Temp_Pwm_Level_Setpoint, #255
+	mov Comparator_Timeout_Level, #0
 
 	; Begin startup sequence
 IF MCU_TYPE >= 1
@@ -875,7 +877,7 @@ ENDIF
 motor_start_bidir_done:
 	setb	Flag_Startup_Phase			; Set startup phase flags
 	setb	Flag_Initial_Run_Phase
-	mov	Startup_Cnt, #0			; Reset startup phase run counter
+	mov	Startup_Cnt, #0					; Reset commutations startup counter
 	mov	Initial_Run_Rot_Cntd, #12	; Set initial run rotation countdown
 	call	comm5_comm6				; Initialize commutation
 	call	comm6_comm1
@@ -980,7 +982,7 @@ run6:
 
 	; Startup phase
 	clr	C
-	mov	A, Startup_Cnt				; Load startup counter
+	mov	A, Startup_Cnt				; Load startup commutations counter
 	subb	A, #24					; Is counter above requirement?
 	jnc	startup_phase_done
 
@@ -990,6 +992,9 @@ run6:
 startup_phase_done:
 	; Clear startup phase flag
 	clr	Flag_Startup_Phase
+
+	; Reset Timer2_X counter
+	mov Timer2_X, #0
 
 	; Remove limit by RPM
 	mov	Pwm_Limit_By_Rpm, #255
@@ -1019,8 +1024,16 @@ initial_run_phase_done:
 normal_run_checks:
 	; Reset stall count
 	mov	Stall_Counter, #0
+
+	; Set flag motor running if motor is spinning for 2s (2000/32)
+	jb Flag_Motor_Running, normal_run_running_check_done
+	clr C
+	mov A, Timer2_X
+	subb A, #62
+	jc	normal_run_running_check_done
 	setb	Flag_Motor_Running
 
+normal_run_running_check_done:
 	jnb	Flag_Rcp_Stop, run6_check_bidir	; Check if stop
 	jb	Flag_Pgm_Bidir, run6_check_timeout	; Check if bidirectional operation
 
@@ -1076,6 +1089,7 @@ run6_bidir_braking:
 	clr	Flag_Dir_Change_Brake		; Clear braking flag
 	mov	C, Flag_Rcp_Dir_Rev			; Read force direction
 	mov	Flag_Motor_Dir_Rev, C		; Set spinning direction
+	clr Flag_Motor_Running          ; Clear motor running flag
 	setb	Flag_Initial_Run_Phase
 	mov	Initial_Run_Rot_Cntd, #18
 
