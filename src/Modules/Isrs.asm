@@ -233,6 +233,19 @@ t2_int:
     inc Timer2_X                            ; Increment extended byte
     setb Flag_32ms_Elapsed                  ; Set 32ms elapsed flag
 
+t2_int_check_demag_error_cycle_flag:
+    ; Check demag error cycle flag, and clear it
+    jbc Flag_Demag_Error_Cycle, t2_int_check_demag_error_cycle_inc
+
+    ; During this 32ms cycle there were no demag errors, so clear the counter
+    mov Demag_Error_Time_Counter, #0
+    sjmp t2_int_check_rcpulse_timeout_counter
+
+t2_int_check_demag_error_cycle_inc:
+	; During this 32ms cycle there were demag errors, so increase the counter
+	inc Demag_Error_Time_Counter
+
+t2_int_check_rcpulse_timeout_counter:
     ; Check RC pulse timeout counter
     mov A, Rcp_Timeout_Cntd                 ; RC pulse timeout count zero?
     jnz t2_int_rcp_timeout_decrement

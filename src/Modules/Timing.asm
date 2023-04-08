@@ -754,12 +754,21 @@ wait_for_comm_demag_metric_max_updated:
     subb    A, Demag_Pwr_Off_Thresh
     jc  wait_for_comm_wait
 
-    ; Cut power if many consecutive demags
+    ; Cut power if many consecutive demags. This will help retain sync during hard accelerations
     All_Pwm_Fets_Off
     Set_All_Pwm_Phases_Off
 
     ; Signal desync
-    setb    Flag_Desync_Notify;
+    setb    Flag_Desync_Notify
+
+    ; Notify demag error (checked in EDT scheduler)
+    setb	Flag_Demag_Error_Cycle
+
+    ; Check demag timeouts have been happening during 256ms (increased in EDT scheduler)
+    clr C
+    mov A, Demag_Error_Time_Counter
+    subb A, #8
+    jc wait_for_comm_wait
 
     ; Give it a chance to stall recovery, otherwise a self induced stall may happen on high rpm
     dec SP                              ; Routine exit without "ret" command

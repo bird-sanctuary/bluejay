@@ -186,6 +186,7 @@ Flag_Motor_Dir_Rev			BIT	Flags0.2		; Set if the current spinning direction is re
 Flag_Demag_Notify			BIT	Flags0.3		; Set when motor demag has been detected but still not notified
 Flag_Desync_Notify			BIT	Flags0.4		; Set when motor desync has been detected but still not notified
 Flag_Stall_Notify			BIT	Flags0.5		; Set when motor stall detected but still not notified
+Flag_Demag_Error_Cycle		BIT Flags0.6		; Tells if there were demag errors during the demag error 64ms cycle (2 Timer2_X ticks)
 
 Flags1:					DS	1			; State flags. Reset upon motor_start
 Flag_Timer3_Pending			BIT	Flags1.0		; Timer3 pending flag
@@ -233,6 +234,7 @@ Demag_Detected_Metric:		DS	1	; Metric used to gauge demag event frequency
 Demag_Detected_Metric_Max:	DS	1	; Metric used to gauge demag event frequency
 Demag_Pwr_Off_Thresh:		DS	1	; Metric threshold above which power is cut
 Low_Rpm_Pwr_Slope:			DS	1	; Sets the slope of power increase for low rpm
+Demag_Error_Time_Counter:	DS	1	; Counts the time during there were demags
 
 Timer2_X:					DS	1	; Timer2 extended byte
 Prev_Comm_L:				DS	1	; Previous commutation Timer2 timestamp (lo byte)
