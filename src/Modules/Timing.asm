@@ -694,9 +694,12 @@ evaluate_comparator_integrity:
     All_Pwm_Fets_Off
     Set_All_Pwm_Phases_Off
 
+    ; Signal desync
+    setb    Flag_Desync_Notify;
+
     dec SP                              ; Routine exit without "ret" command
     dec SP
-    ljmp    exit_run_mode_on_timeout                ; Exit run mode if timeout has elapsed
+    ljmp    exit_run_mode_on_timeout    ; Exit run mode if timeout has elapsed
 
 eval_comp_startup:
     inc Startup_Cnt                     ; Increment startup counter
@@ -751,12 +754,17 @@ wait_for_comm_demag_metric_max_updated:
     subb    A, Demag_Pwr_Off_Thresh
     jc  wait_for_comm_wait
 
+    ; Cut power if many consecutive demags
+    All_Pwm_Fets_Off
+    Set_All_Pwm_Phases_Off
+
     ; Signal desync
     setb    Flag_Desync_Notify;
 
-    ; Cut power if many consecutive demags. This will help retain sync during hard accelerations
-    All_Pwm_Fets_Off
-    Set_All_Pwm_Phases_Off
+    ; Give it a chance to stall recovery, otherwise a self induced stall may happen on high rpm
+    dec SP                              ; Routine exit without "ret" command
+    dec SP
+    ljmp    exit_run_mode_on_timeout    ; Exit run mode if timeout has elapsed
 
 wait_for_comm_wait:
     ; If it has not already, we wait here for the Wt_Comm_Start_ delay to elapse.
