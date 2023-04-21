@@ -230,7 +230,7 @@ ENDM
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 DSHOT_TLM_CLOCK     EQU 24500000                ; 24.5MHz
-DSHOT_TLM_START_DELAY   EQU -(5 * 25 / 4)           ; Start telemetry after 5 us (~30 us after receiving DShot cmd)
+DSHOT_TLM_START_DELAY   EQU -(11 * 25 / 4)           ; Start telemetry after 5 us (~30 us after receiving DShot cmd)
 IF MCU_TYPE == 0
 DSHOT_TLM_PREDELAY      EQU 9                   ; 9 Timer0 ticks inherent delay
 ELSE
