@@ -210,8 +210,7 @@ Flags3:					DS	1			; State flags. NOT reset upon motor_start
 Flag_Telemetry_Pending		BIT	Flags3.0		; DShot telemetry data packet is ready to be sent
 Flag_Dithering				BIT	Flags3.1		; PWM dithering enabled
 Flag_Had_Signal			BIT	Flags3.2		; Used to detect reset after having had a valid signal
-Flag_Stm_Select				BIT Flags3.3		; Allows to choose between rcpulse or telemetry stms
-Flag_Forced_Rev_Operation   BIT Flags3.4        ; Reversed operation is being forced by Dshot command 21
+Flag_Forced_Rev_Operation   BIT Flags3.3        ; Reversed operation is being forced by Dshot command 21
 
 Tlm_Data_L:				DS	1			; DShot telemetry data (lo byte)
 Tlm_Data_H:				DS	1			; DShot telemetry data (hi byte)
