@@ -62,7 +62,6 @@ set_default_parameters:
     imov    Temp1, #DEFAULT_VAR_PWM_LO_THRES    ; Pgm_Var_PWM_lo_thres
     imov    Temp1, #DEFAULT_VAR_PWM_HI_THRES	; Pgm_Var_PWM_hi_thres
     imov    Temp1, #DEFAULT_FORCE_EDT_ARM       ; Pgm_Flag_Settings
-    imov    Temp1, #DEFAULT_RCPULSE_FILTER		; Pgm_RcPulse_Filter
 
     ret
 

@@ -159,7 +159,6 @@ DEFAULT_PGM_BRAKING_STRENGTH		EQU	255	; 0..255 => 0..100 % Braking
 DEFAULT_VAR_PWM_LO_THRES		EQU	100		; About 40% rc pulse
 DEFAULT_VAR_PWM_HI_THRES		EQU	150		; About 60% rc pulse
 DEFAULT_FORCE_EDT_ARM           EQU 0       ; Do not require EDT enable to arm
-DEFAULT_RCPULSE_FILTER   		EQU 0      ; rcpulse filter disabled by default
 
 ;**** **** **** **** ****
 ; Temporary register definitions
@@ -300,9 +299,6 @@ DShot_rcpulse_stm_pwm_t3:   DS  1   ; RC pulse state machine temp3
 DShot_rcpulse_stm_pwm_t4:   DS  1   ; RC pulse state machine temp4
 DShot_rcpulse_stm_pwm_t5:   DS  1   ; RC pulse state machine temp5
 
-DShot_rcpulse_prev_lo:      DS  1   ; Previous RC pulse lo byte for rc input filtering
-DShot_rcpulse_prev_hi:      DS  1   ; Previous RC pulse hi byte for rc input filtering
-
 
 ;**** **** **** **** ****
 ; Indirect addressing data segments
@@ -349,7 +345,6 @@ Pgm_Power_Rating:			DS	1	; Power rating
 Pgm_Var_PWM_lo_thres:		DS	1	; Variable PWM low rcpulse threshold
 Pgm_Var_PWM_hi_thres:		DS	1	; Variable PWM high rcpulse threshold
 Pgm_Flag_Settings:          DS  1   ; Various flag settings: bit 0 is require edt enable to arm
-Pgm_RcPulse_Filter:  		DS  1   ; Filters rcpulse [0 - 255]
 
 ISEG AT 0B0h
 Stack:					    DS	16	; Reserved stack space
@@ -371,7 +366,7 @@ ENDIF
 EEPROM_FW_MAIN_REVISION		EQU	0	; Main revision of the firmware
 EEPROM_FW_SUB_REVISION		EQU	20	; Sub revision of the firmware
 EEPROM_LAYOUT_REVISION		EQU	207	; Revision of the EEPROM layout
-EEPROM_B2_PARAMETERS_COUNT  EQU 31  ; Number of parameters
+EEPROM_B2_PARAMETERS_COUNT  EQU 30  ; Number of parameters
 
 Eep_FW_Main_Revision:		DB	EEPROM_FW_MAIN_REVISION		; EEPROM firmware main revision number
 Eep_FW_Sub_Revision:		DB	EEPROM_FW_SUB_REVISION		; EEPROM firmware sub revision number
@@ -421,7 +416,6 @@ Eep_Pgm_Power_Rating:		DB	DEFAULT_PGM_POWER_RATING	; EEPROM copy of programmed p
 Eep_Pgm_Var_PWM_lo_thres:	DB	DEFAULT_VAR_PWM_LO_THRES	; EEPROM copy of variable PWM low rcpulse threshold
 Eep_Pgm_Var_PWM_hi_thres:	DB	DEFAULT_VAR_PWM_HI_THRES	; EEPROM copy of variable PWM high rcpulse threshold
 Eep_Pgm_Flag_Settings:      DB  DEFAULT_FORCE_EDT_ARM       ; Various flag settings: bit 0 is require edt enable to arm
-Eep_Pgm_RcPulse_Filter:		DB  DEFAULT_RCPULSE_FILTER   	; Filters rcpulse [0 - 255]
 
 Eep_Dummy:				DB	0FFh						; EEPROM address for safety reason
 
@@ -716,8 +710,6 @@ wait_for_start:					; Armed and waiting for power on
 	mov	DShot_Cmd_Cnt, A
 	mov	Beacon_Delay_Cnt, A			; Clear beacon wait counter
 	mov	Timer2_X, A				; Clear Timer2 extended byte
-	mov DShot_rcpulse_prev_lo, A	; Clear previous rcpulse value
-	mov DShot_rcpulse_prev_hi, A	; Clear previous rcpulse value
 
 wait_for_start_loop:
 	clr	C

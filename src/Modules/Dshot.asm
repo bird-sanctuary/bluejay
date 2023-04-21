@@ -626,14 +626,12 @@ dshot_gcr_encode_F_01111:
 DSHOT_RCPULSE_STATE_DONE            EQU 0       ; done state
 DSHOT_RCPULSE_STATE_START           EQU 2       ; start state
 DSHOT_RCPULSE_STATE_BIDIRCK         EQU 4       ; bidirectional (3D) check state
-DSHOT_RCPULSE_STATE_FILTER          EQU 6       ; rc input filtering
-DSHOT_RCPULSE_STATE_FILTER_2        EQU 8       ; rc input filtering
-DSHOT_RCPULSE_STATE_BOOST           EQU 10      ; stall boost state
-DSHOT_RCPULSE_STATE_PWM_LIMIT       EQU 12      ; apply pwm limit state
-DSHOT_RCPULSE_STATE_DYNAMIC_PWM     EQU 14      ; choose dynamic pwm frequency state
-DSHOT_RCPULSE_STATE_LSD             EQU 16      ; limit pwm, scale & calculate dithering pattern
-DSHOT_RCPULSE_STATE_SET_DAMP        EQU 18      ; set damp state
-DSHOT_RCPULSE_STATE_SET_PWM         EQU 20      ; set pwm state
+DSHOT_RCPULSE_STATE_BOOST           EQU 6       ; stall boost state
+DSHOT_RCPULSE_STATE_PWM_LIMIT       EQU 8       ; apply pwm limit state
+DSHOT_RCPULSE_STATE_DYNAMIC_PWM     EQU 10      ; choose dynamic pwm frequency state
+DSHOT_RCPULSE_STATE_LSD             EQU 12      ; limit pwm, scale & calculate dithering pattern
+DSHOT_RCPULSE_STATE_SET_DAMP        EQU 14      ; set damp state
+DSHOT_RCPULSE_STATE_SET_PWM         EQU 16      ; set pwm state
 
 dshot_rcpulse_stm:
     ; Check stm is done
@@ -657,8 +655,6 @@ dshot_rcpulse_stm_jump_table:
     ajmp dshot_rcpulse_stm_end
     ajmp dshot_rcpulse_stm_start_state
     ajmp dshot_rcpulse_stm_bidirck_state
-    ajmp dshot_rcpulse_stm_filter_state
-    ajmp dshot_rcpulse_stm_filter_state_2
     ajmp dshot_rcpulse_stm_boost_state
     ajmp dshot_rcpulse_stm_pwm_limit_state
     ajmp dshot_rcpulse_stm_dynamic_pwm_state
@@ -768,74 +764,6 @@ dshot_rcpulse_stm_not_bidir:
     mov Temp4, #0FFh
     mov Temp5, #07h
 
-    ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_rcpulse_stm_filter_state
-
-    ; Store next state
-    mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_FILTER
-    jmp dshot_rcpulse_stm_end
-
-
-
-    ; ********************************** FILTER STATE *******************************
-dshot_rcpulse_stm_filter_state:
-    ; We can receive overshooted rc pulses because bad tuned PID loops
-    ; Filter applied to mitigate countinuous agressive rcpulses (overshooting)
-    ; to avoid unadverted motor braking and timing out.
-    ; Overshooting is the cause of hot and burning motors.
-    ; This is a basic lo pass filter with low performance penalty
-    ; When rcpulses are continuously overshooting it reduces overshoot by 2
-    ; rcpulse_new = rcpulse * (256 - filter) / 256 + rcpulse_prev * filter / 256
-
-    ; Skip filter if it is explicitly ordered by the user
-    mov Temp2, #Pgm_RcPulse_Filter
-    mov A, @Temp2
-    jz dshot_rcpulse_stm_filter_state_skip
-
-	; Skip filter in turtle mode
-	jb Flag_Forced_Rev_Operation, dshot_rcpulse_stm_filter_state_skip
-
-    ; Modulate current rcpulse
-    cpl A							; A = 256 - Pgm_RcPulse_Filter
-    inc A
-    mov Temp3, A
-    MulU16xU8 Temp5, Temp4, Temp3
-
-    ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_rcpulse_stm_filter_state_2
-
-    ; Store next state
-    mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_FILTER_2
-    jmp dshot_rcpulse_stm_end
-
-
-
-    ; ********************************** FILTER STATE 2 *******************************
-dshot_rcpulse_stm_filter_state_2:
-    ; Modulate previous rcpulse
-    mov A, @Temp2
-    mov Temp1, A
-    mov Temp3, DShot_rcpulse_prev_hi
-    mov Temp2, DShot_rcpulse_prev_lo
-    MulU16xU8 Temp3, Temp2, Temp1
-
-    ; Add both modulated rc pulses
-    ; We drop Temp1 in both multiplications
-    ; because we are dividing by 256
-    ; Temp5:4 = rcpulse
-    mov A, Temp2
-    add A, Temp4
-    mov Temp4, A
-    mov A, Temp3
-    addc A, Temp5
-    mov Temp5, A
-
-dshot_rcpulse_stm_filter_state_skip:
-	; Update rcpulse_prev
-    mov DShot_rcpulse_prev_lo, Temp4    ; Store previous rcpulse lo with current lo
-    mov DShot_rcpulse_prev_hi, Temp5    ; Store previous rcpulse hi with current hi
-
-dshot_rcpulse_stm_filter_state_done:
     ; If timer3 has not been triggered we can continue
     jb  Flag_Timer3_Pending, dshot_rcpulse_stm_boost_state
 
