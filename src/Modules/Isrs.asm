@@ -117,6 +117,7 @@ int1_int:
     ; - Now start timer1 to count bit timings when int0 interrupts are triggered
     ; - Also Enable Int0 interrupts from here
     clr IE_EX1                  ; Disable Int1 interrupts
+    mov TL1, DShot_Timer_Preset ; Reset sync timer
     setb    TCON_TR1            ; Start Timer1
     setb    IE_EX0              ; Enable Int0 interrupts
 
@@ -140,9 +141,8 @@ reti
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 t1_int:
-    clr IE_EX0                  ; Disable Int0 interrupts
+    clr IE_EX0                  	; Disable Int0 interrupts
     clr TCON_TR1                    ; Stop Timer1
-    mov TL1, DShot_Timer_Preset     ; Reset sync timer
 
     push    PSW
     mov PSW, #8h                    ; Select register bank 1 for this interrupt
@@ -238,9 +238,12 @@ t1_int_decode_checksum:
     jnz t1_int_outside_range        ; XOR check
 
 t1_int_rcpulse_stm_load:
+	; Set timeout count
+    mov Rcp_Timeout_Cntd, #10
+
     ; Check that DSHOT rcpulse state machine state is done to load new rcpulse
     mov A, DShot_rcpulse_stm_state
-    cjne A, #DSHOT_RCPULSE_STATE_DONE, t1_int_rcpulse_stm_ready
+    jnz t1_int_rcpulse_stm_ready
 
     ; Kick dshot rcpulse state machine
     mov DShot_rcpulse_stm_pwm_t4, Temp4
@@ -248,8 +251,6 @@ t1_int_rcpulse_stm_load:
     mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_START
 
 t1_int_rcpulse_stm_ready:
-    mov Rcp_Timeout_Cntd, #10       ; Set timeout count
-
     ; Check DShot telemetry has to be sent
     jnb Flag_Rcp_DShot_Inverted, t1_int_exit_no_tlm ; Only send telemetry for inverted DShot
     jnb Flag_Telemetry_Pending, t1_int_exit_no_tlm  ; Check if telemetry packet is ready
