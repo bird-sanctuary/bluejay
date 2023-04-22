@@ -53,13 +53,81 @@ t0_int_dshot_tlm_finish:
     clr TCON_IE1                    ; Clear Int1 pending flag
 
     mov TL0, #0                 ; Reset Timer0 count
-    setb    IE_EX0                  ; Enable Int0 interrupts
     setb    IE_EX1                  ; Enable Int1 interrupts
 
     clr Flag_Telemetry_Pending      ; Mark that new telemetry packet may be created
 
     pop PSW
     reti
+
+
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
+; Int0 interrupt routine (High priority)
+;
+; Read and store DShot pwm dominant bit time in XRAM
+; Resets Timer1 to continue reading bits. When Timer1 triggers
+; the end of the frame is being signaled so it can be processed there.
+;
+; Requirements: Int0 shall be enabled in Int1 isr
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+int0_int:
+    push    ACC
+    mov A, TL0                      ; Read DShot dominant bit time
+    mov TL1, DShot_Timer_Preset     ; Reset sync timer
+
+    ; Temp1 in register bank 1 points to pwm timings
+    push    PSW
+    mov PSW, #8h
+
+    ; Detect bad frame because of DShot bit count overflow.
+    ; Avoid dirting XRAM and DShot noise (low probability but
+    ; still possible) problematic corner cases.
+    cjne Temp1, #17, int0_int_add_bit_time
+    sjmp int0_int_end
+
+int0_int_add_bit_time:
+    ; Store bit time in external memory
+    movx    @Temp1, A
+    inc Temp1
+
+int0_int_end:
+    pop PSW
+    pop ACC
+    reti
+
+
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
+; Int1 interrupt routine
+;
+; Used to know when RC pulse frame starts:
+; When a dshot frame starts it sets DShot_Frame_Start,
+; disables Int1, and enables Int0.
+; From here next stage is:
+;   - in Int0, frame bit lenghts are read from timer0 and stored in XRAM.
+;
+; Requirements: No PSW instructions or Temp/Acc registers
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+int1_int:
+    ; Frame start is detected, so:
+    ; - Int1 is not needed anymore until next frame processing
+    ; - Now start timer1 to count bit timings when int0 interrupts are triggered
+    ; - Also Enable Int0 interrupts from here
+    clr IE_EX1                  ; Disable Int1 interrupts
+    setb    TCON_TR1            ; Start Timer1
+    setb    IE_EX0              ; Enable Int0 interrupts
+
+    ; Note: Interrupts are not explicitly disabled, assuming higher priority interrupts:
+    ; - Timer0 to be disabled at this point because it cannot be sending telemetry:
+    ; Or dshot frame is being received or telemetry is being sent
+    clr TMR2CN0_TR2             ; Timer2 disabled
+    mov DShot_Frame_Start_L, TMR2L  ; Read timer value
+    mov DShot_Frame_Start_H, TMR2H
+    setb    TMR2CN0_TR2             ; Timer2 enabled
+reti
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -79,7 +147,6 @@ t1_int:
     push    PSW
     mov PSW, #8h                    ; Select register bank 1 for this interrupt
     push    ACC
-    push    B
 
     ; Note: Interrupts are not explicitly disabled
     ; Assume higher priority interrupts (Int0, Timer0) to be disabled at this point
@@ -104,7 +171,7 @@ t1_int:
     subb    A, DShot_Frame_Length_Thr
     jnc t1_int_frame_fail           ; Frame too long
 
-    ; Check that correct number of pulses is received
+    ; Check that correct number of bits is received
     cjne    Temp1, #16, t1_int_frame_fail   ; Read current pointer
 
     ; Decode transmitted data
@@ -207,11 +274,10 @@ t1_int_rcpulse_stm_ready:
 t1_int_exit_no_tlm:
     mov Temp1, #0                   ; Set pointer to start
     mov TL0, #0                 ; Reset Timer0
-    setb    IE_EX0                  ; Enable Int0 interrupts
     setb    IE_EX1                  ; Enable Int1 interrupts
 
 t1_int_exit_no_int:
-    pop B                       ; Restore preserved registers
+    ; Restore preserved registers
     pop ACC
     pop PSW
     reti
@@ -276,54 +342,6 @@ t3_int:
     clr Flag_Timer3_Pending         ; Flag that timer has wrapped
     setb    IE_EA                   ; Enable all interrupts
     reti
-
-
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;
-; Int0 interrupt routine (High priority)
-;
-; Read and store DShot pwm signal for decoding
-;
-; Requirements: No PSW instructions
-;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-int0_int:
-    push    ACC
-    mov A, TL0                  ; Read pwm for DShot immediately
-    mov TL1, DShot_Timer_Preset     ; Reset sync timer
-
-    ; Temp1 in register bank 1 points to pwm timings
-    push    PSW
-    mov PSW, #8h
-    movx    @Temp1, A                   ; Store pwm in external memory
-    inc Temp1
-    pop PSW
-
-    pop ACC
-    reti
-
-
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;
-; Int1 interrupt routine
-;
-; Used for RC pulse timing
-;
-; Requirements: No PSW instructions or Temp/Acc registers
-;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-int1_int:
-    clr IE_EX1                  ; Disable Int1 interrupts
-    setb    TCON_TR1                    ; Start Timer1
-
-    ; Note: Interrupts are not explicitly disabled, assuming higher priority interrupts:
-    ; - Timer0 to be disabled at this point
-    ; - Int0 to not trigger for valid DShot signal
-    clr TMR2CN0_TR2             ; Timer2 disabled
-    mov DShot_Frame_Start_L, TMR2L  ; Read timer value
-    mov DShot_Frame_Start_H, TMR2H
-    setb    TMR2CN0_TR2             ; Timer2 enabled
-reti
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
