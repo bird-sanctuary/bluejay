@@ -638,7 +638,7 @@ dshot_rcpulse_stm:
 	push B
 
     ; Jump to stm's current state
-    mov A, DShot_rcpulse_stm_state
+    mov A, Temp8
     mov DPTR, #dshot_rcpulse_stm_jump_table
     jmp @A+DPTR
 
@@ -698,7 +698,7 @@ dshot_rcpulse_stm_set_cmd:
 
 dshot_rcpulse_stm_normal_range:
     ; Store next state
-    mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_BIDIRCK
+    mov Temp8, #DSHOT_RCPULSE_STATE_BIDIRCK
     jmp dshot_rcpulse_stm_end
 
 
@@ -756,7 +756,7 @@ dshot_rcpulse_stm_not_bidir:
 
 dshot_rcpulse_stm_bidir_done:
     ; Store next state
-    mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_BOOST
+    mov Temp8, #DSHOT_RCPULSE_STATE_BOOST
     jmp dshot_rcpulse_stm_end
 
 
@@ -808,7 +808,7 @@ dshot_rcpulse_stm_stall_boost:
 
 dshot_rcpulse_stm_startup_boosted:
     ; Store next state
-    mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_PWM_LIMIT
+    mov Temp8, #DSHOT_RCPULSE_STATE_PWM_LIMIT
     jmp dshot_rcpulse_stm_end
 
 
@@ -851,7 +851,7 @@ dshot_rcpulse_stm_zero_rcp_checked:
 
 dshot_rcpulse_stm_zero_rcp_done:
     ; Store next state
-    mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_DYNAMIC_PWM
+    mov Temp8, #DSHOT_RCPULSE_STATE_DYNAMIC_PWM
     jmp dshot_rcpulse_stm_end
 
 
@@ -905,7 +905,7 @@ ENDIF
 dshot_rcpulse_stm_dynamic_pwm_done:
     ; Store next state
     ; No state
-    mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_LSD
+    mov Temp8, #DSHOT_RCPULSE_STATE_LSD
     jmp dshot_rcpulse_stm_end
 
 
@@ -1118,7 +1118,7 @@ dshot_rcpulse_stm_pwm_limit_scale_dithering_pwm8bit_limited:
 
 dshot_rcpulse_stm_pwm_limit_scale_dithering_done:
     ; Store next state
-    mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_SET_DAMP
+    mov Temp8, #DSHOT_RCPULSE_STATE_SET_DAMP
     jmp dshot_rcpulse_stm_end
 
 
@@ -1160,7 +1160,7 @@ dshot_rcpulse_stm_max_braking_set:
 ENDIF
 dshot_rcpulse_stm_pwm_braking_set:
     ; Store next state
-    mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_SET_PWM
+    mov Temp8, #DSHOT_RCPULSE_STATE_SET_PWM
     jmp dshot_rcpulse_stm_end
 
 
@@ -1201,7 +1201,7 @@ ENDIF
 
 dshot_rcpulse_stm_set_pwm_end:
     ; Store next state
-    mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_DONE
+    mov Temp8, #DSHOT_RCPULSE_STATE_DONE
 
 	; DShot rcpulse has been processed. Timer1 can be deactivated
     clr TCON_TR1                    ; Stop Timer1

@@ -293,12 +293,6 @@ Ext_Telemetry_H:			DS	1
 Scheduler_Counter:			DS	1	; Scheduler Heartbeat
 PwmBitsCount:				DS  1	; 0 = 8 bit pwm, 1 = 9 bit pwm, 2 = 10 bit pwm, 3 = 11 bit pwm
 
-DShot_rcpulse_stm_state:    DS  1   ; RC pulse state machine state or step
-DShot_rcpulse_stm_pwm_t2:   DS  1   ; RC pulse state machine temp2
-DShot_rcpulse_stm_pwm_t3:   DS  1   ; RC pulse state machine temp3
-DShot_rcpulse_stm_pwm_t4:   DS  1   ; RC pulse state machine temp4
-DShot_rcpulse_stm_pwm_t5:   DS  1   ; RC pulse state machine temp5
-
 
 ;**** **** **** **** ****
 ; Indirect addressing data segments

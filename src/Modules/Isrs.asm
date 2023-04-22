@@ -148,7 +148,7 @@ t1_int:
     push    ACC
 
     ; Check that DSHOT rcpulse state machine state is done to load new rcpulse
-    mov A, DShot_rcpulse_stm_state
+    mov A, Temp8
     jz t1_int_decode
 
     ; Configure RTX_PIN for digital output
@@ -258,7 +258,14 @@ t1_int_rcpulse_stm_load:
     mov Rcp_Timeout_Cntd, #10
 
     ; Kick dshot rcpulse state machine
-    mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_START
+    mov Temp8, #DSHOT_RCPULSE_STATE_START
+
+    ; Configure RTX_PIN for digital output
+    clr    RTX_BIT                 ; Default to high level
+    orl RTX_MDOUT, #(1 SHL RTX_PIN) ; Set output mode to push-pull
+    setb    RTX_BIT                 ; Default to high level
+    ; Configure RTX_PIN for digital input
+    anl RTX_MDOUT, #(NOT (1 SHL RTX_PIN))   ; Set RTX_PIN output mode to open-drain
 
 	; Configure timer to process rcpulse every 120 clk ticks
     mov TL1, #(155) 			; Sync Timer1
