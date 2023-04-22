@@ -164,7 +164,6 @@ t1_int_decode:
     clr IE_EX0                  	; Disable Int0 interrupts
     clr TCON_TR1                    ; Stop Timer1
 
-    mov Temp7, #0
     ; Check that correct number of bits is received
     cjne    Temp1, #16, t1_int_frame_fail   ; Read current pointer
 
@@ -175,7 +174,6 @@ t1_int_decode:
     mov Temp3, TMR2H
     setb    TMR2CN0_TR2             ; Timer2 enabled
 
-    mov Temp7, #1
     ; Check frame time length
     clr C
     mov A, Temp2
@@ -185,7 +183,6 @@ t1_int_decode:
     subb    A, DShot_Frame_Start_H
     jnz t1_int_frame_fail           ; Frame too long
 
-    mov Temp7, #2
     clr C
     mov A, Temp2
     subb    A, DShot_Frame_Length_Thr
@@ -193,13 +190,11 @@ t1_int_decode:
     subb    A, DShot_Frame_Length_Thr
     jnc t1_int_frame_fail           ; Frame too long
 
-    mov Temp7, #3
     ; Decode transmitted data
     mov Temp1, #0                   ; Set pointer
     mov Temp2, DShot_Pwm_Thr        ; DShot pulse width criteria
     mov Temp6, #0                   ; Reset timestamp
 
-    mov Temp7, #4
     ; Decode DShot data Msb. Use more code space to save time (by not using loop)
     Decode_DShot_2Bit   Temp5, t1_int_frame_fail
     Decode_DShot_2Bit   Temp5, t1_int_frame_fail
