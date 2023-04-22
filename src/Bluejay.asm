@@ -634,7 +634,7 @@ ENDIF
 
 	; Setup variables for DShot600 (Only on 48MHz for performance reasons)
 IF MCU_TYPE >= 1
-	mov	DShot_Timer_Preset, #-64		; Load DShot sync timer preset (for DShot600)
+	mov	DShot_Timer_Preset, #-32	; Load DShot sync timer preset (for DShot600)
 	mov	DShot_Pwm_Thr, #8			; Load DShot pwm threshold (for DShot600)
 	mov	DShot_Frame_Length_Thr, #40	; Load DShot frame length criteria
 

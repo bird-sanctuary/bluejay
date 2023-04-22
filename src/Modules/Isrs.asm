@@ -154,8 +154,8 @@ t1_int:
     ; Configure RTX_PIN for digital output
     clr    RTX_BIT                 ; Default to high level
     orl RTX_MDOUT, #(1 SHL RTX_PIN) ; Set output mode to push-pull
-    setb    RTX_BIT                 ; Default to high level
     ; Configure RTX_PIN for digital input
+    setb    RTX_BIT                 ; Default to high level
     anl RTX_MDOUT, #(NOT (1 SHL RTX_PIN))   ; Set RTX_PIN output mode to open-drain
 
     jmp dshot_rcpulse_stm
@@ -268,8 +268,8 @@ t1_int_rcpulse_stm_load:
     anl RTX_MDOUT, #(NOT (1 SHL RTX_PIN))   ; Set RTX_PIN output mode to open-drain
 
 	; Configure timer to process rcpulse every 120 clk ticks
-    mov TL1, #(155) 			; Sync Timer1
-    mov TH1, #(155) 			; Reset Timer1
+    mov TL1, #155 			; Sync Timer1
+    mov TH1, #155 			; Reset Timer1
     setb    TCON_TR1            ; Start Timer1
 
     sjmp t1_int_exit_no_int
