@@ -697,9 +697,11 @@ evaluate_comparator_integrity:
 	; Signal stall
 	setb	Flag_Stall_Notify
 
-    dec SP                              ; Routine exit without "ret" command
+	clr	IE_EA							; Disable all interrupts (stack pointer synchronization)
+    dec SP                          	; Routine exit without "ret" command
     dec SP
-    ljmp    exit_run_mode_on_timeout                ; Exit run mode if timeout has elapsed
+	setb	IE_EA						; Enable all interrupts
+    ljmp    exit_run_mode_on_timeout    ; Exit run mode if timeout has elapsed
 
 eval_comp_startup:
     inc Startup_Cnt                     ; Increment startup counter

@@ -614,13 +614,7 @@ IF MCU_TYPE == 0
 
 	; Test whether signal is DShot150
 	mov	Rcp_Outside_Range_Cnt, #10	; Set out of range counter
-	mov Temp6, #100
-
-setup_dshot_150_wait:
-	; Wait for new RC pulse
-	call	wait1ms
-	call	dshot_rcpulse_stm
-	djnz	Temp6, setup_dshot_150_wait
+	call wait100ms
 
 	; Check rcpulse
 	mov	A, Rcp_Outside_Range_Cnt		; Check if pulses were accepted
@@ -638,13 +632,7 @@ ENDIF
 
 	; Test whether signal is DShot300
 	mov	Rcp_Outside_Range_Cnt, #10	; Set out of range counter
-	mov Temp6, #100
-
-setup_dshot_300_wait:
-	; Wait for new RC pulse
-	call	wait1ms
-	call	dshot_rcpulse_stm
-	djnz	Temp6, setup_dshot_300_wait
+	call wait100ms
 
 	; Check rcpulse
 	mov	A, Rcp_Outside_Range_Cnt		; Check if pulses were accepted
@@ -660,13 +648,7 @@ IF MCU_TYPE >= 1
 
 	; Test whether signal is DShot600
 	mov	Rcp_Outside_Range_Cnt, #10	; Set out of range counter
-	mov Temp6, #100
-
-setup_dshot_600_wait:
-	; Wait for new RC pulse
-	call	wait1ms
-	call	dshot_rcpulse_stm
-	djnz	Temp6, setup_dshot_600_wait
+	call wait100ms
 
 	; Check rcpulse
 	mov	A, Rcp_Outside_Range_Cnt		; Check if pulses were accepted
@@ -689,9 +671,6 @@ arming_begin:
 	setb	IE_EA
 
 arming_wait:
-	; Process rc pulses and wait 10 x 32ms t2 ticks reading rcpulse stop frames before arming
-	call	dshot_rcpulse_stm
-
 	; Check time rcpulse stop count >= 10
 	clr	C
 	mov	A, Rcp_Stop_Cnt
@@ -757,7 +736,6 @@ beep_delay_set:
 
 wait_for_start_no_beep:
 	call 	scheduler_run			; Run scheduler
-	call	dshot_rcpulse_stm		; Process rcpulses
 	call	dshot_cmd_check			; Check and process DShot command
 	call	dshot_tlmpacket_stm		; Create telemetry packets
 
@@ -774,8 +752,7 @@ wait_for_start_nonzero:
 
 wait_for_start_nonzero_wait:
     call    scheduler_run           ; Run scheduler
-    call    dshot_rcpulse_stm       ; Process rcpulses
-	call	dshot_cmd_check			; Check and process DShot command
+	call    dshot_cmd_check			; Check and process DShot command
     call    dshot_tlmpacket_stm     ; Create telemetry packets
 
 	; If Rcp returned to stop - start over

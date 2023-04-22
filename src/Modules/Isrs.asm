@@ -117,18 +117,20 @@ int1_int:
     ; - Now start timer1 to count bit timings when int0 interrupts are triggered
     ; - Also Enable Int0 interrupts from here
     clr IE_EX1                  ; Disable Int1 interrupts
-    mov TL1, DShot_Timer_Preset ; Reset sync timer
+    mov TH1, DShot_Timer_Preset ; Reset Timer1
+    mov TL1, DShot_Timer_Preset ; Sync Timer1
     setb    TCON_TR1            ; Start Timer1
     setb    IE_EX0              ; Enable Int0 interrupts
 
     ; Note: Interrupts are not explicitly disabled, assuming higher priority interrupts:
     ; - Timer0 to be disabled at this point because it cannot be sending telemetry:
     ; Or dshot frame is being received or telemetry is being sent
-    clr TMR2CN0_TR2             ; Timer2 disabled
+    clr TMR2CN0_TR2             	; Timer2 disabled
     mov DShot_Frame_Start_L, TMR2L  ; Read timer value
     mov DShot_Frame_Start_H, TMR2H
     setb    TMR2CN0_TR2             ; Timer2 enabled
-reti
+
+	reti
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -141,13 +143,28 @@ reti
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 t1_int:
-    clr IE_EX0                  	; Disable Int0 interrupts
-    clr TCON_TR1                    ; Stop Timer1
-
     push    PSW
     mov PSW, #8h                    ; Select register bank 1 for this interrupt
     push    ACC
 
+    ; Check that DSHOT rcpulse state machine state is done to load new rcpulse
+    mov A, DShot_rcpulse_stm_state
+    jz t1_int_decode
+
+    ; Configure RTX_PIN for digital output
+    clr    RTX_BIT                 ; Default to high level
+    orl RTX_MDOUT, #(1 SHL RTX_PIN) ; Set output mode to push-pull
+    setb    RTX_BIT                 ; Default to high level
+    ; Configure RTX_PIN for digital input
+    anl RTX_MDOUT, #(NOT (1 SHL RTX_PIN))   ; Set RTX_PIN output mode to open-drain
+
+    jmp dshot_rcpulse_stm
+
+t1_int_decode:
+    clr IE_EX0                  	; Disable Int0 interrupts
+    clr TCON_TR1                    ; Stop Timer1
+
+    mov Temp7, #0
     ; Check that correct number of bits is received
     cjne    Temp1, #16, t1_int_frame_fail   ; Read current pointer
 
@@ -158,6 +175,7 @@ t1_int:
     mov Temp3, TMR2H
     setb    TMR2CN0_TR2             ; Timer2 enabled
 
+    mov Temp7, #1
     ; Check frame time length
     clr C
     mov A, Temp2
@@ -167,6 +185,7 @@ t1_int:
     subb    A, DShot_Frame_Start_H
     jnz t1_int_frame_fail           ; Frame too long
 
+    mov Temp7, #2
     clr C
     mov A, Temp2
     subb    A, DShot_Frame_Length_Thr
@@ -174,11 +193,13 @@ t1_int:
     subb    A, DShot_Frame_Length_Thr
     jnc t1_int_frame_fail           ; Frame too long
 
+    mov Temp7, #3
     ; Decode transmitted data
     mov Temp1, #0                   ; Set pointer
     mov Temp2, DShot_Pwm_Thr        ; DShot pulse width criteria
     mov Temp6, #0                   ; Reset timestamp
 
+    mov Temp7, #4
     ; Decode DShot data Msb. Use more code space to save time (by not using loop)
     Decode_DShot_2Bit   Temp5, t1_int_frame_fail
     Decode_DShot_2Bit   Temp5, t1_int_frame_fail
@@ -241,40 +262,42 @@ t1_int_rcpulse_stm_load:
 	; Set timeout count
     mov Rcp_Timeout_Cntd, #10
 
-    ; Check that DSHOT rcpulse state machine state is done to load new rcpulse
-    mov A, DShot_rcpulse_stm_state
-    jnz t1_int_rcpulse_stm_ready
-
     ; Kick dshot rcpulse state machine
-    mov DShot_rcpulse_stm_pwm_t4, Temp4
-    mov DShot_rcpulse_stm_pwm_t5, Temp5
     mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_START
 
+	; Configure timer to process rcpulse every 120 clk ticks
+    mov TL1, #(155) 			; Sync Timer1
+    mov TH1, #(155) 			; Reset Timer1
+    setb    TCON_TR1            ; Start Timer1
+
+    sjmp t1_int_exit_no_int
+
 t1_int_rcpulse_stm_ready:
-    ; Check DShot telemetry has to be sent
-    jnb Flag_Rcp_DShot_Inverted, t1_int_exit_no_tlm ; Only send telemetry for inverted DShot
-    jnb Flag_Telemetry_Pending, t1_int_exit_no_tlm  ; Check if telemetry packet is ready
-
-    ; Prepare Timer0 for sending telemetry data
-    mov CKCON0, #01h                ; Timer0 is system clock divided by 4
-    mov TMOD, #0A2h             ; Timer0 runs free not gated by Int0
-
-    ; Configure RTX_PIN for digital output
-    setb    RTX_BIT                 ; Default to high level
-    orl RTX_MDOUT, #(1 SHL RTX_PIN) ; Set output mode to push-pull
-
-    mov Temp1, #0                   ; Set pointer to start
-
-    ; Note: Delay must be large enough to ensure port is ready for output
-    mov TL0, DShot_GCR_Start_Delay  ; Telemetry will begin after this delay
-    clr TCON_TF0                    ; Clear Timer0 overflow flag
-    setb    IE_ET0                  ; Enable Timer0 interrupts
-
-    sjmp    t1_int_exit_no_int
+;    ; Check DShot telemetry has to be sent
+;    jnb Flag_Rcp_DShot_Inverted, t1_int_exit_no_tlm ; Only send telemetry for inverted DShot
+;    jnb Flag_Telemetry_Pending, t1_int_exit_no_tlm  ; Check if telemetry packet is ready
+;
+;    ; Prepare Timer0 for sending telemetry data
+;    mov CKCON0, #01h                ; Timer0/1 is system clock divided by 4
+;    mov TMOD, #0A2h             ; Timer0 runs free not gated by Int0
+;
+;    ; Configure RTX_PIN for digital output
+;    setb    RTX_BIT                 ; Default to high level
+;    orl RTX_MDOUT, #(1 SHL RTX_PIN) ; Set output mode to push-pull
+;
+;    mov Temp1, #0                   ; Set pointer to start
+;
+;    ; Note: Delay must be large enough to ensure port is ready for output
+;    mov TL0, DShot_GCR_Start_Delay  ; Telemetry will begin after this delay
+;    clr TCON_TF0                    ; Clear Timer0 overflow flag
+;    setb    IE_ET0                  ; Enable Timer0 interrupts
+;
+;    sjmp    t1_int_exit_no_int
 
 t1_int_exit_no_tlm:
+	; Capture new frame
     mov Temp1, #0                   ; Set pointer to start
-    mov TL0, #0                 ; Reset Timer0
+    mov TL0, #0                 	; Reset Timer0
     setb    IE_EX1                  ; Enable Int1 interrupts
 
 t1_int_exit_no_int:

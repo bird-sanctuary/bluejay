@@ -634,17 +634,8 @@ DSHOT_RCPULSE_STATE_SET_DAMP        EQU 14      ; set damp state
 DSHOT_RCPULSE_STATE_SET_PWM         EQU 16      ; set pwm state
 
 dshot_rcpulse_stm:
-    ; Check stm is done
-    mov A, DShot_rcpulse_stm_state
-    cjne A, #DSHOT_RCPULSE_STATE_DONE, dshot_rcpulse_stm_begin
-    ret
-
-dshot_rcpulse_stm_begin:
     ; Load context
-    mov Temp2, DShot_rcpulse_stm_pwm_t2
-    mov Temp3, DShot_rcpulse_stm_pwm_t3
-    mov Temp4, DShot_rcpulse_stm_pwm_t4
-    mov Temp5, DShot_rcpulse_stm_pwm_t5
+	push B
 
     ; Jump to stm's current state
     mov A, DShot_rcpulse_stm_state
@@ -706,9 +697,6 @@ dshot_rcpulse_stm_set_cmd:
     mov DShot_Cmd_Cnt, #0
 
 dshot_rcpulse_stm_normal_range:
-    ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_rcpulse_stm_bidirck_state
-
     ; Store next state
     mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_BIDIRCK
     jmp dshot_rcpulse_stm_end
@@ -766,9 +754,7 @@ dshot_rcpulse_stm_not_bidir:
     mov Temp4, #0FFh
     mov Temp5, #07h
 
-    ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_rcpulse_stm_boost_state
-
+dshot_rcpulse_stm_bidir_done:
     ; Store next state
     mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_BOOST
     jmp dshot_rcpulse_stm_end
@@ -821,9 +807,6 @@ dshot_rcpulse_stm_stall_boost:
     mov Temp5, #07h
 
 dshot_rcpulse_stm_startup_boosted:
-    ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_rcpulse_stm_pwm_limit_state
-
     ; Store next state
     mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_PWM_LIMIT
     jmp dshot_rcpulse_stm_end
@@ -866,9 +849,7 @@ dshot_rcpulse_stm_zero_rcp_checked:
     jc  ($+4)
     mov Temp3, Pwm_Limit_By_Rpm
 
-    ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_rcpulse_stm_dynamic_pwm_state
-
+dshot_rcpulse_stm_zero_rcp_done:
     ; Store next state
     mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_DYNAMIC_PWM
     jmp dshot_rcpulse_stm_end
@@ -922,9 +903,6 @@ IF PWM_CENTERED == 0
 ENDIF
 
 dshot_rcpulse_stm_dynamic_pwm_done:
-    ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_rcpulse_stm_pwm_limit_scale_dithering_state
-
     ; Store next state
     ; No state
     mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_LSD
@@ -1139,9 +1117,6 @@ dshot_rcpulse_stm_pwm_limit_scale_dithering_pwm8bit_limited:
     dec Temp2
 
 dshot_rcpulse_stm_pwm_limit_scale_dithering_done:
-    ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_rcpulse_stm_set_damp_state
-
     ; Store next state
     mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_SET_DAMP
     jmp dshot_rcpulse_stm_end
@@ -1184,9 +1159,6 @@ dshot_rcpulse_stm_max_braking_set:
 
 ENDIF
 dshot_rcpulse_stm_pwm_braking_set:
-    ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_rcpulse_stm_set_pwm_state
-
     ; Store next state
     mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_SET_PWM
     jmp dshot_rcpulse_stm_end
@@ -1203,10 +1175,6 @@ dshot_rcpulse_stm_set_pwm_state:
     cjne A, #80h, dshot_rcpulse_stm_set_pwm_neq_8bits
 
 dshot_rcpulse_stm_set_pwm_eq_8bits:
-    ; Disable all interrupts to avoid being interrupted
-    ; while setting new pwm frequency and dutty
-    clr IE_EA
-
     ; Update pwm cycle length (8 bits)
     ; Bit7   to 1 = AutoreloadRegisterSelected (apply duty in next pwm cycle)
     ; Bit2:0 to PwmBitsCount
@@ -1217,16 +1185,9 @@ dshot_rcpulse_stm_set_pwm_eq_8bits:
 IF DEADTIME != 0
     Set_Damp_Pwm_Reg_H  Temp4
 ENDIF
-
-    ; Enable all interrupts again
-    setb    IE_EA
     sjmp    dshot_rcpulse_stm_set_pwm_end
 
 dshot_rcpulse_stm_set_pwm_neq_8bits:
-    ; Disable all interrupts to avoid being interrupted
-    ; while setting new pwm frequency and dutty
-    clr IE_EA
-
     ; Update pwm cycle length (9-11 bits)
     mov PCA0PWM, A
 
@@ -1238,20 +1199,24 @@ IF DEADTIME != 0
     Set_Damp_Pwm_Reg_H  Temp5
 ENDIF
 
-    ; Enable all interrupts again
-    setb    IE_EA
-
 dshot_rcpulse_stm_set_pwm_end:
     ; Store next state
     mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_DONE
 
-    ; STM done. Do not store context
-    ret
+	; DShot rcpulse has been processed. Timer1 can be deactivated
+    clr TCON_TR1                    ; Stop Timer1
 
+	; Capture new frame
+    mov Temp1, #0                   ; Set pointer to start
+    mov TL0, #0                 	; Reset Timer0
+    setb    IE_EX1                  ; Enable Int1 interrupts
+
+
+
+    ; *********** END STATE *******************
 dshot_rcpulse_stm_end:
-    ; Store context
-    mov DShot_rcpulse_stm_pwm_t2, Temp2
-    mov DShot_rcpulse_stm_pwm_t3, Temp3
-    mov DShot_rcpulse_stm_pwm_t4, Temp4
-    mov DShot_rcpulse_stm_pwm_t5, Temp5
-    ret
+    ; Restore preserved registers
+    pop B
+    pop ACC
+    pop PSW
+    reti

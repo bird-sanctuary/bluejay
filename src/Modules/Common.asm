@@ -273,10 +273,6 @@ ENDM
 Wait_For_Timer3 MACRO
 LOCAL wait_begin wait_run_rcpulse_stm_first wait_run_telemetry_stm_first wait_for_t3 wait_end
 wait_begin:
-    ; Run at least 1 state of rcpulse stm, so firmware cannot get
-    ; stuck at max PWM
-    call    dshot_rcpulse_stm
-
     ; If no Flag_Timer3_Pending (Timer3 elapsed) end
     jnb Flag_Timer3_Pending, wait_end
 
