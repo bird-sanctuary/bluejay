@@ -148,6 +148,9 @@ t1_int:
     mov PSW, #8h                    ; Select register bank 1 for this interrupt
     push    ACC
 
+    ; Check that correct number of bits is received
+    cjne    Temp1, #16, t1_int_frame_fail   ; Read current pointer
+
     ; Note: Interrupts are not explicitly disabled
     ; Assume higher priority interrupts (Int0, Timer0) to be disabled at this point
     clr TMR2CN0_TR2             ; Timer2 disabled
@@ -170,9 +173,6 @@ t1_int:
     jc  t1_int_frame_fail           ; Frame too short
     subb    A, DShot_Frame_Length_Thr
     jnc t1_int_frame_fail           ; Frame too long
-
-    ; Check that correct number of bits is received
-    cjne    Temp1, #16, t1_int_frame_fail   ; Read current pointer
 
     ; Decode transmitted data
     mov Temp1, #0                   ; Set pointer
