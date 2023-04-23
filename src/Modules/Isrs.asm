@@ -128,7 +128,7 @@ int1_int:
     mov DShot_Frame_Start_L, TMR2L  ; Read timer value
     mov DShot_Frame_Start_H, TMR2H
     setb    TMR2CN0_TR2             ; Timer2 enabled
-reti
+	reti
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -274,7 +274,7 @@ t1_int_rcpulse_stm_ready:
 
 t1_int_exit_no_tlm:
     mov Temp1, #0                   ; Set pointer to start
-    mov TL0, #0                 ; Reset Timer0
+    mov TL0, #0                 	; Reset Timer0
     setb    IE_EX1                  ; Enable Int1 interrupts
 
 t1_int_exit_no_int:

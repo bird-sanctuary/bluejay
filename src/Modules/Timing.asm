@@ -697,8 +697,11 @@ evaluate_comparator_integrity:
 	; Signal stall
 	setb	Flag_Stall_Notify
 
-    dec SP                              ; Routine exit without "ret" command
+	; Routine exit without "ret" command
+	clr IE_EA
     dec SP
+    dec SP
+    setb IE_EA
     ljmp    exit_run_mode_on_timeout                ; Exit run mode if timeout has elapsed
 
 eval_comp_startup:
