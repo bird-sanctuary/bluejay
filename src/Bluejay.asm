@@ -171,6 +171,10 @@ Temp6		EQU	R5
 Temp7		EQU	R6
 Temp8		EQU	R7
 
+; Temporary bit definitions
+BoolAux0	EQU	PSW_F0
+BoolAux1	EQU	PSW_F1
+
 ;**** **** **** **** ****
 ; RAM definitions
 ; Bit-addressable data segment
@@ -240,7 +244,6 @@ Prev_Prev_Comm_L:			DS	1	; Pre-previous commutation Timer2 timestamp (lo byte)
 Prev_Prev_Comm_H:			DS	1	; Pre-previous commutation Timer2 timestamp (hi byte)
 Comm_Period4x_L:			DS	1	; Timer2 ticks between the last 4 commutations (lo byte)
 Comm_Period4x_H:			DS	1	; Timer2 ticks between the last 4 commutations (hi byte)
-Comparator_Read_Cnt:		DS	1	; Number of comparator reads done
 
 Wt_Adv_Start_L:			DS	1	; Timer3 start point for commutation advance timing (lo byte)
 Wt_Adv_Start_H:			DS	1	; Timer3 start point for commutation advance timing (hi byte)

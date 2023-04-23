@@ -513,45 +513,25 @@ wait_for_comp_out_high:
 
 comp_init:
     setb    Flag_Demag_Detected         ; Set demag detected flag as default
-    mov Comparator_Read_Cnt, #0     ; Reset number of comparator reads
+    clr 	BoolAux0					; BoolAux0 used here to know if there have been comparator reads
 
 comp_start:
     ; Set number of comparator readings required
-    mov Temp3, #(1 SHL IS_MCU_48MHZ)    ; Number of OK readings required
-    mov Temp4, #(1 SHL IS_MCU_48MHZ)    ; Max number of readings required
-    jb  Flag_High_Rpm, comp_check_timeout   ; Branch if high rpm
+    mov Temp3, #(2 SHL IS_MCU_48MHZ)        ; Number of OK readings required
+    mov Temp4, #(4 SHL IS_MCU_48MHZ)       	; Max wrong readings threshold
+    jb  Flag_High_Rpm, comp_check_timeout	; Branch if high rpm
 
     jnb Flag_Initial_Run_Phase, ($+5)
-    clr Flag_Demag_Detected         ; Clear demag detected flag if start phases
+    clr Flag_Demag_Detected         		; Clear demag detected flag if start phases
 
-    jnb Flag_Startup_Phase, comp_not_startup
-    mov Temp3, #(27 SHL IS_MCU_48MHZ)   ; Set many samples during startup, approximately one pwm period
+    jnb Flag_Startup_Phase, comp_check_timeout
+    mov Temp3, #(27 SHL IS_MCU_48MHZ)   	; Set many samples during startup, approximately one pwm period
     mov Temp4, #(27 SHL IS_MCU_48MHZ)
     sjmp    comp_check_timeout
 
-comp_not_startup:
-    ; Too low value (~<15) causes rough running at pwm harmonics.
-    ; Too high a value (~>35) causes the RCT4215 630 to run rough on full throttle
-    mov Temp4, #(20 SHL IS_MCU_48MHZ)
-    mov A, Comm_Period4x_H          ; Set number of readings higher for lower speeds
-IF MCU_TYPE == 0
-    clr C
-    rrc A
-ENDIF
-    jnz ($+3)
-    inc A                       ; Minimum 1
-    mov Temp3, A
-    clr C
-    subb    A, #(20 SHL IS_MCU_48MHZ)
-    jc  ($+4)
-    mov Temp3, #(20 SHL IS_MCU_48MHZ)   ; Maximum 20
-
 comp_check_timeout:
     jb  Flag_Timer3_Pending, comp_check_timeout_not_timed_out   ; Has zero cross scan timeout elapsed?
-
-    mov A, Comparator_Read_Cnt          ; Check that comparator has been read
-    jz  comp_check_timeout_not_timed_out    ; If not yet read - ignore zero cross timeout
-
+    jnb BoolAux0,  comp_check_timeout_not_timed_out    ; If not comparator reads yet - ignore zero cross timeout
     jnb Flag_Startup_Phase, comp_check_timeout_timeout_extended
 
     ; Extend timeout during startup
@@ -565,13 +545,13 @@ comp_check_timeout_extend_timeout:
     call    setup_zc_scan_timeout
 
 comp_check_timeout_not_timed_out:
-    inc Comparator_Read_Cnt         ; Increment comparator read count
+	setb BoolAux0						; There have been comparator reads
     Read_Comparator_Output
     anl A, #40h
     cjne    A, B, comp_read_wrong
 
     ; Comp read ok
-    mov A, Startup_Cnt              ; Force a timeout for the first commutation
+    mov A, Startup_Cnt              	; Force a timeout for the first commutation
     jz  comp_start
 
     jb  Flag_Demag_Detected, comp_start ; Do not accept correct comparator output if it is demag

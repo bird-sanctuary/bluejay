@@ -257,7 +257,7 @@ t1_int_rcpulse_stm_ready:
 
     ; Prepare Timer0 for sending telemetry data
     mov CKCON0, #01h                ; Timer0 is system clock divided by 4
-    mov TMOD, #0A2h             ; Timer0 runs free not gated by Int0
+    mov TMOD, #0A2h             	; Timer0 runs free not gated by Int0
 
     ; Configure RTX_PIN for digital output
     setb    RTX_BIT                 ; Default to high level
