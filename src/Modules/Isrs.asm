@@ -144,6 +144,8 @@ t1_int:
     clr IE_EX0                  	; Disable Int0 interrupts
     clr TCON_TR1                    ; Stop Timer1
 
+;	Set_LED_1
+
     push    PSW
     mov PSW, #8h                    ; Select register bank 1 for this interrupt
     push    ACC
@@ -278,6 +280,8 @@ t1_int_exit_no_tlm:
     setb    IE_EX1                  ; Enable Int1 interrupts
 
 t1_int_exit_no_int:
+;	Clear_LED_1
+
     ; Restore preserved registers
     pop ACC
     pop PSW
@@ -335,13 +339,6 @@ t2_int_exit:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 t3_int:
-    clr IE_EA                   ; Disable all interrupts
-    anl EIE1, #7Fh              ; Disable Timer3 interrupts
-    anl TMR3CN0, #07Fh              ; Clear Timer3 interrupt flag
-    mov TMR3RLL, #0FAh              ; Short delay to avoid re-loading regular delay
-    mov TMR3RLH, #0FFh
-    clr Flag_Timer3_Pending         ; Flag that timer has wrapped
-    setb    IE_EA                   ; Enable all interrupts
     reti
 
 
@@ -356,4 +353,3 @@ t3_int:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 pca_int:
     reti
-

@@ -191,7 +191,6 @@ Flag_Desync_Notify			BIT	Flags0.4		; Set when motor desync has been detected but
 Flag_Stall_Notify			BIT	Flags0.5		; Set when motor stall detected but still not notified
 
 Flags1:					DS	1			; State flags. Reset upon motor_start
-Flag_Timer3_Pending			BIT	Flags1.0		; Timer3 pending flag
 Flag_Demag_Detected			BIT	Flags1.1		; Set when excessive demag time is detected
 Flag_Comp_Timed_Out			BIT	Flags1.2		; Set when comparator reading timed out
 Flag_Motor_Running			BIT	Flags1.3
@@ -574,7 +573,7 @@ setup_dshot:
 	mov	TH1, #0
 
 	mov	TMR2CN0, #04h				; Timer2 enabled (system clock divided by 12)
-	mov	TMR3CN0, #04h				; Timer3 enabled (system clock divided by 12)
+	mov TMR3CN0, #0					; Disable timer3 and clear flags
 
 	Initialize_PCA					; Initialize PCA
 	Set_Pwm_Polarity				; Set pwm polarity
@@ -599,13 +598,9 @@ setup_dshot:
 
 	; Setup interrupts
 	mov	IE, #2Dh					; Enable Timer1/2 interrupts and Int0/1 interrupts
-	mov	EIE1, #80h				; Enable Timer3 interrupts
 	mov	IP, #03h					; High priority to Timer0 and Int0 interrupts
 
 	setb	IE_EA					; Enable all interrupts
-
-	; Set Flag_Timer3_Pending so dshot rcpulse stm can run all states in a single run
-	setb	Flag_Timer3_Pending
 
 	; Setup variables for DShot150 (Only on 24MHz because frame length threshold cannot be scaled up)
 IF MCU_TYPE == 0
@@ -1092,6 +1087,7 @@ exit_run_mode:
 	call	switch_power_off
 	mov	Flags0, #0				; Clear run time flags (in case they are used in interrupts)
 	mov	Flags1, #0
+	mov TMR3CN0, #0				; Disable Timer3 and clear flags
 
 IF MCU_TYPE >= 1
 	Set_MCU_Clk_24MHz

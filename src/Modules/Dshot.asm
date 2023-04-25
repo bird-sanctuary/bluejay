@@ -270,7 +270,8 @@ dshot_tlmpacket_stm_stage0:
 
 dshot_tlmpacket_stm_ready:
     ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_tlmpacket_stm_stage1
+    mov A, TMR3CN0
+    jnb  ACC.7, dshot_tlmpacket_stm_stage1
 
     ; Store state and return
     mov Temp7, #DSHOT_TLM_CREATE_PACKET_STAGE_1
@@ -303,7 +304,8 @@ dshot_tlmpacket_stm_ext_coded:
 
 dshot_tlmpacket_stm_expo_encoded:
     ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_tlmpacket_stm_stage2
+    mov A, TMR3CN0
+    jnb  ACC.7, dshot_tlmpacket_stm_stage2
 
     ; Store state and return
     mov Temp7, #DSHOT_TLM_CREATE_PACKET_STAGE_2
@@ -327,7 +329,8 @@ dshot_tlmpacket_stm_stage2:
     call    dshot_gcr_encode            ; GCR encode lowest 4-bit of A (store through Temp1)
 
     ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_tlmpacket_stm_stage3
+    mov A, TMR3CN0
+    jnb  ACC.7, dshot_tlmpacket_stm_stage3
 
     ; Store state and return
     mov Temp7, #DSHOT_TLM_CREATE_PACKET_STAGE_3
@@ -340,7 +343,8 @@ dshot_tlmpacket_stm_stage3:
     call    dshot_gcr_encode
 
     ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_tlmpacket_stm_stage4
+    mov A, TMR3CN0
+    jnb  ACC.7, dshot_tlmpacket_stm_stage4
 
     ; Store state and return
     mov Temp7, #DSHOT_TLM_CREATE_PACKET_STAGE_4
@@ -354,7 +358,8 @@ dshot_tlmpacket_stm_stage4:
     call    dshot_gcr_encode
 
     ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_tlmpacket_stm_stage5
+    mov A, TMR3CN0
+    jnb  ACC.7, dshot_tlmpacket_stm_stage5
 
     ; Store state and return
     mov Temp7, #DSHOT_TLM_CREATE_PACKET_STAGE_5
@@ -640,6 +645,8 @@ dshot_rcpulse_stm:
     ret
 
 dshot_rcpulse_stm_begin:
+	Set_LED_2
+
     ; Load context
     mov Temp2, DShot_rcpulse_stm_pwm_t2
     mov Temp3, DShot_rcpulse_stm_pwm_t3
@@ -707,7 +714,8 @@ dshot_rcpulse_stm_set_cmd:
 
 dshot_rcpulse_stm_normal_range:
     ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_rcpulse_stm_bidirck_state
+    mov A, TMR3CN0
+    jnb  ACC.7, dshot_rcpulse_stm_bidirck_state
 
     ; Store next state
     mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_BIDIRCK
@@ -767,7 +775,8 @@ dshot_rcpulse_stm_not_bidir:
     mov Temp5, #07h
 
     ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_rcpulse_stm_boost_state
+    mov A, TMR3CN0
+    jnb  ACC.7, dshot_rcpulse_stm_boost_state
 
     ; Store next state
     mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_BOOST
@@ -822,7 +831,8 @@ dshot_rcpulse_stm_stall_boost:
 
 dshot_rcpulse_stm_startup_boosted:
     ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_rcpulse_stm_pwm_limit_state
+    mov A, TMR3CN0
+    jnb  ACC.7, dshot_rcpulse_stm_pwm_limit_state
 
     ; Store next state
     mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_PWM_LIMIT
@@ -867,7 +877,8 @@ dshot_rcpulse_stm_zero_rcp_checked:
     mov Temp3, Pwm_Limit_By_Rpm
 
     ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_rcpulse_stm_dynamic_pwm_state
+    mov A, TMR3CN0
+    jnb  ACC.7, dshot_rcpulse_stm_dynamic_pwm_state
 
     ; Store next state
     mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_DYNAMIC_PWM
@@ -923,7 +934,8 @@ ENDIF
 
 dshot_rcpulse_stm_dynamic_pwm_done:
     ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_rcpulse_stm_pwm_limit_scale_dithering_state
+    mov A, TMR3CN0
+    jnb  ACC.7, dshot_rcpulse_stm_pwm_limit_scale_dithering_state
 
     ; Store next state
     ; No state
@@ -1140,7 +1152,8 @@ dshot_rcpulse_stm_pwm_limit_scale_dithering_pwm8bit_limited:
 
 dshot_rcpulse_stm_pwm_limit_scale_dithering_done:
     ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_rcpulse_stm_set_damp_state
+    mov A, TMR3CN0
+    jnb  ACC.7, dshot_rcpulse_stm_set_damp_state
 
     ; Store next state
     mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_SET_DAMP
@@ -1185,7 +1198,8 @@ dshot_rcpulse_stm_max_braking_set:
 ENDIF
 dshot_rcpulse_stm_pwm_braking_set:
     ; If timer3 has not been triggered we can continue
-    jb  Flag_Timer3_Pending, dshot_rcpulse_stm_set_pwm_state
+    mov A, TMR3CN0
+    jnb  ACC.7, dshot_rcpulse_stm_set_pwm_state
 
     ; Store next state
     mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_SET_PWM
@@ -1246,9 +1260,12 @@ dshot_rcpulse_stm_set_pwm_end:
     mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_DONE
 
     ; STM done. Do not store context
+	Clear_LED_2
     ret
 
 dshot_rcpulse_stm_end:
+	Clear_LED_2
+
     ; Store context
     mov DShot_rcpulse_stm_pwm_t2, Temp2
     mov DShot_rcpulse_stm_pwm_t3, Temp3

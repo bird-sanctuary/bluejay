@@ -277,16 +277,18 @@ wait_begin:
     ; stuck at max PWM
     call    dshot_rcpulse_stm
 
-    ; If no Flag_Timer3_Pending (Timer3 elapsed) end
-    jnb Flag_Timer3_Pending, wait_end
+    ; If no Timer3 elapsed -> end
+    mov A, TMR3CN0
+    jb  ACC.7, wait_end
 
     ; Run telemetry packet state machine only if telemetry is
     ; pending and timer3 is pending
     call    dshot_tlmpacket_stm
 
 wait_for_t3:
-    ; Now wait until timer3 overflows
-    jb Flag_Timer3_Pending, wait_for_t3
+    ; Wait while timer3 has not elapsed
+    mov A, TMR3CN0
+    jnb  ACC.7, wait_for_t3
 
 wait_end:
 ENDM
