@@ -20,7 +20,6 @@ initialize_timing:
     mov Comm_Period4x_H, #0F0h
 
     ; Start timer to run freely
-	Set_LED_1
 	mov TMR3CN0, #0				; Disable timer3 and clear flags
     mov TMR3L, #0 				; Setup next wait time
     mov TMR3H, #4
@@ -236,14 +235,13 @@ wait_advance_timing:
     ; If it has not already, we wait here for the Wt_Adv_Start_ delay to elapse.
     Wait_For_Timer3
 
-    ; At this point Timer3 has (already) wrapped and been reloaded with the Wt_Zc_Scan_Start_ delay.
+    ; At this point Timer3 has (already) wrapped and been reloaded with the Wt_Comm_2_Zc_ delay.
     ; In case this delay has also elapsed, Timer3 has been reloaded with a short delay any number of times.
     ; - The interrupt flag is set and the pending flag will clear immediately after enabling the interrupt.
 
-	Set_LED_1
 	mov TMR3CN0, #0				; Disable timer3 and clear flags
-    mov TMR3L, Wt_Zc_Tout_Start_L 	; Setup next wait time
-    mov TMR3H, Wt_Zc_Tout_Start_H
+    mov TMR3L, Wt_Zc_Scan_Tout_L 	; Setup next wait time
+    mov TMR3H, Wt_Zc_Scan_Tout_H
 	mov TMR3CN0, #4				; Enable timer3 and clear flags
 
 
@@ -317,10 +315,10 @@ load_comm_timing_done:
     rrc A
     mov Temp5, A
 
-    mov Wt_Zc_Scan_Start_L, Temp5   ; Set 7.5deg time for zero cross scan delay
-    mov Wt_Zc_Scan_Start_H, Temp6
-    mov Wt_Zc_Tout_Start_L, Temp1   ; Set 15deg time for zero cross scan timeout
-    mov Wt_Zc_Tout_Start_H, Temp2
+    mov Wt_Comm_2_Zc_L, Temp5   ; Set 7.5deg time for zero cross scan delay
+    mov Wt_Comm_2_Zc_H, Temp6
+    mov Wt_Zc_Scan_Tout_L, Temp1   ; Set 15deg time for zero cross scan timeout
+    mov Wt_Zc_Scan_Tout_H, Temp2
 
     clr C
     mov A, Temp8                    ; (Temp8 has Pgm_Comm_Timing)
@@ -338,7 +336,8 @@ load_comm_timing_done:
     addc    A, Temp6
     mov Temp2, A
 
-    mov A, Temp5                    ; Store 7.5deg in Temp4:3
+	; Store 7.5deg in Temp4:3
+    mov A, Temp5
     mov Temp3, A
     mov A, Temp6
     mov Temp4, A
@@ -355,7 +354,8 @@ adjust_timing_two_steps:
     addc    A, Temp2
     mov Temp2, A
 
-    mov Temp3, #-1              ; Store minimum time (0deg) in Temp3/4
+	; Store minimum time (0deg) in Temp3/4
+    mov Temp3, #-1
     mov Temp4, #-1
 
 store_times_up_or_down:
@@ -365,26 +365,24 @@ store_times_up_or_down:
     jc  store_times_decrease        ; No - branch
 
 store_times_increase:
-    mov Wt_Comm_Start_L, Temp3      ; Now commutation time (~60deg) divided by 4 (~15deg nominal)
-    mov Wt_Comm_Start_H, Temp4
-    mov Wt_Adv_Start_L, Temp1       ; New commutation advance time (~15deg nominal)
-    mov Wt_Adv_Start_H, Temp2
+	; New commutation time (~60deg) divided by 4 (~15deg nominal)
+    mov Wt_Zc_2_Comm_L, Temp3
+    mov Wt_Zc_2_Comm_H, Temp4
     sjmp    calc_new_wait_times_exit
 
 store_times_decrease:
-    mov Wt_Comm_Start_L, Temp1      ; Now commutation time (~60deg) divided by 4 (~15deg nominal)
-    mov Wt_Comm_Start_H, Temp2
-    mov Wt_Adv_Start_L, Temp3       ; New commutation advance time (~15deg nominal)
-    mov Wt_Adv_Start_H, Temp4
+	; New commutation time (~60deg) divided by 4 (~15deg nominal)
+    mov Wt_Zc_2_Comm_L, Temp1
+    mov Wt_Zc_2_Comm_H, Temp2
 
     ; Set very short delays for all but advance time during startup, in order to widen zero cross capture range
     jnb Flag_Startup_Phase, calc_new_wait_times_exit
-    mov Wt_Comm_Start_L, #-16
-    mov Wt_Comm_Start_H, #-1
-    mov Wt_Zc_Scan_Start_L, #-16
-    mov Wt_Zc_Scan_Start_H, #-1
-    mov Wt_Zc_Tout_Start_L, #-16
-    mov Wt_Zc_Tout_Start_H, #-1
+    mov Wt_Zc_2_Comm_L, #-16
+    mov Wt_Zc_2_Comm_H, #-1
+    mov Wt_Comm_2_Zc_L, #-16
+    mov Wt_Comm_2_Zc_H, #-1
+    mov Wt_Zc_Scan_Tout_L, #-16
+    mov Wt_Zc_Scan_Tout_H, #-1
 
     sjmp    calc_new_wait_times_exit
 
@@ -397,8 +395,8 @@ calc_new_wait_times_fast:
     rrc A                       ; Divide by 2
     mov Temp5, A
 
-    mov Wt_Zc_Scan_Start_L, Temp5   ; Use this value for zero cross scan delay (7.5deg)
-    mov Wt_Zc_Tout_Start_L, Temp1   ; Set 15deg time for zero cross scan timeout
+    mov Wt_Comm_2_Zc_L, Temp5   ; Use this value for zero cross scan delay (7.5deg)
+    mov Wt_Zc_Scan_Tout_L, Temp1   ; Set 15deg time for zero cross scan timeout
 
     clr C
     mov A, Temp8                    ; (Temp8 has Pgm_Comm_Timing - commutation timing setting)
@@ -430,13 +428,11 @@ store_times_up_or_down_fast:
     jc  store_times_decrease_fast   ; No - branch
 
 store_times_increase_fast:
-    mov Wt_Comm_Start_L, Temp3      ; Now commutation time (~60deg) divided by 4 (~15deg nominal)
-    mov Wt_Adv_Start_L, Temp1       ; New commutation advance time (~15deg nominal)
+    mov Wt_Zc_2_Comm_L, Temp3      ; Now commutation time (~60deg) divided by 4 (~15deg nominal)
     sjmp    calc_new_wait_times_exit
 
 store_times_decrease_fast:
-    mov Wt_Comm_Start_L, Temp1      ; Now commutation time (~60deg) divided by 4 (~15deg nominal)
-    mov Wt_Adv_Start_L, Temp3       ; New commutation advance time (~15deg nominal)
+    mov Wt_Zc_2_Comm_L, Temp1      ; Now commutation time (~60deg) divided by 4 (~15deg nominal)
 
 calc_new_wait_times_exit:
 
@@ -449,7 +445,7 @@ calc_new_wait_times_exit:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 wait_before_zc_scan:
-    ; If it has not already, we wait here for the Wt_Zc_Scan_Start_ delay to elapse.
+    ; If it has not already, we wait here for the Wt_Comm_2_Zc_ delay to elapse.
     Wait_For_Timer3
 
     ; At this point Timer3 has (already) wrapped and been reloaded with the Wt_ZC_Tout_Start_ delay.
@@ -477,7 +473,6 @@ ENDIF
     mov Temp2, A
 
 setup_zc_scan_timeout_startup_done:
-	Set_LED_1
 	mov TMR3CN0, #0					; Disable timer3 and clear flags
     clr C
     clr A
@@ -512,6 +507,7 @@ wait_for_comp_out_high:
     mov B, #00h
 
 comp_init:
+	Set_LED_1
     setb    Flag_Demag_Detected         ; Set demag detected flag as default
     clr 	BoolAux0					; BoolAux0 used here to know if there have been comparator reads
 
@@ -588,7 +584,6 @@ comp_read_wrong_extend_timeout:
     jnb Flag_High_Rpm, comp_read_wrong_low_rpm  ; Branch if not high rpm
 
 comp_read_wrong_timeout_set:
-	Set_LED_1
     mov TMR3CN0, #00h               ; Timer3 disabled and interrupt flag cleared
     mov TMR3L, #0                   ; Set timeout to ~1ms
     mov TMR3H, #-(8 SHL IS_MCU_48MHZ)
@@ -620,7 +615,6 @@ comp_read_wrong_load_timeout:
     clr A
     subb    A, Temp7
 
-	Set_LED_1
     mov TMR3CN0, #00h               ; Timer3 disabled and interrupt flag cleared
     mov TMR3L, #0
     mov TMR3H, A
@@ -628,6 +622,7 @@ comp_read_wrong_load_timeout:
     ljmp    comp_start              ; If comparator output is not correct - go back and restart
 
 comp_exit:
+	Clear_LED_1
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -638,10 +633,9 @@ comp_exit:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 setup_comm_wait:
-	Set_LED_1
 	mov TMR3CN0, #0					; Disable timer3 and clear flags
-    mov TMR3L, Wt_Comm_Start_L
-    mov TMR3H, Wt_Comm_Start_H
+    mov TMR3L, Wt_Zc_2_Comm_L
+    mov TMR3H, Wt_Zc_2_Comm_H
 	mov TMR3CN0, #4					; Enable timer3 and clear flags
 
 
@@ -735,16 +729,6 @@ wait_for_comm_demag_metric_max_updated:
     setb    Flag_Desync_Notify
 
 wait_for_comm_wait:
-    ; If it has not already, we wait here for the Wt_Comm_Start_ delay to elapse.
+    ; If it has not already, we wait here for the Wt_Zc_2_Comm_ delay to elapse.
     Wait_For_Timer3
-
-    ; At this point Timer3 has (already) wrapped and been reloaded with the Wt_Adv_Start_ delay.
-    ; In case this delay has also elapsed, Timer3 has been reloaded with a short delay any number of times.
-    ; - The interrupt flag is set and the pending flag will clear immediately after enabling the interrupt.
-
-	Set_LED_1
-	mov TMR3CN0, #0					; Disable timer3 and clear flags
-    mov TMR3L, Wt_Zc_Scan_Start_L 	; Setup next wait time
-    mov TMR3H, Wt_Zc_Scan_Start_H
-	mov TMR3CN0, #4					; Enable timer3 and clear flags
     ret
