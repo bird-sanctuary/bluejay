@@ -144,8 +144,6 @@ t1_int:
     clr IE_EX0                  	; Disable Int0 interrupts
     clr TCON_TR1                    ; Stop Timer1
 
-;	Set_LED_1
-
     push    PSW
     mov PSW, #8h                    ; Select register bank 1 for this interrupt
     push    ACC
@@ -280,8 +278,6 @@ t1_int_exit_no_tlm:
     setb    IE_EX1                  ; Enable Int1 interrupts
 
 t1_int_exit_no_int:
-;	Clear_LED_1
-
     ; Restore preserved registers
     pop ACC
     pop PSW

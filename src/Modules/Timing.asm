@@ -507,7 +507,6 @@ wait_for_comp_out_high:
     mov B, #00h
 
 comp_init:
-	Set_LED_1
     setb    Flag_Demag_Detected         ; Set demag detected flag as default
     clr 	BoolAux0					; BoolAux0 used here to know if there have been comparator reads
 
@@ -622,7 +621,6 @@ comp_read_wrong_load_timeout:
     ljmp    comp_start              ; If comparator output is not correct - go back and restart
 
 comp_exit:
-	Clear_LED_1
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****

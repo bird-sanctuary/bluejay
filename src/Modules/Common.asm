@@ -285,10 +285,9 @@ wait_begin:
     ; pending and timer3 is pending
     call    dshot_tlmpacket_stm
 
-wait_for_t3:
-    ; Wait while timer3 has not elapsed
+    ; Repeat while timer3 has not elapsed
     mov A, TMR3CN0
-    jnb  ACC.7, wait_for_t3
+    jnb  ACC.7, wait_begin
 
 wait_end:
 ENDM
