@@ -627,7 +627,7 @@ comp_exit:
 ;
 ; Setup commutation timing
 ;
-; Clear the zero cross timeout and sets up wait from zero cross to commutation
+; Load timer with zero cross to commutation time
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 setup_comm_wait:
@@ -727,6 +727,6 @@ wait_for_comm_demag_metric_max_updated:
     setb    Flag_Desync_Notify
 
 wait_for_comm_wait:
-    ; If it has not already, we wait here for the Wt_Zc_2_Comm_ delay to elapse.
+    ; Wait until commutation has to be done
     Wait_For_Timer3
     ret
