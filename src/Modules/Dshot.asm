@@ -797,18 +797,43 @@ dshot_rcpulse_stm_boost_state:
     orl A, Temp5
     jz dshot_rcpulse_stm_startup_boosted
 
-    ; Enforce limit by RPM during startup
-    mov Pwm_Limit_By_Rpm, Pwm_Limit_Beg
+    ; Read maximum startup power setting
+    mov Temp2, #Pgm_Startup_Power_Max
+    mov A, @Temp2
 
+    ; Convert setting to maximum startup power multiplicating by 8
+    mov B, #8
+    mul AB
+    mov Temp1, A
+    mov Temp2, B
+
+    ; Check rcpulse high is below max startup power
+    clr C
+    mov A, Temp2
+    subb A, Temp5
+    jnc dshot_rcpulse_stm_boost_limited_max
+    clr C
+    mov A, Temp1
+    subb A, Temp4
+    jnc dshot_rcpulse_stm_boost_limited_max
+
+    ; Limit startup power
+    mov A, Temp2
+    mov Temp5, A
+    mov A, Temp1
+    mov Temp4, A
+
+dshot_rcpulse_stm_boost_limited_max:
     ; Check more power is requested than the minimum required at startup
     mov A, Temp5
-    jnz dshot_rcpulse_stm_stall_boost
+    jnz dshot_rcpulse_stm_startup_boosted
 
     ; Read minimum startup power setting
     mov Temp2, #Pgm_Startup_Power_Min
     mov B, @Temp2
 
-    clr C                       ; Set power to at least be minimum startup power
+    ; Set power to at least be minimum startup power
+    clr C
     mov A, Temp4
     subb    A, B
     jnc dshot_rcpulse_stm_stall_boost
@@ -820,14 +845,12 @@ dshot_rcpulse_stm_stall_boost:
     mov B, #40                  ; Note: Stall count should be less than 6
     mul AB
 
-    add A, Temp4                    ; Add more power when failing to start motor (stalling)
+    ; Add boost value
+    add A, Temp4
     mov Temp4, A
     mov A, Temp5
     addc    A, #0
     mov Temp5, A
-    jnb ACC.3, ($+7)                ; Limit to 11-bit maximum
-    mov Temp4, #0FFh
-    mov Temp5, #07h
 
 dshot_rcpulse_stm_startup_boosted:
     ; If timer3 has not been triggered we can continue
@@ -867,14 +890,6 @@ dshot_rcpulse_stm_zero_rcp_checked:
     mov A, Rcp_Outside_Range_Cnt
     jz  ($+4)
     dec Rcp_Outside_Range_Cnt
-
-    ; Get minimum pwm limit between pwm rpm limit and pwm temperature limit (Pwm_Limit)
-    clr C
-    mov A, Pwm_Limit                ; Limit to the smallest
-    mov Temp3, A                    ; Store limit in Temp3
-    subb    A, Pwm_Limit_By_Rpm
-    jc  ($+4)
-    mov Temp3, Pwm_Limit_By_Rpm
 
     ; If timer3 has not been triggered we can continue
     mov A, TMR3CN0
@@ -955,7 +970,7 @@ dshot_rcpulse_stm_pwm_limit_scale_dithering_pwm11bit:
 
     ; Check against pwm limit
     clr C
-    mov A, Temp3
+    mov A, Pwm_Limit
     subb    A, Temp2                ; Compare against 8-bit rc pulse
     jnc dshot_rcpulse_stm_pwm_limit_scale_dithering_pwm11bit_limited
 
@@ -984,7 +999,7 @@ dshot_rcpulse_stm_pwm_limit_scale_dithering_pwm10bit:
 
     ; Check against pwm limit
     clr C
-    mov A, Temp3
+    mov A, Pwm_Limit
     subb    A, Temp2                ; Compare against 8-bit rc pulse
     jnc dshot_rcpulse_stm_pwm_limit_scale_dithering_pwm10bit_limited
 
@@ -1048,7 +1063,7 @@ dshot_rcpulse_stm_pwm_limit_scale_dithering_pwm9bit:
 
     ; Check against pwm limit
     clr C
-    mov A, Temp3
+    mov A, Pwm_Limit
     subb    A, Temp2                ; Compare against 8-bit rc pulse
     jnc dshot_rcpulse_stm_pwm_limit_scale_dithering_pwm9bit_limited
 
@@ -1112,7 +1127,7 @@ dshot_rcpulse_stm_pwm_limit_scale_dithering_pwm9bit_limited:
 dshot_rcpulse_stm_pwm_limit_scale_dithering_pwm8bit:
     ; Check against pwm limit
     clr C
-    mov A, Temp3
+    mov A, Pwm_Limit
     subb    A, Temp2                ; Compare against 8-bit rc pulse
     jnc dshot_rcpulse_stm_pwm_limit_scale_dithering_pwm8bit_limited
 

@@ -150,7 +150,7 @@ DEFAULT_PGM_POWER_RATING		EQU	2	; 1=1S, 2=2S+
 DEFAULT_PGM_BRAKE_ON_STOP		EQU	0	; 1=Enabled	0=Disabled
 DEFAULT_PGM_LED_CONTROL			EQU	0	; Byte for LED control. 2 bits per LED, 0=Off, 1=On
 
-DEFAULT_PGM_STARTUP_POWER_MIN		EQU	51	; 0..255 => (1000..1125 Throttle): value * (1000 / 2047) + 1000
+DEFAULT_PGM_STARTUP_POWER_MIN		EQU	51	; 0..255 => (1000..1255 Throttle): Minimum startup power
 DEFAULT_PGM_STARTUP_BEEP			EQU	1	; 0=Short beep, 1=Melody
 DEFAULT_PGM_DITHERING			EQU	1	; 0=Disabled, 1=Enabled
 
@@ -191,12 +191,9 @@ Flag_Desync_Notify			BIT	Flags0.4		; Set when motor desync has been detected but
 Flag_Stall_Notify			BIT	Flags0.5		; Set when motor stall detected but still not notified
 
 Flags1:					DS	1			; State flags. Reset upon motor_start
-Flag_Demag_Detected			BIT	Flags1.1		; Set when excessive demag time is detected
-Flag_Comp_Timed_Out			BIT	Flags1.2		; Set when comparator reading timed out
 Flag_Motor_Running			BIT	Flags1.3
 Flag_Motor_Started			BIT	Flags1.4		; Set when motor is started
 Flag_Dir_Change_Brake		BIT	Flags1.5		; Set when braking before direction change in case of bidirectional operation
-Flag_High_Rpm				BIT	Flags1.6		; Set when motor rpm is high (Comm_Period4x_H less than 2)
 
 Flags2:					DS	1			; State flags. NOT reset upon motor_start
 Flag_Variable_Pwm_Bits		BIT	Flags2.0		; Set when programmed variable pwm
@@ -227,7 +224,7 @@ Rcp_Stop_Cnt:				DS	1	; Counter for RC pulses below stop value
 Beacon_Delay_Cnt:			DS	1	; Counter to trigger beacon during wait for start
 
 Startup_Cnt:				DS	1	; Startup phase commutations counter (incrementing)
-Startup_Zc_Timeout_Cntd:		DS	1	; Startup zero cross timeout counter (decrementing)
+Zc_Timeout_Cntd:		    DS	1	; Zero cross timeout counter (decrementing)
 Initial_Run_Rot_Cntd:		DS	1	; Initial run rotations counter (decrementing)
 Stall_Counter:			DS	1	; Counts start/run attempts that resulted in stall. Reset upon a proper stop
 Demag_Detected_Metric:		DS	1	; Metric used to gauge demag event frequency
@@ -244,16 +241,12 @@ Prev_Prev_Comm_H:			DS	1	; Pre-previous commutation Timer2 timestamp (hi byte)
 Comm_Period4x_L:			DS	1	; Timer2 ticks between the last 4 commutations (lo byte)
 Comm_Period4x_H:			DS	1	; Timer2 ticks between the last 4 commutations (hi byte)
 
-Wt_Comm_2_Zc_L:				DS	1	; Timer3 start point from commutation to zero cross scan (lo byte)
-Wt_Comm_2_Zc_H:				DS	1	; Timer3 start point from commutation to zero cross scan (hi byte)
 Wt_Zc_Scan_Tout_L:			DS	1	; Timer3 start point for zero cross scan timeout (lo byte)
 Wt_Zc_Scan_Tout_H:			DS	1	; Timer3 start point for zero cross scan timeout (hi byte)
 Wt_Zc_2_Comm_L:				DS	1	; Timer3 start point from zero cross to commutation (lo byte)
 Wt_Zc_2_Comm_H:				DS	1	; Timer3 start point from zero cross to commutation (hi byte)
 
-Pwm_Limit:				DS	1	; Maximum allowed pwm (8-bit)
-Pwm_Limit_By_Rpm:			DS	1	; Maximum allowed pwm for low or high rpm (8-bit)
-Pwm_Limit_Beg:				DS	1	; Initial pwm limit (8-bit)
+Pwm_Limit:				    DS	1	; Maximum allowed pwm (8-bit)
 
 Pwm_Braking_L:				DS	1	; Max Braking pwm (lo byte)
 Pwm_Braking_H:				DS	1	; Max Braking pwm (hi byte)
@@ -821,10 +814,7 @@ motor_start:
 
 	; Set up start operating conditions
 	clr	IE_EA					; Disable interrupts
-	mov	Temp2, #Pgm_Startup_Power_Max
-	mov	Pwm_Limit_Beg, @Temp2		; Set initial pwm limit
 	mov	Pwm_Limit, #255
-	mov	Pwm_Limit_By_Rpm, Pwm_Limit_Beg
 	mov	Temp_Pwm_Level_Setpoint, #255
 
 	; Begin startup sequence
@@ -897,67 +887,41 @@ run1:
 ; Out_cB changes from high to low
 run2:
 	call	wait_for_comp_out_low
-;		setup_comm_wait
-;		evaluate_comparator_integrity
-	call	set_pwm_limit				; Set pwm power limit for low or high rpm
 	call	wait_for_comm
 	call	comm2_comm3
 	call	calc_next_comm_period
-;		wait_advance_timing
-;		calc_new_wait_times
-;		wait_before_zc_scan
 
 ; Run 3 = A(p-on) + B(n-pwm) - comparator C evaluated
 ; Out_cC changes from low to high
 run3:
 	call	wait_for_comp_out_high
-;		setup_comm_wait
-;		evaluate_comparator_integrity
 	call	wait_for_comm
 	call	comm3_comm4
 	call	calc_next_comm_period
-;		wait_advance_timing
-;		calc_new_wait_times
-;		wait_before_zc_scan
 
 ; Run 4 = C(p-on) + B(n-pwm) - comparator A evaluated
 ; Out_cA changes from high to low
 run4:
 	call	wait_for_comp_out_low
-;		setup_comm_wait
-;		evaluate_comparator_integrity
 	call	wait_for_comm
 	call	comm4_comm5
 	call	calc_next_comm_period
-;		wait_advance_timing
-;		calc_new_wait_times
-;		wait_before_zc_scan
 
 ; Run 5 = C(p-on) + A(n-pwm) - comparator B evaluated
 ; Out_cB changes from low to high
 run5:
 	call	wait_for_comp_out_high
-;		setup_comm_wait
-;		evaluate_comparator_integrity
 	call	wait_for_comm
 	call	comm5_comm6
 	call	calc_next_comm_period
-;		wait_advance_timing
-;		calc_new_wait_times
-;		wait_before_zc_scan
 
 ; Run 6 = B(p-on) + A(n-pwm) - comparator C evaluated
 ; Out_cC changes from high to low
 run6:
 	call	wait_for_comp_out_low
-;		setup_comm_wait
-;		evaluate_comparator_integrity
 	call	wait_for_comm
 	call	comm6_comm1
 	call	calc_next_comm_period
-;		wait_advance_timing
-;		calc_new_wait_times
-;		wait_before_zc_scan
 
     ; Run edt scheduler
 	call 	scheduler_run
@@ -979,9 +943,6 @@ startup_phase_done:
 	; Clear startup phase flag
 	clr	Flag_Startup_Phase
 
-	; Remove limit by RPM
-	mov	Pwm_Limit_By_Rpm, #255
-
 initial_run_phase:
 	; If it is a direction change - branch
 	jb	Flag_Dir_Change_Brake, normal_run_checks
@@ -1001,7 +962,7 @@ initial_run_phase:
 
 initial_run_phase_done:
 	clr	Flag_Initial_Run_Phase		; Clear initial run phase flag
-	setb	Flag_Motor_Started			; Set motor started
+	setb	Flag_Motor_Started		; Set motor started
 	jmp	run1						; Continue with normal run
 
 normal_run_checks:
