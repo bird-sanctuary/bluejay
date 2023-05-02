@@ -22,7 +22,7 @@
 ; Normal regime:
 ; Comm_Period4x = Comm_Period4x - (Comm_Period4x / 16) + (Comm_Period / 4)
 ; During startup:
-; Comm_Period4x = Comm_Period4x - (Comm_Period4x / 4) + (Comm_Period / 1)
+; Comm_Period4x = 0xF000
 ;
 ; Simple example using 16 and 4 dividers:
 ; - Let commutation time be constant.
@@ -56,62 +56,13 @@ IF MCU_TYPE >= 1
     rrca    Temp1
 ENDIF
 
+    ; Check startup phase
     jnb  Flag_Startup_Phase, calc_next_comm_normal
 
-calc_next_comm_startup:
-    ; Calculate this commutation time
-    mov Temp4, Prev_Comm_L
-    mov Temp5, Prev_Comm_H
-    mov Temp6, Prev_Comm_X
-    mov Prev_Comm_L, Temp1          ; Store timestamp as previous commutation
-    mov Prev_Comm_H, Temp2
-    mov Prev_Comm_X, Temp3          ; Store extended timestamp as previous commutation
-
-    clr C
-    mov A, Temp1
-    subb    A, Temp4                ; Calculate the new commutation time
-    mov A, Temp2
-    subb    A, Temp5
-    mov A, Temp3
-    subb    A, Temp6                ; Calculate the new extended commutation time
-IF MCU_TYPE >= 1
-    anl A, #7Fh
-ENDIF
-    jz  calc_next_comm_startup_no_zero_cross
-
-    ; Extended byte is not zero, so commutation time is above 0xFFFF
+    ; During startup period is fixed
     mov Comm_Period4x_L, #000h
-    mov Comm_Period4x_H, #0F0h
+    mov Comm_Period4x_H, #80h
     ajmp    calc_next_comm_15deg
-
-calc_next_comm_startup_no_zero_cross:
-    ; Extended byte = 0, so commutation time fits within two bytes
-    mov Temp7, Prev_Prev_Comm_L
-    mov Temp8, Prev_Prev_Comm_H
-    mov Prev_Prev_Comm_L, Temp4
-    mov Prev_Prev_Comm_H, Temp5
-
-    ; Calculate the new commutation time based upon the two last commutations (to reduce sensitivity to offset)
-    clr C
-    mov A, Temp1
-    subb    A, Temp7
-    mov Temp1, A
-    mov A, Temp2
-    subb    A, Temp8
-    mov Temp2, A
-
-    ; Comm_Period4x holds the time of 4 commutations
-    mov Temp3, Comm_Period4x_L
-    mov Temp4, Comm_Period4x_H
-
-    ; Update Comm_Period4x from 1 new commutation period
-    ; Comm_Period4x = Comm_Period4x - (Comm_Period4x / 4) + (Comm_Period / 1)
-
-    ; Divide Temp4:3 by 4 and store in Temp6:5
-    Divide_By_4 Temp4, Temp3, Temp6, Temp5
-
-    ; Comm_Period / 1 does not need to be divided
-    sjmp calc_next_comm_average_and_update
 
 calc_next_comm_normal:
     ; Calculate this commutation time and store in Temp2:1
