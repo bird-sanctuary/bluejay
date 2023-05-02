@@ -645,8 +645,6 @@ dshot_rcpulse_stm:
     ret
 
 dshot_rcpulse_stm_begin:
-	Set_LED_2
-
     ; Load context
     mov Temp2, DShot_rcpulse_stm_pwm_t2
     mov Temp3, DShot_rcpulse_stm_pwm_t3
@@ -1275,12 +1273,9 @@ dshot_rcpulse_stm_set_pwm_end:
     mov DShot_rcpulse_stm_state, #DSHOT_RCPULSE_STATE_DONE
 
     ; STM done. Do not store context
-	Clear_LED_2
     ret
 
 dshot_rcpulse_stm_end:
-	Clear_LED_2
-
     ; Store context
     mov DShot_rcpulse_stm_pwm_t2, Temp2
     mov DShot_rcpulse_stm_pwm_t3, Temp3

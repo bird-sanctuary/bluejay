@@ -334,9 +334,12 @@ wait_before_zc_scan:
     mov TMR3H, Wt_Zc_Scan_Tout_H
     mov TMR3CN0, #4                 ; Enable timer3 and clear flags
 
-    ; Allow up to zero cross 32 timeouts:
-    ;  240deg, each zero cross timeout is 7.5deg
-    mov Zc_Timeout_Cntd, #32
+    ; Allow up to zero cross 16 timeouts when motor is started:
+    ;  120deg, each zero cross timeout is 7.5deg
+    mov Zc_Timeout_Cntd, #16
+    jb Flag_Motor_Started, wait_for_comp_out_low
+    mov Zc_Timeout_Cntd, #6
+
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -368,7 +371,7 @@ comp_check_start:
     mov Temp4, #(27 SHL IS_MCU_48MHZ)
 
 comp_check_timeout:
-    ; Check xero cross scan timeout has elapsed
+    ; Check zero cross scan timeout has elapsed
 	mov A, TMR3CN0
     jnb ACC.7, comp_check_timeout_not_timed_out
 
@@ -435,6 +438,7 @@ setup_comm_wait:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 evaluate_comparator_integrity:
+    jnb Flag_Motor_Started, eval_comp_startup
     jb  Flag_Dir_Change_Brake, eval_comp_exit   ; Do not exit run mode if braking
 
     ; Do not exit run mode if comparator timeout is not zero
@@ -456,7 +460,8 @@ evaluate_comparator_integrity:
     ljmp    exit_run_mode_on_timeout            ; Exit run mode if timeout has elapsed
 
 eval_comp_startup:
-    inc Startup_Cnt                             ; Increment startup counter
+    ; Decrement startup counter
+    inc Startup_Cnt
 
 eval_comp_exit:
     ret

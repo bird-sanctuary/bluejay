@@ -855,8 +855,9 @@ motor_start_bidir_done:
 	setb	Flag_Initial_Run_Phase
 	mov	Startup_Cnt, #0			      ; Reset startup phase run counter
 	mov	Initial_Run_Rot_Cntd, #12	  ; Set initial run rotation countdown
-	call	comm6_comm1               ; Initialize commutation
-	call	calc_next_comm_period     ; Set virtual commutation point
+	call   comm3_comm4                ; Kick motor in reverse to make it bounce forward
+	call   comm6_comm1                ; Initialize forward commutation
+	call   calc_next_comm_period      ; Set virtual commutation point
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -869,14 +870,9 @@ motor_start_bidir_done:
 ; Out_cA changes from low to high
 run1:
 	call	wait_for_comp_out_high		; Wait for high
-;		setup_comm_wait			; Setup wait time from zero cross to commutation
-;		evaluate_comparator_integrity	; Check whether comparator reading has been normal
 	call	wait_for_comm				; Wait from zero cross to commutation
 	call	comm1_comm2				; Commutate
 	call	calc_next_comm_period		; Calculate next timing and wait advance timing wait
-;		wait_advance_timing			; Wait advance timing and start zero cross wait
-;		calc_new_wait_times
-;		wait_before_zc_scan			; Wait zero cross wait and start zero cross timeout
 
 ; Run 2 = A(p-on) + C(n-pwm) - comparator B evaluated
 ; Out_cB changes from high to low
