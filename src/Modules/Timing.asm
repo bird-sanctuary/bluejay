@@ -6,15 +6,6 @@
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
-/* Compiler gets angry if there is no padding here */
-padding:
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
@@ -204,115 +195,20 @@ IF MCU_TYPE >= 1
     rlca    Temp1                   ; Multiply by 2
     rlca    Temp2
 ENDIF
-
-    ; Load programmed commutation timing
-    jnb Flag_Startup_Phase, adjust_comm_timing
-
-    ; Set fixed timing during startup
-    mov Temp8, #3
-    sjmp    load_comm_timing_done
-
-adjust_comm_timing:
-    ; Load commutation timing setting in Temp8
-    mov Temp1, #Pgm_Comm_Timing
-    mov A, @Temp1
-    mov Temp8, A                    ; Store in Temp8
-
-    ; Adjust commutation timing according to demag metric
-    clr C
-    mov A, Demag_Detected_Metric    ; Check demag metric
-    subb    A, #130
-    jc  load_comm_timing_done
-
-    inc Temp8                       ; Increase timing (if metric 130 or above)
-
-    subb    A, #30
-    jc  adjust_comm_timing_clip
-
-    inc Temp8                       ; Increase timing again (if metric 160 or above)
-
-adjust_comm_timing_clip:
-    ; Clip timing to 5
-    clr C
-    mov A, Temp8                    ; Limit timing to max (5)
-    subb    A, #6
-    jc  ($+4)
-    mov Temp8, #5                   ; Set timing to max (if timing 6 or above)
-
-load_comm_timing_done:
+    ; Zero cross to commutation is 15deg
     ; Temp2:1 = 15deg Timer2 period
+    mov Wt_Zc_2_Comm_L, Temp1
+    mov Wt_Zc_2_Comm_H, Temp2
 
+    ; Zero cross scan time quanta is 7.5deg
     ; Temp4:3 = (15deg) / 2 = 7.5deg
     setb    C                       ; Adding negative numbers. Set carry
     mov A, Temp2                    ; Store 7.5deg in Temp4:3 (15deg / 2)
     rrc A
-    mov Temp4, A
+    mov Wt_Zc_Scan_Time_Quanta_H, A
     mov A, Temp1
     rrc A
-    mov Temp3, A
-
-    ; Wt_Zc_Scan_Tout = 7.5deg. Zero cross scan time quanta
-    mov Wt_Zc_Scan_Tout_L, Temp3
-    mov Wt_Zc_Scan_Tout_H, Temp4
-
-    ; Prepare an indexed jump Temp8 in [1 - 5] -> A in 2 * [0 4]
-    ; to load zero cross to commutation time
-    mov A, Temp8
-    dec A
-    addc A, #0          ; Fix underflow: A = A + 0 + C (C = 1 if undeflow)
-    rl A                ; Multiply by 2
-    mov DPTR, #load_zc_2_comm_table
-    jmp @A+DPTR         ; Jump to load zero cross to commutation time
-
-load_zc_2_comm_table:
-    ajmp    load_zc_2_comm_1
-    ajmp    load_zc_2_comm_2
-    ajmp    load_zc_2_comm_3
-    ajmp    load_zc_2_comm_4
-    ajmp    load_zc_2_comm_5
-
-load_zc_2_comm_1:
-    ; Wt_Zc_2_Comm = 0deg
-    mov Wt_Zc_2_Comm_L, #-2
-    mov Wt_Zc_2_Comm_H, #-1
-
-    sjmp calc_new_wait_times_exit
-
-load_zc_2_comm_2:
-    ; Wt_Zc_2_Comm = (15deg Timer2 period) / 2 = 7.5deg
-    mov Wt_Zc_2_Comm_L, Temp3
-    mov Wt_Zc_2_Comm_H, Temp4
-
-    sjmp calc_new_wait_times_exit
-
-load_zc_2_comm_3:
-    ; Wt_Zc_2_Comm = 15deg
-    mov Wt_Zc_2_Comm_L, Temp1
-    mov Wt_Zc_2_Comm_H, Temp2
-
-    sjmp calc_new_wait_times_exit
-
-load_zc_2_comm_4:
-    ; Wt_Zc_2_Comm = 15deg + 7.5deg
-    setb    C                       ; Negative numbers - set carry
-    mov A, Temp1                    ; Store 30deg in Temp1/2 (15deg + 15deg)
-    addc    A, Temp3
-    mov Wt_Zc_2_Comm_L, A
-    mov A, Temp2
-    addc    A, Temp4
-    mov Wt_Zc_2_Comm_H, A
-
-    sjmp calc_new_wait_times_exit
-
-load_zc_2_comm_5:
-    ; Wt_Zc_2_Comm = 15deg + 15deg
-    setb    C                       ; Negative numbers - set carry
-    mov A, Temp1                    ; Store 30deg in Temp1/2 (15deg + 15deg)
-    addc    A, Temp1
-    mov Wt_Zc_2_Comm_L, A
-    mov A, Temp2
-    addc    A, Temp2
-    mov Wt_Zc_2_Comm_H, A
+    mov Wt_Zc_Scan_Time_Quanta_L, A
 
 calc_new_wait_times_exit:
 
@@ -330,8 +226,8 @@ wait_before_zc_scan:
     ; - Flag_Initial_Run_Phase
     ; - Flag_Startup_Phase
     mov TMR3CN0, #0                 ; Disable timer3 and clear flags
-    mov TMR3L, Wt_Zc_Scan_Tout_L    ; Setup next wait time
-    mov TMR3H, Wt_Zc_Scan_Tout_H
+    mov TMR3L, Wt_Zc_Scan_Time_Quanta_L    ; Setup next wait time
+    mov TMR3H, Wt_Zc_Scan_Time_Quanta_H
     mov TMR3CN0, #4                 ; Enable timer3 and clear flags
 
     ; Allow up to zero cross 16 timeouts when motor is started:
@@ -366,8 +262,9 @@ comp_check_start:
     mov Temp3, #(4 SHL IS_MCU_48MHZ)        ; Number of OK readings required
     mov Temp4, #(4 SHL IS_MCU_48MHZ)       	; Max wrong readings threshold
 
-    jnb Flag_Startup_Phase, comp_check_timeout
-    mov Temp3, #(27 SHL IS_MCU_48MHZ)   	; Set many samples during startup, approximately one pwm period
+    jb Flag_Motor_Started, comp_check_timeout
+    ; Set many samples if motor not started
+    mov Temp3, #(27 SHL IS_MCU_48MHZ)
     mov Temp4, #(27 SHL IS_MCU_48MHZ)
 
 comp_check_timeout:
@@ -384,8 +281,8 @@ comp_check_timeout:
 comp_check_timeout_extend_timeout:
     ; Reload timer for zero cross timeout
     mov TMR3CN0, #0                 ; Disable timer3 and clear flags
-    mov TMR3L, Wt_Zc_Scan_Tout_L    ; Setup next wait time
-    mov TMR3H, Wt_Zc_Scan_Tout_H
+    mov TMR3L, Wt_Zc_Scan_Time_Quanta_L    ; Setup next wait time
+    mov TMR3H, Wt_Zc_Scan_Time_Quanta_H
     mov TMR3CN0, #4                 ; Enable timer3 and clear flags
 
 comp_check_timeout_not_timed_out:
@@ -475,57 +372,5 @@ eval_comp_exit:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 wait_for_comm:
-    ; Update demag metric
-    mov A, Demag_Detected_Metric        ; Sliding average of 8, 256 when demag and 0 when not. Limited to minimum 120
-    mov B, #7
-    mul AB                      ; Multiply by 7
-
-    ; if Zc_Timeout_Cntd >= 24 then do not count a demag
-    clr C
-    mov A, Zc_Timeout_Cntd
-    subb A, #24
-    jnc wait_for_comm_demag_event_added
-
-    ; Add new value for current demag status
-    inc B
-    ; Signal demag
-    setb    Flag_Demag_Notify
-
-wait_for_comm_demag_event_added:
-    mov C, B.0                  ; Divide by 8
-    rrc A
-    mov C, B.1
-    rrc A
-    mov C, B.2
-    rrc A
-    mov Demag_Detected_Metric, A
-    clr C
-    subb    A, #120                 ; Limit to minimum 120
-    jnc ($+5)
-    mov Demag_Detected_Metric, #120
-
-    ; Update demag metric max
-    clr C
-    mov A, Demag_Detected_Metric
-    subb    A, Demag_Detected_Metric_Max
-    jc  wait_for_comm_demag_metric_max_updated
-    mov Demag_Detected_Metric_Max, Demag_Detected_Metric
-
-wait_for_comm_demag_metric_max_updated:
-    ; Check demag metric
-    clr C
-    mov A, Demag_Detected_Metric
-    subb    A, Demag_Pwr_Off_Thresh
-    jc  wait_for_comm_wait
-
-    ; Cut power if many consecutive demags. This will help retain sync during hard accelerations
-    All_Pwm_Fets_Off
-    Set_All_Pwm_Phases_Off
-
-    ; Signal desync
-    setb    Flag_Desync_Notify
-
-wait_for_comm_wait:
-    ; Wait until commutation has to be done
     Wait_For_Timer3
     ret

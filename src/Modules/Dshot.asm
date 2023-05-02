@@ -191,11 +191,11 @@ dshot_cmd_exit_no_clear:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 DSHOT_TLM_CREATE_PACKET_STAGE_0  EQU 0
-DSHOT_TLM_CREATE_PACKET_STAGE_1  EQU 2
-DSHOT_TLM_CREATE_PACKET_STAGE_2  EQU 4
-DSHOT_TLM_CREATE_PACKET_STAGE_3  EQU 6
-DSHOT_TLM_CREATE_PACKET_STAGE_4  EQU 8
-DSHOT_TLM_CREATE_PACKET_STAGE_5  EQU 10
+DSHOT_TLM_CREATE_PACKET_STAGE_1  EQU 3
+DSHOT_TLM_CREATE_PACKET_STAGE_2  EQU 6
+DSHOT_TLM_CREATE_PACKET_STAGE_3  EQU 9
+DSHOT_TLM_CREATE_PACKET_STAGE_4  EQU 12
+DSHOT_TLM_CREATE_PACKET_STAGE_5  EQU 15
 
 dshot_tlmpacket_stm:
     jnb  Flag_Telemetry_Pending, dshot_tlmpacket_begin
@@ -212,12 +212,12 @@ dshot_tlmpacket_begin:
     jmp @A+DPTR
 
 dshot_tlmpacket_stm_table:
-    ajmp    dshot_tlmpacket_stm_stage0
-    ajmp    dshot_tlmpacket_stm_stage1
-    ajmp    dshot_tlmpacket_stm_stage2
-    ajmp    dshot_tlmpacket_stm_stage3
-    ajmp    dshot_tlmpacket_stm_stage4
-    ajmp    dshot_tlmpacket_stm_stage5
+    ljmp    dshot_tlmpacket_stm_stage0
+    ljmp    dshot_tlmpacket_stm_stage1
+    ljmp    dshot_tlmpacket_stm_stage2
+    ljmp    dshot_tlmpacket_stm_stage3
+    ljmp    dshot_tlmpacket_stm_stage4
+    ljmp    dshot_tlmpacket_stm_stage5
 
 
 dshot_tlmpacket_stm_stage0:
@@ -399,7 +399,7 @@ dshot_expo_encode:
     jb  ACC.2, dshot_12bit_2
     jb  ACC.1, dshot_12bit_1
     mov A, Tlm_Data_L               ; Already 12-bit (E=0)
-    ajmp    dshot_tlmpacket_stm_expo_encoded
+    jmp dshot_tlmpacket_stm_expo_encoded
 
 dshot_12bit_7:
     ;mov    A, Tlm_Data_H
@@ -407,7 +407,7 @@ dshot_12bit_7:
     rlc A
     mov Tlm_Data_L, A
     mov Tlm_Data_H, #0fh
-    ajmp    dshot_tlmpacket_stm_expo_encoded
+    jmp dshot_tlmpacket_stm_expo_encoded
 
 dshot_12bit_6:
     ;mov    A, Tlm_Data_H
@@ -417,7 +417,7 @@ dshot_12bit_6:
     rlc A
     mov Tlm_Data_L, A
     mov Tlm_Data_H, #0dh
-    ajmp    dshot_tlmpacket_stm_expo_encoded
+    jmp dshot_tlmpacket_stm_expo_encoded
 
 dshot_12bit_5:
     ;mov    A, Tlm_Data_H
@@ -429,7 +429,7 @@ dshot_12bit_5:
     rlc A
     mov Tlm_Data_L, A
     mov Tlm_Data_H, #0bh
-    ajmp    dshot_tlmpacket_stm_expo_encoded
+    jmp dshot_tlmpacket_stm_expo_encoded
 
 dshot_12bit_4:
     mov A, Tlm_Data_L
@@ -439,7 +439,7 @@ dshot_12bit_4:
     swap    A
     mov Tlm_Data_L, A
     mov Tlm_Data_H, #09h
-    ajmp    dshot_tlmpacket_stm_expo_encoded
+    jmp dshot_tlmpacket_stm_expo_encoded
 
 dshot_12bit_3:
     mov A, Tlm_Data_L
@@ -451,7 +451,7 @@ dshot_12bit_3:
     rrc A
     mov Tlm_Data_L, A
     mov Tlm_Data_H, #07h
-    ajmp    dshot_tlmpacket_stm_expo_encoded
+    jmp dshot_tlmpacket_stm_expo_encoded
 
 dshot_12bit_2:
     mov A, Tlm_Data_L
@@ -461,7 +461,7 @@ dshot_12bit_2:
     rrc A
     mov Tlm_Data_L, A
     mov Tlm_Data_H, #05h
-    ajmp    dshot_tlmpacket_stm_expo_encoded
+    jmp dshot_tlmpacket_stm_expo_encoded
 
 dshot_12bit_1:
     mov A, Tlm_Data_L
@@ -469,7 +469,7 @@ dshot_12bit_1:
     rrc A
     mov Tlm_Data_L, A
     mov Tlm_Data_H, #03h
-    ajmp    dshot_tlmpacket_stm_expo_encoded
+    jmp dshot_tlmpacket_stm_expo_encoded
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****

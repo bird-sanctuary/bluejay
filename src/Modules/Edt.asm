@@ -85,7 +85,7 @@ scheduler_steps_even_demag_metric_frame:
 
 scheduler_steps_even_demag_metric_frame_generate:
     ; ********************* [TELEMETRY] SEND DEMAG METRIC FRAME *****************
-    mov Ext_Telemetry_L, Demag_Detected_Metric  ; Set telemetry low value to demag metric data
+    mov Ext_Telemetry_L, #0                     ; Demag metric no longer in use
     mov Ext_Telemetry_H, #0Ch                   ; Set telemetry high value to demag metric frame ID
 
     ; No more work to do
@@ -132,22 +132,6 @@ scheduler_steps_odd_status_frame:
     ; ********************* [TELEMETRY] SEND STATUS FRAME *****************
     cjne A, #1, scheduler_steps_odd_debug1_frame
 
-    ; if (Demag_Detected_Metric_Max >= 120)
-    ;   stat.demagMetricMax = (Demag_Detected_Metric_Max - 120) / 9
-    ; else
-    ;   stat.demagMetricMax = 0
-    clr C
-    mov A, Demag_Detected_Metric_Max
-    subb    A, #120                     ; 120: substract the minimum
-    jnc scheduler_steps_odd_status_frame_max_load
-    clr A
-    sjmp    scheduler_steps_odd_status_frame_max_loaded
-
-scheduler_steps_odd_status_frame_max_load:
-    mov B, #9
-    div AB                              ; Ranges: [0 - 135] / 9 == [0 - 15]
-
-scheduler_steps_odd_status_frame_max_loaded:
     ; Load flags
     mov C, Flag_Demag_Notify
     mov ACC.7, C

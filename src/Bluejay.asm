@@ -226,9 +226,7 @@ Beacon_Delay_Cnt:			DS	1	; Counter to trigger beacon during wait for start
 Startup_Cnt:				DS	1	; Startup phase commutations counter (incrementing)
 Zc_Timeout_Cntd:		    DS	1	; Zero cross timeout counter (decrementing)
 Initial_Run_Rot_Cntd:		DS	1	; Initial run rotations counter (decrementing)
-Stall_Counter:			DS	1	; Counts start/run attempts that resulted in stall. Reset upon a proper stop
-Demag_Detected_Metric:		DS	1	; Metric used to gauge demag event frequency
-Demag_Detected_Metric_Max:	DS	1	; Metric used to gauge demag event frequency
+Stall_Counter:			    DS	1	; Counts start/run attempts that resulted in stall. Reset upon a proper stop
 Demag_Pwr_Off_Thresh:		DS	1	; Metric threshold above which power is cut
 Low_Rpm_Pwr_Slope:			DS	1	; Sets the slope of power increase for low rpm
 
@@ -241,8 +239,8 @@ Prev_Prev_Comm_H:			DS	1	; Pre-previous commutation Timer2 timestamp (hi byte)
 Comm_Period4x_L:			DS	1	; Timer2 ticks between the last 4 commutations (lo byte)
 Comm_Period4x_H:			DS	1	; Timer2 ticks between the last 4 commutations (hi byte)
 
-Wt_Zc_Scan_Tout_L:			DS	1	; Timer3 start point for zero cross scan timeout (lo byte)
-Wt_Zc_Scan_Tout_H:			DS	1	; Timer3 start point for zero cross scan timeout (hi byte)
+Wt_Zc_Scan_Time_Quanta_L:			DS	1	; Timer3 start point for zero cross scan timeout (lo byte)
+Wt_Zc_Scan_Time_Quanta_H:			DS	1	; Timer3 start point for zero cross scan timeout (hi byte)
 Wt_Zc_2_Comm_L:				DS	1	; Timer3 start point from zero cross to commutation (lo byte)
 Wt_Zc_2_Comm_H:				DS	1	; Timer3 start point from zero cross to commutation (hi byte)
 
@@ -805,8 +803,6 @@ motor_start:
 	clr	A
 	mov	Flags0, A					; Clear run time flags
 	mov	Flags1, A
-	mov	Demag_Detected_Metric, A		; Clear demag metric
-	mov	Demag_Detected_Metric_Max, A	; Clear demag metric max
 
 	call	wait1ms
 
