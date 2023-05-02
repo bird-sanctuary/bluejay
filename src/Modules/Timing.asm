@@ -6,25 +6,14 @@
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
-
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;
-; Initialize timing
-;
-; Part of initialization before motor start
-;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-initialize_timing:
-    ; Initialize commutation period to 7.5ms (~1330 erpm)
-    mov Comm_Period4x_L, #00h
-    mov Comm_Period4x_H, #0F0h
-
-    ; Start timer to run freely
-	mov TMR3CN0, #0				; Disable timer3 and clear flags
-    mov TMR3L, #0 				; Setup next wait time
-    mov TMR3H, #4
-	mov TMR3CN0, #4				; Enable timer3 and clear flags
-    ret
+/* Compiler gets angry if there is no padding here */
+padding:
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -414,7 +403,8 @@ comp_read_wrong:
     mov A, Temp3
     subb    A, Temp4
 
-    ; If A < Temp4 then A = A + 1
+    ; If good reads to do < max good reads then increment good reads
+    mov A, Temp3
     addc    A, #0   ; A = A + 0 + C
     mov Temp3, A
 
