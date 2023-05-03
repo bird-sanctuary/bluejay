@@ -37,21 +37,16 @@
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 calc_next_comm_period:
-    ; Read commutation time into Temp3:2:1
-    clr IE_EA
-    clr TMR2CN0_TR2                 ; Timer2 disabled
+    ; Read commutation time into A:Temp2:1
+    clr TMR2CN0_TR2                 ; Stop Timer2
     mov Temp1, TMR2L                ; Load Timer2 value
     mov Temp2, TMR2H
-    mov Temp3, Timer2_X
-    jnb TMR2CN0_TF2H, ($+4)         ; Check if interrupt is pending
-    inc Temp3                       ; If it is pending, then timer has already wrapped
-    setb    TMR2CN0_TR2             ; Timer2 enabled
-    setb    IE_EA
+    mov A, Timer2_X
+    setb    TMR2CN0_TR2             ; Continue Timer2
 
 IF MCU_TYPE >= 1
     ; Divide time by 2 on 48MHz MCUs
-    clr C
-    rrca    Temp3
+    rrc A                           ; Move A.0 to C
     rrca    Temp2
     rrca    Temp1
 ENDIF
@@ -59,10 +54,14 @@ ENDIF
     ; Check startup phase
     jnb  Flag_Startup_Phase, calc_next_comm_normal
 
+    ; Save timestamp as previous commutation
+    mov Prev_Comm_L, Temp1
+    mov Prev_Comm_H, Temp2
+
     ; During startup period is fixed
     mov Comm_Period4x_L, #000h
-    mov Comm_Period4x_H, #80h
-    ajmp    calc_next_comm_15deg
+    mov Comm_Period4x_H, #080h
+    jmp calc_next_comm_15deg
 
 calc_next_comm_normal:
     ; Calculate this commutation time and store in Temp2:1
@@ -74,11 +73,21 @@ calc_next_comm_normal:
     mov A, Temp2
     subb    A, Prev_Comm_H
     mov Prev_Comm_H, Temp2          ; Save timestamp as previous commutation
-IF MCU_TYPE >= 1
-    anl A, #7Fh
-ENDIF
     mov Temp2, A                    ; Store commutation period in Temp2 (hi byte)
 
+    ; If Current < Prev_Comm (because of timer overflow)
+    ; there will be an overflow to fix
+    jnc calc_next_comm_average
+
+    ; Fix overflow adding uint16 max
+    mov A, Temp1
+    add A, #0FFh
+    mov Temp1, A
+    mov A, Temp2
+    addc A, #0FFh
+    mov Temp2, A
+
+calc_next_comm_average:
     ; Comm_Period4x holds the time of 4 commutations
     mov Temp3, Comm_Period4x_L
     mov Temp4, Comm_Period4x_H
@@ -91,9 +100,6 @@ ENDIF
 
     ; Divide Temp2:1 by 4 and store in Temp2:1
     Divide_By_4 Temp2, Temp1, Temp2, Temp1
-
-calc_next_comm_average_and_update:
-    ; Comm_Period4x = Comm_Period4x - (Comm_Period4x / (16 or 4)) + (Comm_Period / (4 or 1))
 
     ; Temp6/5: Comm_Period4x divided by (16 or 4)
     clr C                           ; Subtract a fraction

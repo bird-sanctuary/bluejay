@@ -154,7 +154,7 @@ DEFAULT_PGM_STARTUP_POWER_MIN		EQU	51	; 0..255 => (1000..1255 Throttle): Minimum
 DEFAULT_PGM_STARTUP_BEEP			EQU	1	; 0=Short beep, 1=Melody
 DEFAULT_PGM_DITHERING			EQU	1	; 0=Disabled, 1=Enabled
 
-DEFAULT_PGM_STARTUP_POWER_MAX		EQU	25	; 0..255 => (1000..2000 Throttle): Maximum startup power
+DEFAULT_PGM_STARTUP_POWER_MAX		EQU	15	; 0..255 => (1000..2000 Throttle): Maximum startup power
 DEFAULT_PGM_BRAKING_STRENGTH		EQU	255	; 0..255 => 0..100 % Braking
 DEFAULT_VAR_PWM_LO_THRES		EQU	100		; About 40% rc pulse
 DEFAULT_VAR_PWM_HI_THRES		EQU	150		; About 60% rc pulse
@@ -233,14 +233,11 @@ Low_Rpm_Pwr_Slope:			DS	1	; Sets the slope of power increase for low rpm
 Timer2_X:					DS	1	; Timer2 extended byte
 Prev_Comm_L:				DS	1	; Previous commutation Timer2 timestamp (lo byte)
 Prev_Comm_H:				DS	1	; Previous commutation Timer2 timestamp (hi byte)
-Prev_Comm_X:				DS	1	; Previous commutation Timer2 timestamp (ext byte)
-Prev_Prev_Comm_L:			DS	1	; Pre-previous commutation Timer2 timestamp (lo byte)
-Prev_Prev_Comm_H:			DS	1	; Pre-previous commutation Timer2 timestamp (hi byte)
 Comm_Period4x_L:			DS	1	; Timer2 ticks between the last 4 commutations (lo byte)
 Comm_Period4x_H:			DS	1	; Timer2 ticks between the last 4 commutations (hi byte)
 
-Wt_Zc_Scan_Time_Quanta_L:			DS	1	; Timer3 start point for zero cross scan timeout (lo byte)
-Wt_Zc_Scan_Time_Quanta_H:			DS	1	; Timer3 start point for zero cross scan timeout (hi byte)
+Wt_Zc_Scan_Time_Quanta_L:	DS	1	; Timer3 start point for zero cross scan timeout (lo byte)
+Wt_Zc_Scan_Time_Quanta_H:	DS	1	; Timer3 start point for zero cross scan timeout (hi byte)
 Wt_Zc_2_Comm_L:				DS	1	; Timer3 start point from zero cross to commutation (lo byte)
 Wt_Zc_2_Comm_H:				DS	1	; Timer3 start point from zero cross to commutation (hi byte)
 
@@ -851,6 +848,10 @@ motor_start_bidir_done:
 	setb	Flag_Initial_Run_Phase
 	mov	Startup_Cnt, #0			      ; Reset startup phase run counter
 	mov	Initial_Run_Rot_Cntd, #12	  ; Set initial run rotation countdown
+
+    mov Comm_Period4x_L, #000h
+    mov Comm_Period4x_H, #80h
+
 	call   comm3_comm4                ; Kick motor in reverse to make it bounce forward
 	call   comm6_comm1                ; Initialize forward commutation
 	call   calc_next_comm_period      ; Set virtual commutation point
