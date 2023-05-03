@@ -217,6 +217,18 @@ Tlm_Data_H:				DS	1			; DShot telemetry data (hi byte)
 ;**** **** **** **** ****
 ; Direct addressing data segment
 DSEG AT 30h
+Prev_Comm_L:				DS	1	; Previous commutation Timer2 timestamp (lo byte)
+Prev_Comm_H:				DS	1	; Previous commutation Timer2 timestamp (hi byte)
+Comm_Period4x_L:			DS	1	; Timer2 ticks between the last 4 commutations (lo byte)
+Comm_Period4x_H:			DS	1	; Timer2 ticks between the last 4 commutations (hi byte)
+
+Wt_Zc_Scan_Time_Quanta_L:	DS	1	; Timer3 start point for zero cross scan timeout (lo byte)
+Wt_Zc_Scan_Time_Quanta_H:	DS	1	; Timer3 start point for zero cross scan timeout (hi byte)
+Wt_Zc_2_Comm_L:				DS	1	; Timer3 start point from zero cross to commutation (lo byte)
+Wt_Zc_2_Comm_H:				DS	1	; Timer3 start point from zero cross to commutation (hi byte)
+
+Timer2_X:					DS	1	; Timer2 extended byte
+
 Rcp_Outside_Range_Cnt:		DS	1	; RC pulse outside range counter (incrementing)
 Rcp_Timeout_Cntd:			DS	1	; RC pulse timeout counter (decrementing)
 Rcp_Stop_Cnt:				DS	1	; Counter for RC pulses below stop value
@@ -229,17 +241,6 @@ Initial_Run_Rot_Cntd:		DS	1	; Initial run rotations counter (decrementing)
 Stall_Counter:			    DS	1	; Counts start/run attempts that resulted in stall. Reset upon a proper stop
 Demag_Pwr_Off_Thresh:		DS	1	; Metric threshold above which power is cut
 Low_Rpm_Pwr_Slope:			DS	1	; Sets the slope of power increase for low rpm
-
-Timer2_X:					DS	1	; Timer2 extended byte
-Prev_Comm_L:				DS	1	; Previous commutation Timer2 timestamp (lo byte)
-Prev_Comm_H:				DS	1	; Previous commutation Timer2 timestamp (hi byte)
-Comm_Period4x_L:			DS	1	; Timer2 ticks between the last 4 commutations (lo byte)
-Comm_Period4x_H:			DS	1	; Timer2 ticks between the last 4 commutations (hi byte)
-
-Wt_Zc_Scan_Time_Quanta_L:	DS	1	; Timer3 start point for zero cross scan timeout (lo byte)
-Wt_Zc_Scan_Time_Quanta_H:	DS	1	; Timer3 start point for zero cross scan timeout (hi byte)
-Wt_Zc_2_Comm_L:				DS	1	; Timer3 start point from zero cross to commutation (lo byte)
-Wt_Zc_2_Comm_H:				DS	1	; Timer3 start point from zero cross to commutation (hi byte)
 
 Pwm_Limit:				    DS	1	; Maximum allowed pwm (8-bit)
 
@@ -867,7 +868,6 @@ motor_start_bidir_done:
 ; Out_cA changes from low to high
 run1:
 	call	wait_for_comp_out_high		; Wait for high
-	call	wait_for_comm				; Wait from zero cross to commutation
 	call	comm1_comm2				; Commutate
 	call	calc_next_comm_period		; Calculate next timing and wait advance timing wait
 
@@ -875,7 +875,6 @@ run1:
 ; Out_cB changes from high to low
 run2:
 	call	wait_for_comp_out_low
-	call	wait_for_comm
 	call	comm2_comm3
 	call	calc_next_comm_period
 
@@ -883,7 +882,6 @@ run2:
 ; Out_cC changes from low to high
 run3:
 	call	wait_for_comp_out_high
-	call	wait_for_comm
 	call	comm3_comm4
 	call	calc_next_comm_period
 
@@ -891,7 +889,6 @@ run3:
 ; Out_cA changes from high to low
 run4:
 	call	wait_for_comp_out_low
-	call	wait_for_comm
 	call	comm4_comm5
 	call	calc_next_comm_period
 
@@ -899,7 +896,6 @@ run4:
 ; Out_cB changes from low to high
 run5:
 	call	wait_for_comp_out_high
-	call	wait_for_comm
 	call	comm5_comm6
 	call	calc_next_comm_period
 
@@ -907,7 +903,6 @@ run5:
 ; Out_cC changes from high to low
 run6:
 	call	wait_for_comp_out_low
-	call	wait_for_comm
 	call	comm6_comm1
 	call	calc_next_comm_period
 

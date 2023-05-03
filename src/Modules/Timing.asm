@@ -58,9 +58,9 @@ ENDIF
     mov Prev_Comm_L, Temp1
     mov Prev_Comm_H, Temp2
 
-    ; During startup period is fixed
+    ; During startup period is fixed to a high value
     mov Comm_Period4x_L, #000h
-    mov Comm_Period4x_H, #080h
+    mov Comm_Period4x_H, #0F0h
     jmp calc_next_comm_15deg
 
 calc_next_comm_normal:
@@ -320,7 +320,6 @@ eval_comp_startup:
     inc Startup_Cnt
 
 eval_comp_exit:
-    ret
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
