@@ -153,7 +153,7 @@ t1_int:
 
     ; Note: Interrupts are not explicitly disabled
     ; Assume higher priority interrupts (Int0, Timer0) to be disabled at this point
-    clr TMR2CN0_TR2             ; Timer2 disabled
+    clr TMR2CN0_TR2                 ; Timer2 disabled
     mov Temp2, TMR2L                ; Read timer value
     mov Temp3, TMR2H
     setb    TMR2CN0_TR2             ; Timer2 enabled
@@ -281,6 +281,7 @@ t1_int_exit_no_int:
     ; Restore preserved registers
     pop ACC
     pop PSW
+
     reti
 
 

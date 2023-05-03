@@ -187,12 +187,14 @@ wait_before_zc_scan:
     mov TMR3H, Wt_Zc_Scan_Time_Quanta_H
     mov TMR3CN0, #4                 ; Enable timer3 and clear flags
 
-    ; Allow up to zero cross 16 timeouts when motor is started:
-    ;  120deg, each zero cross timeout is 7.5deg
-    mov Zc_Timeout_Cntd, #16
-    jb Flag_Motor_Started, wait_for_comp_out_low
+    ; Allow up to zero cross 14 timeouts when motor is started:
+    ;  105deg (60deg + 45deg), each zero cross timeout is 7.5deg
+    mov Zc_Timeout_Cntd, #14
+    jb Flag_Motor_Started, wait_before_zc_scan_exit
     mov Zc_Timeout_Cntd, #6
 
+wait_before_zc_scan_exit:
+    ret
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
