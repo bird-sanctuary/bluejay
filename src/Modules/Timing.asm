@@ -60,7 +60,7 @@ ENDIF
 
     ; During startup period is fixed to a high value
     mov Comm_Period4x_L, #000h
-    mov Comm_Period4x_H, #0F0h
+    mov Comm_Period4x_H, #080h
     jmp calc_next_comm_15deg
 
 calc_next_comm_normal:
@@ -75,19 +75,6 @@ calc_next_comm_normal:
     mov Prev_Comm_H, Temp2          ; Save timestamp as previous commutation
     mov Temp2, A                    ; Store commutation period in Temp2 (hi byte)
 
-    ; If Current < Prev_Comm (because of timer overflow)
-    ; there will be an overflow to fix
-    jnc calc_next_comm_average
-
-    ; Fix overflow adding uint16 max
-    mov A, Temp1
-    add A, #0FFh
-    mov Temp1, A
-    mov A, Temp2
-    addc A, #0FFh
-    mov Temp2, A
-
-calc_next_comm_average:
     ; Comm_Period4x holds the time of 4 commutations
     mov Temp3, Comm_Period4x_L
     mov Temp4, Comm_Period4x_H
@@ -101,7 +88,7 @@ calc_next_comm_average:
     ; Divide Temp2:1 by 4 and store in Temp2:1
     Divide_By_4 Temp2, Temp1, Temp2, Temp1
 
-    ; Temp6/5: Comm_Period4x divided by (16 or 4)
+    ; Temp6:5 - Comm_Period4x divided by (16 or 4)
     clr C                           ; Subtract a fraction
     mov A, Temp3                    ; Comm_Period4x_L
     subb    A, Temp5
@@ -110,17 +97,13 @@ calc_next_comm_average:
     subb    A, Temp6
     mov Temp4, A
 
-    ; Temp2/1: This commutation period divided by (4 or 1)
+    ; Temp2:1 - This commutation period divided by (4 or 1)
     mov A, Temp3                    ; Add the divided new time
     add A, Temp1
     mov Comm_Period4x_L, A
     mov A, Temp4
     addc    A, Temp2
     mov Comm_Period4x_H, A
-
-    jnc calc_next_comm_15deg         ; Is period larger than 0xffff?
-    mov Comm_Period4x_L, #0FFh      ; Yes - Set commutation period registers to very slow timing (0xffff)
-    mov Comm_Period4x_H, #0FFh
 
 calc_next_comm_15deg:
     ; Commutation period: 360 deg / 6 runs = 60 deg
@@ -172,12 +155,10 @@ calc_new_wait_times_exit:
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
-; Wait before zero cross scan
-;
-; Waits for the zero cross scan wait time to elapse
+; Load timer3 commutation wait timer before zero cross scan
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-wait_before_zc_scan:
+load_wait_timer_before_zc_scan:
     ; Load timer for zero cross timeout
     ; Time precalculated for the following cases:
     ; - Flag_Initial_Run_Phase
@@ -190,10 +171,10 @@ wait_before_zc_scan:
     ; Allow up to zero cross 14 timeouts when motor is started:
     ;  105deg (60deg + 45deg), each zero cross timeout is 7.5deg
     mov Zc_Timeout_Cntd, #14
-    jb Flag_Motor_Started, wait_before_zc_scan_exit
+    jb Flag_Motor_Started, load_wait_timer_before_zc_scan_exit
     mov Zc_Timeout_Cntd, #6
 
-wait_before_zc_scan_exit:
+load_wait_timer_before_zc_scan_exit:
     ret
 
 
