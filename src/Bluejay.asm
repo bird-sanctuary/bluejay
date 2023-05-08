@@ -219,8 +219,8 @@ Tlm_Data_H:				DS	1			; DShot telemetry data (hi byte)
 DSEG AT 30h
 Prev_Comm_L:				DS	1	; Previous commutation Timer2 timestamp (lo byte)
 Prev_Comm_H:				DS	1	; Previous commutation Timer2 timestamp (hi byte)
-Comm_Period4x_L:			DS	1	; Timer2 ticks between the last 4 commutations (lo byte)
-Comm_Period4x_H:			DS	1	; Timer2 ticks between the last 4 commutations (hi byte)
+Comm_Period4x_L:            DS  1   ; Timer2 ticks between the last 4 commutations (lo byte)
+Comm_Period4x_H:            DS  1   ; Timer2 ticks between the last 4 commutations (hi byte)
 
 Wt_Zc_Scan_Time_Quanta_L:	DS	1	; Timer3 start point for zero cross scan timeout (lo byte)
 Wt_Zc_Scan_Time_Quanta_H:	DS	1	; Timer3 start point for zero cross scan timeout (hi byte)

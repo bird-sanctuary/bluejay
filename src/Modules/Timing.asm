@@ -294,7 +294,7 @@ eval_comp_startup:
     ; Set counter to 0 again if timeout expires
     mov Startup_Cnt, #0
 
-    ; Restart timing at startup
+    ; Restart timing at startup to 328rpm
     mov Comm_Period4x_L, #000h
     mov Comm_Period4x_H, #080h
 
