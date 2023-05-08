@@ -51,18 +51,6 @@ IF MCU_TYPE >= 1
     rrca    Temp1
 ENDIF
 
-    ; Check startup phase
-    jnb  Flag_Startup_Phase, calc_next_comm_normal
-
-    ; Save timestamp as previous commutation
-    mov Prev_Comm_L, Temp1
-    mov Prev_Comm_H, Temp2
-
-    ; During startup period is fixed to a high value
-    mov Comm_Period4x_L, #000h
-    mov Comm_Period4x_H, #080h
-    jmp calc_next_comm_15deg
-
 calc_next_comm_normal:
     ; Calculate this commutation time and store in Temp2:1
     clr C
@@ -171,8 +159,6 @@ load_wait_timer_before_zc_scan:
     ; Allow up to zero cross 14 timeouts when motor is started:
     ;  105deg (60deg + 45deg), each zero cross timeout is 7.5deg
     mov Zc_Timeout_Cntd, #14
-    jb Flag_Motor_Started, load_wait_timer_before_zc_scan_exit
-    mov Zc_Timeout_Cntd, #6
 
 load_wait_timer_before_zc_scan_exit:
     ret
@@ -287,18 +273,34 @@ evaluate_comparator_integrity:
     Set_All_Pwm_Phases_Off
 
 	; Signal stall
-	setb	Flag_Stall_Notify
+	setb	Flag_Desync_Notify
 
 	; Routine exit without "ret" command
-	clr IE_EA
-    dec SP
-    dec SP
-    setb IE_EA
-    ljmp    exit_run_mode_on_timeout            ; Exit run mode if timeout has elapsed
+;	clr IE_EA
+;    dec SP
+;    dec SP
+;    setb IE_EA
+;    ljmp    exit_run_mode_on_timeout            ; Exit run mode if timeout has elapsed
+    jmp eval_comp_exit
 
 eval_comp_startup:
-    ; Decrement startup counter
+    ; Increment startup counter
     inc Startup_Cnt
+
+    ; Do not exit run mode if comparator timeout is not zero
+    mov A, Zc_Timeout_Cntd
+    jnz eval_comp_exit
+
+    ; Set counter to 0 again if timeout expires
+    mov Startup_Cnt, #0
+
+    ; Restart timing at startup
+    mov Comm_Period4x_L, #000h
+    mov Comm_Period4x_H, #080h
+
+    ; Inmediately cut power on timeout to avoid damage
+    All_Pwm_Fets_Off
+    Set_All_Pwm_Phases_Off
 
 eval_comp_exit:
 

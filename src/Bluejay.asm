@@ -853,7 +853,7 @@ motor_start_bidir_done:
     mov Comm_Period4x_L, #000h
     mov Comm_Period4x_H, #80h
 
-	call   comm3_comm4                ; Kick motor in reverse to make it bounce forward
+	call   comm5_comm6
 	call   comm6_comm1                ; Initialize forward commutation
 	call   calc_next_comm_period      ; Set virtual commutation point
 
