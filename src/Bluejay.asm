@@ -217,10 +217,12 @@ Tlm_Data_H:				DS	1			; DShot telemetry data (hi byte)
 ;**** **** **** **** ****
 ; Direct addressing data segment
 DSEG AT 30h
-Prev_Comm_L:				DS	1	; Previous commutation Timer2 timestamp (lo byte)
-Prev_Comm_H:				DS	1	; Previous commutation Timer2 timestamp (hi byte)
-Comm_Period4x_L:            DS  1   ; Timer2 ticks between the last 4 commutations (lo byte)
-Comm_Period4x_H:            DS  1   ; Timer2 ticks between the last 4 commutations (hi byte)
+Prev_Comm_B0:				DS	1	; Previous commutation Timer2 timestamp (lo byte)
+Prev_Comm_B1:               DS  1   ; Previous commutation Timer2 timestamp (mid byte)
+Prev_Comm_B2:               DS  1   ; Previous commutation Timer2 timestamp (hi byte)
+Comm_Period4x_B0:           DS  1   ; Timer2 ticks between the last 4 commutations (lo byte)
+Comm_Period4x_B1:           DS  1   ; Timer2 ticks between the last 4 commutations (mid byte)
+Comm_Period4x_B2:           DS  1   ; Timer2 ticks between the last 4 commutations (hi byte)
 
 Wt_Zc_Scan_Time_Quanta_L:	DS	1	; Timer3 start point for zero cross scan timeout (lo byte)
 Wt_Zc_Scan_Time_Quanta_H:	DS	1	; Timer3 start point for zero cross scan timeout (hi byte)
@@ -689,8 +691,8 @@ arming_wait:
 
 wait_for_start:					; Armed and waiting for power on
 	clr	A
-	mov	Comm_Period4x_L, A			; Reset commutation period for telemetry
-	mov	Comm_Period4x_H, A
+	mov	Comm_Period4x_B0, A			; Reset commutation period for telemetry
+	mov	Comm_Period4x_B1, A
 	mov	DShot_Cmd, A				; Reset DShot command (only considered in this loop)
 	mov	DShot_Cmd_Cnt, A
 	mov	Beacon_Delay_Cnt, A			; Clear beacon wait counter
@@ -850,8 +852,13 @@ motor_start_bidir_done:
 	mov	Startup_Cnt, #0			      ; Reset startup phase run counter
 	mov	Initial_Run_Rot_Cntd, #12	  ; Set initial run rotation countdown
 
-    mov Comm_Period4x_L, #000h
-    mov Comm_Period4x_H, #80h
+    mov Timer2_X, #0
+    mov Prev_Comm_B0, #0
+    mov Prev_Comm_B1, #0
+    mov Prev_Comm_B2, #0
+    mov Comm_Period4x_B0, #000h
+    mov Comm_Period4x_B1, #080h
+    mov Comm_Period4x_B2, #000h
 
 	call   comm5_comm6
 	call   comm6_comm1                ; Initialize forward commutation
@@ -976,7 +983,7 @@ run6_check_bidir:
 
 run6_check_speed:
 	clr	C
-	mov	A, Comm_Period4x_H			; Is Comm_Period4x below minimum speed?
+	mov	A, Comm_Period4x_B1			; Is Comm_Period4x below minimum speed?
 	subb	A, #0F0h					; Default minimum speed (~1330 erpm)
 	jnc	exit_run_mode				; Yes - exit run mode
 	jmp	run1						; No - go back to run 1
@@ -1000,7 +1007,7 @@ run6_bidir_reversal:
 
 run6_bidir_braking:
 	clr	C
-	mov	A, Comm_Period4x_H			; Is Comm_Period4x below minimum speed?
+	mov	A, Comm_Period4x_B1			; Is Comm_Period4x below minimum speed?
 	subb	A, #20h					; Bidirectional braking termination speed (~9970 erpm)
 	jc	run6_bidir_continue			; No - continue braking
 

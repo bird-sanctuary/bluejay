@@ -226,8 +226,8 @@ dshot_tlmpacket_stm_stage0:
     jnz dshot_tlmpacket_stm_ready
 
     clr IE_EA
-    mov A, Comm_Period4x_L          ; Read commutation period
-    mov Tlm_Data_H, Comm_Period4x_H
+    mov A, Comm_Period4x_B0          ; Read commutation period
+    mov Tlm_Data_H, Comm_Period4x_B1
     setb    IE_EA
 
     ; Calculate e-period (6 commutations) in microseconds
@@ -250,11 +250,11 @@ dshot_tlmpacket_stm_stage0:
     mov Temp4, A                    ; Comm_Period3x_H
 
     ; Timer2 ticks are ~489ns (not 500ns), so use approximation for better accuracy:
-    ; E-period = Comm_Period3x - 4 * Comm_Period4x_H
+    ; E-period = Comm_Period3x - 4 * Comm_Period4x_B1
 
-    ; Note: For better performance assume Comm_Period4x_H < 64 (6-bit, above ~5k erpm)
+    ; Note: For better performance assume Comm_Period4x_B1 < 64 (6-bit, above ~5k erpm)
     ; At lower speed result will be less precise
-    mov A, Tlm_Data_H               ; Comm_Period4x_H
+    mov A, Tlm_Data_H               ; Comm_Period4x_B1
     rl  A                       ; Multiply by 4
     rl  A
     anl A, #0FCh

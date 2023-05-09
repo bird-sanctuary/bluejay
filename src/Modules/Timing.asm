@@ -41,65 +41,84 @@ calc_next_comm_period:
     clr TMR2CN0_TR2                 ; Stop Timer2
     mov Temp1, TMR2L                ; Load Timer2 value
     mov Temp2, TMR2H
-    mov A, Timer2_X
+    mov Temp3, Timer2_X
     setb    TMR2CN0_TR2             ; Continue Timer2
 
-IF MCU_TYPE >= 1
-    ; Divide time by 2 on 48MHz MCUs
-    rrc A                           ; Move A.0 to C
-    rrca    Temp2
-    rrca    Temp1
-ENDIF
-
 calc_next_comm_normal:
-    ; Calculate this commutation time and store in Temp2:1
+    ; Calculate this commutation time and store in Temp3:2:1
     clr C
     mov A, Temp1
-    subb    A, Prev_Comm_L          ; Calculate the new commutation time
-    mov Prev_Comm_L, Temp1          ; Save timestamp as previous commutation
+    subb    A, Prev_Comm_B0         ; Calculate the new commutation time
+    mov Prev_Comm_B0, Temp1         ; Save timestamp as previous commutation
     mov Temp1, A                    ; Store commutation period in Temp1 (lo byte)
     mov A, Temp2
-    subb    A, Prev_Comm_H
-    mov Prev_Comm_H, Temp2          ; Save timestamp as previous commutation
-    mov Temp2, A                    ; Store commutation period in Temp2 (hi byte)
+    subb    A, Prev_Comm_B1
+    mov Prev_Comm_B1, Temp2         ; Save timestamp as previous commutation
+    mov Temp2, A                    ; Store commutation period in Temp2 (mid byte)
+    mov A, Temp3
+    subb    A, Prev_Comm_B2
+    mov Prev_Comm_B2, Temp3         ; Save timestamp as previous commutation
+    mov Temp3, A                    ; Store commutation period in Temp3 (hi byte)
 
     ; Comm_Period4x holds the time of 4 commutations
-    mov Temp3, Comm_Period4x_L
-    mov Temp4, Comm_Period4x_H
+    mov Temp4, Comm_Period4x_B0
+    mov Temp5, Comm_Period4x_B1
+    mov Temp6, Comm_Period4x_B2
 
     ; Update Comm_Period4x from 1/4 new commutation period
     ; Comm_Period4x = Comm_Period4x - (Comm_Period4x / 16) + (Comm_Period / 4)
 
-    ; Divide Temp4:3 by 16 and store in Temp6:5
-    Divide_By_16 Temp4, Temp3, Temp6, Temp5
+    ; Divide Comm_Period4x (Temp6:5:4) by 16
+    DivU24_By_16 Temp6, Temp5, Temp4
 
-    ; Divide Temp2:1 by 4 and store in Temp2:1
-    Divide_By_4 Temp2, Temp1, Temp2, Temp1
+    ; Divide Comm_Period (Temp3:2:1) by 4
+    DivU24_By_4 Temp3, Temp2, Temp1
 
-    ; Temp6:5 - Comm_Period4x divided by (16 or 4)
-    clr C                           ; Subtract a fraction
-    mov A, Temp3                    ; Comm_Period4x_L
-    subb    A, Temp5
-    mov Temp3, A
-    mov A, Temp4                    ; Comm_Period4x_H
-    subb    A, Temp6
+    ; Subtract a fraction
+    ; Comm_Period4x - (Comm_Period4x / 16) -> Temp6:5:4
+    clr C
+    mov A, Comm_Period4x_B0         ; Comm_Period4x_B0
+    subb    A, Temp4
     mov Temp4, A
+    mov A, Comm_Period4x_B1         ; Comm_Period4x_B1
+    subb    A, Temp5
+    mov Temp5, A
+    mov A, Comm_Period4x_B2         ; Comm_Period4x_B2
+    subb    A, Temp6
+    mov Temp6, A
 
-    ; Temp2:1 - This commutation period divided by (4 or 1)
-    mov A, Temp3                    ; Add the divided new time
-    add A, Temp1
-    mov Comm_Period4x_L, A
+    ; Add the divided new time
+    ; Comm_Period4x - (Comm_Period4x / 16) + (Comm_Period / 4) -> Temp6:5:4
     mov A, Temp4
+    add A, Temp1
+    mov Temp4, A
+    mov A, Temp5
     addc    A, Temp2
-    mov Comm_Period4x_H, A
+    mov Temp5, A
+    mov A, Temp6
+    addc    A, Temp3
+    mov Temp6, A
+
+    ; Comm_Period4x holds the time of 4 commutations
+    mov Comm_Period4x_B0, Temp4
+    mov Comm_Period4x_B1, Temp5
+    mov Comm_Period4x_B2, Temp6
 
 calc_next_comm_15deg:
     ; Commutation period: 360 deg / 6 runs = 60 deg
     ; 60 deg / 4 = 15 deg
 
     ; Load current commutation timing and compute 15 deg timing
-    ; Divide Comm_Period4x by 16 (Comm_Period1x divided by 4) and store in Temp4:3
-    Divide_By_16    Comm_Period4x_H, Comm_Period4x_L, Temp4, Temp3
+    ; Divide Comm_Period4x by 16 (Comm_Period1x divided by 4) and store in Temp6:5:4
+    DivU24_By_16 Temp6, Temp5, Temp4
+
+    ; Here Temp6 should be 0 (but just in case)
+    mov A, Temp6
+    jz calc_next_comm_period_exit
+
+    ; If not 0 load highest value (Temp6 is not used)
+    mov Temp5, #0FFh
+    mov Temp4, #0FFh
 
 calc_next_comm_period_exit:
 
@@ -110,13 +129,13 @@ calc_next_comm_period_exit:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 calc_new_wait_times:
-    ; Negate deg timming 15 deg in Temp4:3 and set it to Temp2:1
+    ; Negate deg timming 15 deg in Temp5:4 and set it to Temp2:1
     clr C
     clr A
-    subb    A, Temp3                ; Negate
+    subb    A, Temp4                ; Negate
     mov Temp1, A
     clr A
-    subb    A, Temp4
+    subb    A, Temp5
     mov Temp2, A
 IF MCU_TYPE >= 1
     clr C
@@ -295,8 +314,8 @@ eval_comp_startup:
     mov Startup_Cnt, #0
 
     ; Restart timing at startup to 328rpm
-    mov Comm_Period4x_L, #000h
-    mov Comm_Period4x_H, #080h
+    mov Comm_Period4x_B0, #000h
+    mov Comm_Period4x_B1, #080h
 
     ; Inmediately cut power on timeout to avoid damage
     All_Pwm_Fets_Off

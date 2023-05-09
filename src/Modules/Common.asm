@@ -385,6 +385,70 @@ Divide_By_16 MACRO ih, il, oh, ol
     mov ol, A
 ENDM
 
+DivU24_By_16 MACRO hi, mid, lo
+    mov A, hi
+    swap A
+    mov B, A
+    anl A, #00Fh
+    mov hi, A
+
+    mov A, B
+    anl A, #0F0h
+    xch A, mid
+
+    swap A
+    mov B, A
+    anl A, #00Fh
+    orl A, mid
+    mov mid, A
+
+    mov A, B
+    anl A, #0F0h
+    xch A, lo
+
+    swap A
+    anl A, #00Fh
+    orl A, lo
+    mov lo, A
+ENDM
+
+DivU24_By_2 MACRO hi, mid, lo
+    clr C
+    mov A, hi
+    rrc A
+    mov hi, A
+    mov A, mid
+    rrc A
+    mov mid, A
+    mov A, lo
+    rrc A
+    mov lo, A
+ENDM
+
+DivU24_By_4 MACRO hi, mid, lo
+    clr C
+    mov A, hi
+    rrc A
+    mov hi, A
+    mov A, mid
+    rrc A
+    mov mid, A
+    mov A, lo
+    rrc A
+    mov lo, A
+
+    clr C
+    mov A, hi
+    rrc A
+    mov hi, A
+    mov A, mid
+    rrc A
+    mov mid, A
+    mov A, lo
+    rrc A
+    mov lo, A
+ENDM
+
 Divide_12Bit_By_16 MACRO ih, il, ol ;; Only if ih < 16
     mov A, ih
     swap    A
