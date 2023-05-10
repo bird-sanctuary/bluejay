@@ -37,6 +37,12 @@
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 calc_next_comm_period:
+    ; Prepare the 7.5deg timer to wait before zero cross scan
+    mov TMR3CN0, #0                 ; Disable timer3 and clear flags
+    mov TMR3L, Wt_Zc_Scan_Time_Quanta_L
+    mov TMR3H, Wt_Zc_Scan_Time_Quanta_H
+    mov TMR3CN0, #4                 ; Enable timer3 and clear flags
+
     ; Read commutation time into A:Temp2:1
     clr TMR2CN0_TR2                 ; Stop Timer2
     mov Temp1, TMR2L                ; Load Timer2 value
@@ -137,11 +143,7 @@ calc_new_wait_times:
     clr A
     subb    A, Temp5
     mov Temp2, A
-IF MCU_TYPE >= 1
-    clr C
-    rlca    Temp1                   ; Multiply by 2
-    rlca    Temp2
-ENDIF
+
     ; Zero cross to commutation is 15deg
     ; Temp2:1 = 15deg Timer2 period
     mov Wt_Zc_2_Comm_L, Temp1
@@ -158,6 +160,8 @@ ENDIF
     mov Wt_Zc_Scan_Time_Quanta_L, A
 
 calc_new_wait_times_exit:
+    ; Wait for 7.5deg before zc scan
+    Wait_For_Timer3
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****

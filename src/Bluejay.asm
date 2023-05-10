@@ -847,11 +847,13 @@ ENDIF
 ;**** **** **** **** ****
 ; Motor start beginning
 motor_start_bidir_done:
+    ; Prepare states and counters
 	setb	Flag_Startup_Phase		  ; Set startup phase flags
 	setb	Flag_Initial_Run_Phase
-	mov	Startup_Cnt, #0			      ; Reset startup phase run counter
-	mov	Initial_Run_Rot_Cntd, #12	  ; Set initial run rotation countdown
+	mov	Startup_Cnt, #0			      ; Reset startup phase run up counter
+	mov	Initial_Run_Rot_Cntd, #12	  ; Set initial run rotation down counter
 
+    ; Prepare times
     mov Timer2_X, #0
     mov Prev_Comm_B0, #0
     mov Prev_Comm_B1, #0
@@ -859,7 +861,10 @@ motor_start_bidir_done:
     mov Comm_Period4x_B0, #000h
     mov Comm_Period4x_B1, #080h
     mov Comm_Period4x_B2, #000h
+    mov Wt_Zc_Scan_Time_Quanta_L, #000h
+    mov Wt_Zc_Scan_Time_Quanta_H, #004h
 
+    ; Kick motor to startup
 	call   comm5_comm6
 	call   comm6_comm1                ; Initialize forward commutation
 	call   calc_next_comm_period      ; Set virtual commutation point
