@@ -191,9 +191,9 @@ Flag_Desync_Notify			BIT	Flags0.4		; Set when motor desync has been detected but
 Flag_Stall_Notify			BIT	Flags0.5		; Set when motor stall detected but still not notified
 
 Flags1:					DS	1			; State flags. Reset upon motor_start
-Flag_Motor_Running			BIT	Flags1.3
-Flag_Motor_Started			BIT	Flags1.4		; Set when motor is started
-Flag_Dir_Change_Brake		BIT	Flags1.5		; Set when braking before direction change in case of bidirectional operation
+Flag_Motor_Running			BIT	Flags1.0
+Flag_Motor_Started			BIT	Flags1.1		; Set when motor is started
+Flag_Dir_Change_Brake		BIT	Flags1.2		; Set when braking before direction change in case of bidirectional operation
 
 Flags2:					DS	1			; State flags. NOT reset upon motor_start
 Flag_Variable_Pwm_Bits		BIT	Flags2.0		; Set when programmed variable pwm

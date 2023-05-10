@@ -1,7 +1,40 @@
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
+; Bluejay digital ESC firmware for controlling brushless motors in multirotors
+;
+; Copyleft  2022-2023 Daniel Mosquera
+;
+; The work in this would not be possible with the help and previous work of:
+;   stylesuxx, burdalfis, saidinesh5
+;   Copyright 2020-2022 Mathias Rasmussen's Bluejay
+;   Copyright 2011-2017 Steffen Skaug's Blheli/Blheli_S
+;   Bernard Konze's BLMC: http://home.versanet.de/~bkonze/blc_6a/blc_6a.htm
+;   Simon Kirby's TGY: https://github.com/sim-/tgy
+;
+; This file is part of Bluejay.
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
-; Timing
+; Timing module
+;
+;   This module is in charge of:
+;       - calculating 4 times commutation period (4x60deg): Comm_Period4x
+;       - calculating 7.5deg time quanta: Wt_Zc_Scan_Time_Quanta
+;       - calculating 15deg zero cross to commutation time: Wt_Zc_2_Comm
+;       - counting 7.5deg while times are calculated
+;       - waiting remaining 7.5deg time before zero cross scanning
+;       - zero cross scanning for 37.5deg
+;       - waiting before commutate for 15deg
+;
+; Commutation:
+;
+;                           60deg
+;   -------------------------------------------------------
+;   |  7.5deg | 37.5deg scan             | 15deg wait com |
+;   L-----------------------------------------------------|
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -10,6 +43,8 @@
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Calculate next commutation period
+;
+; Adds initial wait of 7.5deg before starting zero cross scan
 ;
 ; Measure the duration of current commutation period,
 ; and update Comm_Period4x by averaging a fraction of it.
@@ -285,11 +320,11 @@ setup_comm_wait:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 evaluate_comparator_integrity:
     jnb Flag_Motor_Started, eval_comp_startup
-    jb  Flag_Dir_Change_Brake, eval_comp_exit   ; Do not exit run mode if braking
+    jb  Flag_Dir_Change_Brake, eval_comp_good   ; Do not exit run mode if braking
 
     ; Do not exit run mode if comparator timeout is not zero
     mov A, Zc_Timeout_Cntd
-    jnz eval_comp_exit
+    jnz eval_comp_good
 
     ; Inmediately cut power on timeout to avoid damage
     All_Pwm_Fets_Off
@@ -304,6 +339,8 @@ evaluate_comparator_integrity:
 ;    dec SP
 ;    setb IE_EA
 ;    ljmp    exit_run_mode_on_timeout            ; Exit run mode if timeout has elapsed
+
+    ; Commutation is no good
     jmp eval_comp_exit
 
 eval_comp_startup:
@@ -312,7 +349,7 @@ eval_comp_startup:
 
     ; Do not exit run mode if comparator timeout is not zero
     mov A, Zc_Timeout_Cntd
-    jnz eval_comp_exit
+    jnz eval_comp_good
 
     ; Set counter to 0 again if timeout expires
     mov Startup_Cnt, #0
@@ -324,6 +361,12 @@ eval_comp_startup:
     ; Inmediately cut power on timeout to avoid damage
     All_Pwm_Fets_Off
     Set_All_Pwm_Phases_Off
+
+    ; Commutation is no good
+    jmp eval_comp_exit
+
+eval_comp_good:
+
 
 eval_comp_exit:
 
