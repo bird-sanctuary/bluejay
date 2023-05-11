@@ -303,7 +303,7 @@ t2_int:
     push ACC                                ; Uses accumulator
     clr TMR2CN0_TF2H                        ; Clear interrupt flag
     inc Timer2_X                            ; Increment extended byte
-    setb Flag_32o16ms_Elapsed                  ; Set 16/32ms elapsed flag
+    setb Flag_32o16ms_Elapsed               ; Set 16/32ms elapsed flag
 
     ; Decrement Rcp_Timeout_Cntd clipping it to zero
     clr C
