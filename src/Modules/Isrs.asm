@@ -290,39 +290,41 @@ t1_int_exit_no_int:
 ; Timer2 interrupt routine
 ;
 ; Update RC pulse timeout and stop counters
-; Happens every 32ms
+; Happens every 16/32ms, depending on current CPU clock 49/24.5Mhz
+; When ESC is armed 49Mhz CPU clock is selected
+; When ESC is disarmed 24.5Mhz CPU clock is selected
+; When ESC is armed timing routines are running and they use 16ms timing
 ;
-; Requirements: No PSW instructions or Temp registers
+; Requirements: No Temp registers
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 t2_int:
-    push ACC
+    push PSW                                ; Uses carry bit
+    push ACC                                ; Uses accumulator
     clr TMR2CN0_TF2H                        ; Clear interrupt flag
     inc Timer2_X                            ; Increment extended byte
-    setb Flag_32ms_Elapsed                  ; Set 32ms elapsed flag
+    setb Flag_32o16ms_Elapsed                  ; Set 16/32ms elapsed flag
 
-    ; Check RC pulse timeout counter
-    mov A, Rcp_Timeout_Cntd                 ; RC pulse timeout count zero?
-    jnz t2_int_rcp_timeout_decrement
-    setb Flag_Rcp_Stop                      ; If zero -> Set rcp stop in case of timeout
-    sjmp t2_int_flag_rcp_stop_check
+    ; Decrement Rcp_Timeout_Cntd clipping it to zero
+    clr C
+    mov A, Rcp_Timeout_Cntd
+    subb A, #1
+    addc A, #0                  ; Clip Rcp_Timeout_Cntd to zero
+    mov Rcp_Timeout_Cntd, A
 
-t2_int_rcp_timeout_decrement:
-    dec Rcp_Timeout_Cntd                    ; No - decrement
+    ; If Rcp_Timeout_Cntd was zero sets Flag_Rcp_Stop
+    orl C, Flag_Rcp_Stop        ; Carry bit is still zero
+    mov Flag_Rcp_Stop, C
 
-t2_int_flag_rcp_stop_check:
-    ; If rc pulse is not zero
-    jnb Flag_Rcp_Stop, t2_int_exit          ; If rc pulse is not zero don't increment rcp stop counter
-
-    ; Increment Rcp_Stop_Cnt clipping it to 255
+    ; If Flag_Rcp_Stop is set then increment Rcp_Stop_Cnt clipping it to 255
     mov A, Rcp_Stop_Cnt
-    inc A
-    jz ($+4)
-    inc Rcp_Stop_Cnt
+    addc A, #0                  ; Increment Flag_Rcp_Stop if Flag_Rcp_Stop == 1
+    subb A, #0                  ; If overflows clip to 255
+    mov Rcp_Stop_Cnt, A
 
-; **************   Return from timer2 **********
-t2_int_exit:
-    pop ACC                     ; Restore preserved registers
+    ; Restore preserved registers
+    pop ACC
+    pop PSW
     reti
 
 

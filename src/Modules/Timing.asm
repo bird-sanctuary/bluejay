@@ -282,7 +282,7 @@ comp_check_timeout_not_timed_out:
     sjmp    comp_exit
 
 comp_read_wrong:
-    ; If good reads to do == max good reads then goto check timeout
+    ; if (good reads to do < max good) then C = 1;
     clr C
     mov A, Temp3
     subb    A, Temp4

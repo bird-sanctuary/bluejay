@@ -22,7 +22,7 @@
 
 scheduler_run:
     ; Exit if not 32ms elapsed, otherwise start schedule
-    jbc Flag_32ms_Elapsed, scheduler_start
+    jbc Flag_32o16ms_Elapsed, scheduler_start
     ret
 
 scheduler_start:
