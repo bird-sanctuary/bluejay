@@ -588,8 +588,14 @@ setup_dshot:
 	; Setup interrupts
 	mov	IE, #2Dh					; Enable Timer1/2 interrupts and Int0/1 interrupts
 	mov	IP, #03h					; High priority to Timer0 and Int0 interrupts
+IF COMPARATOR_PORT == 0
+    mov EIE1, #020h                 ; Enable comparator 0 interrupt
+ELSE
+    mov EIE1, #040h                 ; Enable comparator 1 interrupt
+ENDIF
 
-	setb	IE_EA					; Enable all interrupts
+    ; Enable all interrupts
+	setb	IE_EA
 
 	; Setup variables for DShot150 (Only on 24MHz because frame length threshold cannot be scaled up)
 IF MCU_TYPE == 0
@@ -880,7 +886,7 @@ motor_start_bidir_done:
 ; Out_cA changes from low to high
 run1:
 	call	wait_for_comp_out_high		; Wait for high
-	call	comm1_comm2				; Commutate
+	call	comm1_comm2				    ; Commutate
 	call	calc_next_comm_period		; Calculate next timing and wait advance timing wait
 
 ; Run 2 = A(p-on) + C(n-pwm) - comparator B evaluated

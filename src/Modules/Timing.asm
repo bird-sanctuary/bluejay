@@ -5,7 +5,6 @@
 ; Copyleft  2022-2023 Daniel Mosquera
 ;
 ; The work in this would not be possible with the help and previous work of:
-;   stylesuxx, burdalfis, saidinesh5
 ;   Copyright 2020-2022 Mathias Rasmussen's Bluejay
 ;   Copyright 2011-2017 Steffen Skaug's Blheli/Blheli_S
 ;   Bernard Konze's BLMC: http://home.versanet.de/~bkonze/blc_6a/blc_6a.htm
@@ -19,6 +18,8 @@
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Timing module
+;
+;   Concepts took from NXP's AN13000
 ;
 ;   This module is in charge of:
 ;       - calculating 4 times commutation period (4x60deg): Comm_Period4x
@@ -77,6 +78,10 @@ calc_next_comm_period:
     mov TMR3L, Wt_Zc_Scan_Time_Quanta_L
     mov TMR3H, Wt_Zc_Scan_Time_Quanta_H
     mov TMR3CN0, #4                 ; Enable timer3 and clear flags
+
+    ; Enable comparator interrupts to also catch decay period
+    ; NXP AN13000 - 3.3.3.1. BEMF voltage measurement limitations
+    Enable_Comparator_Interrupts
 
     ; Read commutation time into A:Temp2:1
     clr TMR2CN0_TR2                 ; Stop Timer2
@@ -320,6 +325,9 @@ comp_read_wrong:
     sjmp    comp_check_timeout              ; Otherwise - go back and restart
 
 comp_exit:
+    ; Disable comparator interrupts
+    ; NXP AN13000 - 3.3.3.1. BEMF voltage measurement limitations
+    Disable_Comparator_Interrupts
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****

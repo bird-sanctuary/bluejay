@@ -181,6 +181,10 @@ CSEG AT 2Bh						;; Timer2 overflow interrupt
 	jmp	t2_int
 CSEG AT 5Bh						;; PCA interrupt
 	jmp	pca_int
+CSEG AT 63h                     ;; Comparator 0 interrupt
+    jmp comp_int
+CSEG AT 6Bh                     ;; Comparator 1 interrupt
+    jmp comp_int
 CSEG AT 73h						;; Timer3 overflow/compare interrupt
 	jmp	t3_int
 ENDM

@@ -125,6 +125,15 @@ IF COMPARATOR_INVERT == 1 AND MCU_TYPE >= 1
 ENDIF
 ENDM
 
+Enable_Comparator_Interrupts MACRO
+  anl CMP_CN0, #0CFh      ;; Clear rising and falling edge flags
+  orl CMP_MD, #030h       ;; Enable Rising and falling edge interrupt sources
+ENDM
+
+Disable_Comparator_Interrupts MACRO
+  anl CMP_MD, #0CFh       ;; Disable Rising and falling edge interrupt sources
+ENDM
+
 Read_Comparator_Output MACRO
 	mov	A, CMP_CN0				;; Read comparator output
 IF COMPARATOR_INVERT == 1 AND MCU_TYPE == 0
