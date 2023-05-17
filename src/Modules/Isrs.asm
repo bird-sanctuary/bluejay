@@ -362,14 +362,8 @@ pca_int:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 comp_int:
-    push ACC
-
-    ; Read rising/falling edge flags
-    mov A, CMP_CN0
     anl CMP_CN0, #0CFh      ; Clear rising and falling edge flags
 
-    ; Filter rising/falling edge flags
-    anl A, #030h
-
-    pop ACC
+    Set_LED_2
+    Clear_LED_2
     reti

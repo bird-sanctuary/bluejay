@@ -238,23 +238,26 @@ load_wait_timer_before_zc_scan_exit:
 wait_for_comp_out_low:
     mov B, #000h                 ; Desired comparator output
     jnb Flag_Dir_Change_Brake, comp_check_start
-    mov B, #0C0h
+    mov B, #040h
     sjmp    comp_check_start
 
 wait_for_comp_out_high:
-    mov B, #0C0h                 ; Desired comparator output
+    mov B, #040h                 ; Desired comparator output
     jnb Flag_Dir_Change_Brake, comp_check_start
     mov B, #000h
 
 comp_check_start:
-    ; Set number of comparator readings required
-    mov Temp3, #(3 SHL IS_MCU_48MHZ)        ; Number of OK readings required
-    mov Temp4, #(3 SHL IS_MCU_48MHZ)       	; Max wrong readings threshold
+    ; A = Comm_Period4x_B1 / 2
+    clr C
+    mov A, Comm_Period4x_B1
+    rrc A
 
-    jb Flag_Motor_Started, comp_check_timeout
-    ; Set many samples if motor not started
-    mov Temp3, #(27 SHL IS_MCU_48MHZ)
-    mov Temp4, #(27 SHL IS_MCU_48MHZ)
+    ; A = A + MIN
+    add A, #2                    ; Minimum number of OK readings required
+
+    ; Set number of comparator readings required
+    mov Temp3, A
+    mov Temp4, A
 
 comp_check_timeout:
     ; Check zero cross scan timeout has elapsed
@@ -275,34 +278,9 @@ comp_check_timeout_extend_timeout:
     mov TMR3CN0, #4                 ; Enable timer3 and clear flags
 
 comp_check_timeout_not_timed_out:
-    ; Use 3x sampling to increase noise rejection
-    ; Initialize sample accumulator
-    mov Temp1, #0
-
-    ; Read sample 1 and add it to Temp1
-    Read_Comparator_Output
-    anl A, #40h
-    add A, Temp1
-    mov Temp1, A
-    nop
-    nop
-    nop
-
-    ; Read sample 2 and add it to Temp1
-    Read_Comparator_Output
-    anl A, #40h
-    add A, Temp1
-    mov Temp1, A
-    nop
-    nop
-    nop
-
-    ; Read sample 3 and add it to Temp1
-    Read_Comparator_Output
-    anl A, #40h
-    add A, Temp1
-
     ; Check comparator
+    Read_Comparator_Output
+    anl A, #40h
     cjne    A, B, comp_read_wrong
 
     ; Decrement reads counter until 0

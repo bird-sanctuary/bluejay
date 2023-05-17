@@ -122,7 +122,7 @@ ENDIF
 
 ;**** **** **** **** ****
 ; Select the pwm frequency (or unselect for use with external batch compile file)
-PWM_FREQ			EQU	0	; 0=24, 1=48, 2=96 kHz 3=Dynamic frequency
+PWM_FREQ			EQU	2	; 0=24, 1=48, 2=96 kHz 3=Dynamic frequency
 
 PWM_CENTERED	EQU	DEADTIME > 0			; Use center aligned pwm on ESCs with dead time
 
@@ -587,12 +587,18 @@ setup_dshot:
 
 	; Setup interrupts
 	mov	IE, #2Dh					; Enable Timer1/2 interrupts and Int0/1 interrupts
-	mov	IP, #03h					; High priority to Timer0 and Int0 interrupts
 IF COMPARATOR_PORT == 0
     mov EIE1, #020h                 ; Enable comparator 0 interrupt
 ELSE
     mov EIE1, #040h                 ; Enable comparator 1 interrupt
 ENDIF
+
+    ; Setup interrupt priorities
+	mov	IP, #03h					; High priority to Timer0 and Int0 interrupts
+    mov SFRPAGE, #10h
+    mov IPH, #03h
+    mov SFRPAGE, #00h
+    mov EIP1, #60h                  ; Medium priority to comparator interrupts
 
     ; Enable all interrupts
 	setb	IE_EA

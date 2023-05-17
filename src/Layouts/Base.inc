@@ -135,9 +135,9 @@ Disable_Comparator_Interrupts MACRO
 ENDM
 
 Read_Comparator_Output MACRO
-	mov	A, CMP_CN0				;; Read comparator output
+	mov	A, CMP_CN0				  ;; Read comparator output
 IF COMPARATOR_INVERT == 1 AND MCU_TYPE == 0
-	cpl	A						;; Invert output polarity manually on BB1
+	cpl	A						      ;; Invert output polarity manually on BB1
 ENDIF
 ENDM
 
