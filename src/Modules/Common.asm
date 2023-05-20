@@ -2,6 +2,7 @@
 ;
 ; Bluejay digital ESC firmware for controlling brushless motors in multirotors
 ;
+; Copyleft  2022-2023 Daniel Mosquera
 ; Copyright 2020-2022 Mathias Rasmussen
 ; Copyright 2011-2017 Steffen Skaug
 ;
@@ -22,7 +23,7 @@
 ;
 ;**** **** **** **** ****
 ;
-; Common definitions for EFM8BB1x/2x based ESCs
+; Common definitions for EFM8BB1x/2x/5x based ESCs
 ;
 ;**** **** **** **** ****
 
@@ -217,3 +218,4 @@ Set_MCU_Clk_48MHz MACRO
 
 	mov	CLKSEL, #03h				;; Set clock to 48MHz (Oscillator 1)
 ENDM
+
