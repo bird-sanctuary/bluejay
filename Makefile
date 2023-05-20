@@ -37,8 +37,27 @@ AX51_FLAGS	= NOMOD51 REGISTERBANK(0,1,2) NOLIST NOSYMBOLS
 LX51_FLAGS	=
 
 # Source files
-ASM_SRC		= Bluejay.asm
-ASM_INC		= $(LAYOUTS:%=Layouts/%.inc) Layouts/Base.inc Common.inc BLHeliBootLoad.inc Silabs/SI_EFM8BB1_Defs.inc Silabs/SI_EFM8BB2_Defs.inc
+ASM_SRC		= src/Bluejay.asm
+			
+ASM_INC		= 								\
+			$(LAYOUTS:%=src/Layouts/%.inc)	\
+			src/Layouts/Base.inc			\
+			src/BLHeliBootLoad.inc			\
+			src/Silabs/SI_EFM8BB1_Defs.inc	\
+			src/Silabs/SI_EFM8BB2_Defs.inc	\
+			src/Silabs/SI_EFM8BB51_Defs.inc	\
+			src/Silabs/SI_EFM8LB1_Defs.inc	\
+			src/Modules/Common.asm			\
+			src/Modules/Commutation.asm		\
+			src/Modules/DShot.asm			\
+			src/Modules/Eeprom.asm			\
+			src/Modules/Fx.asm				\
+			src/Modules/Isrs.asm			\
+			src/Modules/Macros.asm			\
+			src/Modules/Power.asm			\
+			src/Modules/Scheduler.asm		\
+			src/Modules/Settings.asm		\
+			src/Modules/Timing.asm	
 
 # Check that wine/simplicity studio is available
 EXECUTABLES	= $(AX51_BIN) $(LX51_BIN) $(OX51_BIN)

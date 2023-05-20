@@ -139,6 +139,8 @@ IF MCU_TYPE < 3 AND PWM_FREQ < 3
 	PWM_BITS_H	EQU	(2 + IS_MCU_48MHZ - PWM_CENTERED - PWM_FREQ)
 ENDIF
 
+$include (Modules\Common.asm)
+$include (Modules\Macros.asm)
 
 ;**** **** **** **** ****
 ; Programming defaults
@@ -419,24 +421,20 @@ ELSE
 ENDIF
 Eep_Pgm_Beep_Melody:		DB	2, 58, 4, 32, 52, 66, 13, 0, 69, 45, 13, 0, 52, 66, 13, 0, 78, 39, 211, 0, 69, 45, 208, 25, 52, 25, 0
 
-
-$include (Modules\Common.asm)
-$include (Modules\Macros.asm)
-$include (Modules\Fx.asm)
-$include (Modules\Isrs.asm)
-$include (Modules\DShot.asm)
-$include (Modules\Power.asm)
-$include (Modules\Scheduler.asm)
-$include (Modules\Commutation.asm)
-$include (Modules\Timing.asm)
-$include (Modules\Eeprom.asm)
-$include (Modules\Settings.asm)
-
-
-
 ;**** **** **** **** ****
 Interrupt_Table_Definition			; SiLabs interrupts
 CSEG AT 80h						; Code segment after interrupt vectors
+
+; Submodule includes
+$include (Modules\Isrs.asm)
+$include (Modules\Fx.asm)
+$include (Modules\Power.asm)
+$include (Modules\Scheduler.asm)
+$include (Modules\Timing.asm)
+$include (Modules\Commutation.asm)
+$include (Modules\DShot.asm)
+$include (Modules\Eeprom.asm)
+$include (Modules\Settings.asm)
 
 
 
