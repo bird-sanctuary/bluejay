@@ -1,4 +1,8 @@
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
 ; BLHeli bootloader for SiLabs MCUs. Based upon AVRootloader (copyright HR)
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 XTAL					EQU	25000000
 
