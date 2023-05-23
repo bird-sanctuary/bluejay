@@ -132,7 +132,6 @@ ELSEIF MCU_TYPE == 1
 ELSEIF MCU_TYPE == 2
 	MCU_C	EQU	"X"
 ENDIF
-ENDIF
 
 ; Dead time number as chars
 DT_C2	EQU	"0" + (DEADTIME / 100)
