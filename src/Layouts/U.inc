@@ -27,103 +27,98 @@
 ;
 ;**** **** **** **** ****
 
-PWM_ACTIVE_HIGH	EQU	1		; Pwm non-inverted
-COM_ACTIVE_HIGH	EQU	1		; Damping inverted
+PWM_ACTIVE_HIGH EQU 1                   ; Pwm non-inverted
+COM_ACTIVE_HIGH EQU 1                   ; Damping inverted
 
-COMPARATOR_PORT	EQU	0		; All comparator (mux) pins must be on the same port
-COMPARATOR_INVERT	EQU	0		; Comparator output non-inverted
+COMPARATOR_PORT EQU 0                   ; All comparator (mux) pins must be on the same port
+COMPARATOR_INVERT EQU 0                 ; Comparator output non-inverted
 
 IF DEADTIME == 0
-	PCA0CPM_POWER	EQU	PCA0CPM0
-	PCA0CPL_POWER	EQU	PCA0CPL0
-	PCA0CPH_POWER	EQU	PCA0CPH0
+    PCA0CPM_POWER EQU PCA0CPM0
+    PCA0CPL_POWER EQU PCA0CPL0
+    PCA0CPH_POWER EQU PCA0CPH0
 
-	PCA0CPM_DAMP	EQU	PCA0CPM1
-	PCA0CPL_DAMP	EQU	PCA0CPL1
-	PCA0CPH_DAMP	EQU	PCA0CPH1
+    PCA0CPM_DAMP EQU PCA0CPM1
+    PCA0CPL_DAMP EQU PCA0CPL1
+    PCA0CPH_DAMP EQU PCA0CPH1
 ELSE
-	PCA0CPM_POWER	EQU	PCA0CPM0
-	PCA0CPL_POWER	EQU	PCA0CPL0
-	PCA0CPH_POWER	EQU	PCA0CPH0
+    PCA0CPM_POWER EQU PCA0CPM0
+    PCA0CPL_POWER EQU PCA0CPL0
+    PCA0CPH_POWER EQU PCA0CPH0
 
-	PCA0CPM_DAMP	EQU	PCA0CPM1
-	PCA0CPL_DAMP	EQU	PCA0CPL1
-	PCA0CPH_DAMP	EQU	PCA0CPH1
+    PCA0CPM_DAMP EQU PCA0CPM1
+    PCA0CPL_DAMP EQU PCA0CPL1
+    PCA0CPH_DAMP EQU PCA0CPH1
 ENDIF
-
 
 ;*********************
 ; PORT 0 definitions *
 ;*********************
-A_Mux		EQU	7
-C_Mux		EQU	6
-V_Mux		EQU	5
-B_Mux		EQU	4
-RTX_PIN		EQU	3
-LED_0		EQU	2
-LED_1		EQU	1
-LED_2		EQU	0
+A_Mux EQU 7
+C_Mux EQU 6
+V_Mux EQU 5
+B_Mux EQU 4
+RTX_PIN EQU 3
+LED_0 EQU 2
+LED_1 EQU 1
+LED_2 EQU 0
 
-P0_DIGITAL	EQU	NOT((1 SHL A_Mux) + (1 SHL B_Mux) + (1 SHL C_Mux) + (1 SHL V_Mux))
-P0_INIT		EQU	0FFh
-P0_PUSHPULL	EQU	(1 SHL LED_0) + (1 SHL LED_1) + (1 SHL LED_2)
-P0_SKIP		EQU	0FFh
-
+P0_DIGITAL EQU NOT((1 SHL A_Mux) + (1 SHL B_Mux) + (1 SHL C_Mux) + (1 SHL V_Mux))
+P0_INIT EQU 0FFh
+P0_PUSHPULL EQU (1 SHL LED_0) + (1 SHL LED_1) + (1 SHL LED_2)
+P0_SKIP EQU 0FFh
 
 ;*********************
 ; PORT 1 definitions *
 ;*********************
-;			EQU	7
-C_Com		EQU	6
-B_Com		EQU	5
-A_Com		EQU	4
-C_Pwm		EQU	3
-B_Pwm		EQU	2
-A_Pwm		EQU	1
-;			EQU	0
+;            EQU    7
+C_Com EQU 6
+B_Com EQU 5
+A_Com EQU 4
+C_Pwm EQU 3
+B_Pwm EQU 2
+A_Pwm EQU 1
+;            EQU    0
 
-
-P1_DIGITAL	EQU	(1 SHL A_Pwm) + (1 SHL B_Pwm) + (1 SHL C_Pwm) + (1 SHL A_Com) + (1 SHL B_Com) + (1 SHL C_Com)
-P1_INIT		EQU	00h
-P1_PUSHPULL	EQU	(1 SHL A_Pwm) + (1 SHL B_Pwm) + (1 SHL C_Pwm) + (1 SHL A_Com) + (1 SHL B_Com) + (1 SHL C_Com)
-P1_SKIP		EQU	0FFh
-
+P1_DIGITAL EQU (1 SHL A_Pwm) + (1 SHL B_Pwm) + (1 SHL C_Pwm) + (1 SHL A_Com) + (1 SHL B_Com) + (1 SHL C_Com)
+P1_INIT EQU 00h
+P1_PUSHPULL EQU (1 SHL A_Pwm) + (1 SHL B_Pwm) + (1 SHL C_Pwm) + (1 SHL A_Com) + (1 SHL B_Com) + (1 SHL C_Com)
+P1_SKIP EQU 0FFh
 
 ;*********************
 ; PORT 2 definitions *
 ;*********************
-DebugPin		EQU	0
+DebugPin EQU 0
 
-P2_DIGITAL	EQU	(1 SHL DebugPin)
-P2_PUSHPULL	EQU	(1 SHL DebugPin)
-P2_SKIP		EQU	(1 SHL DebugPin)
-
+P2_DIGITAL EQU (1 SHL DebugPin)
+P2_PUSHPULL EQU (1 SHL DebugPin)
+P2_SKIP EQU (1 SHL DebugPin)
 
 ;**** **** **** **** ****
 ; LED configuration
 ;**** **** **** **** ****
 Set_LED_0 MACRO
-	clr	P0.LED_0
+    clr  P0.LED_0
 ENDM
 
 Clear_LED_0 MACRO
-	setb	P0.LED_0
+    setb P0.LED_0
 ENDM
 
 Set_LED_1 MACRO
-	clr	P0.LED_1
+    clr  P0.LED_1
 ENDM
 
 Clear_LED_1 MACRO
-	setb	P0.LED_1
+    setb P0.LED_1
 ENDM
 
 Set_LED_2 MACRO
-	clr	P0.LED_2
+    clr  P0.LED_2
 ENDM
 
 Clear_LED_2 MACRO
-	setb	P0.LED_2
+    setb P0.LED_2
 ENDM
 
 Set_LED_3 MACRO
@@ -132,9 +127,8 @@ ENDM
 Clear_LED_3 MACRO
 ENDM
 
-
 ;**** **** **** **** ****
 ; Inherit base layout
 ;**** **** **** **** ****
-$set(CUSTOM_LED)
+$set (CUSTOM_LED)
 $include (Base.inc)
