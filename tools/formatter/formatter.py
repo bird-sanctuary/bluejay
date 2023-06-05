@@ -70,15 +70,20 @@ if indentMacros:
     decreaseDepth.append("ENDM")
 
 def cleanup(line):
-    line = line.strip()
+    line = re.sub('[\r\n]', '', line)
 
+    match = re.match(r"\s*\;.*", line)
+    if not match:
+        # Strip spaces from beginning and end
+        line = line.strip()
 
-    if not line.startswith(";"):
         # Replace tabs in all lines
         line = re.sub('\t+', ' ', line)
 
-        # Replace muliple spaces with one unless in quotes
-        line = re.sub(r'("[^"]*")| +', lambda m: m.group(1) if m.group(1) else ' ', line)
+        # Replace muliple spaces with one unless in quotes or in inline comments
+        fields = line.split(';')
+        fields[0] = re.sub(r'("[^"]*")| +', lambda m: m.group(1) if m.group(1) else ' ', fields[0])
+        line = ";".join(fields)
 
         # Replace multiple semicolons with one
         line = re.sub(';+', ';', line)
@@ -189,7 +194,8 @@ for path in processPaths:
         if line != "":
             fields = line.split(" ")
 
-            if line.startswith(";"):
+            match = re.match(r"\s*\;.*", line)
+            if match:
                 lineIsComment = True
 
             if inBanner:
@@ -208,8 +214,8 @@ for path in processPaths:
                     lineIsLabel = True
                     sawLabel = True
 
-            # We leave block comments as they are apart from indendation
-            if not line.startswith(";") and len(fields) > 1:
+            # Do not touch comments
+            if not lineIsComment and len(fields) > 1:
                 if field0 not in noIndent and field1 not in noIndent:
                     # Append spaces to field 0
                     # append0 = maxLength[0] - len(field0) - (depth * spaces)
@@ -284,7 +290,8 @@ for path in processPaths:
                 if field0 in indentInIf or field1 in indentInIf:
                     spacePrefix = spaces * minIndentation
 
-            line = "%s%s" % (" " * spacePrefix, line)
+            if not lineIsComment or formatComments:
+                line = "%s%s" % (" " * spacePrefix, line)
 
             # Align all inline comments
             fields = line.split(";")
