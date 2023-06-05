@@ -358,7 +358,6 @@ IF MCU_TYPE >= 1
     rlca Temp2
 ENDIF
 
-
     ; Temp2/1 = 15deg Timer2 period
     jb   Flag_High_Rpm, calc_new_wait_times_fast ; Branch if high rpm
 
