@@ -72,11 +72,13 @@
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
+$include (Modules\Mcus.asm)
+
 ; List of enumerated supported ESCs
 ;                                         PORT 0                   |  PORT 1                   |  PWM    COM    PWM    LED
 ;                                         P0 P1 P2 P3 P4 P5 P6 P7  |  P0 P1 P2 P3 P4 P5 P6 P7  |  inv    inv    side    n
 ;                                         -----------------------  |  -----------------------  |  -------------------------
-IF MCU_TYPE < 2
+IF MCU_TYPE == MCU_BB1 or MCU_TYPE == MCU_BB2
     A_ EQU 1                            ; Vn Am Bm Cm __ RX __ __  |  Ap Ac Bp Bc Cp Cc __ __  |  no     no     high   _
     B_ EQU 2                            ; Vn Am Bm Cm __ RX __ __  |  Cc Cp Bc Bp Ac Ap __ __  |  no     no     high   _
     C_ EQU 3                            ; RX __ Vn Am Bm Cm Ap Ac  |  Bp Bc Cp Cc __ __ __ __  |  no     no     high   _
@@ -106,7 +108,7 @@ IF MCU_TYPE < 2
 ENDIF
 
 ; BB51 - Required
-IF MCU_TYPE = 2
+IF MCU_TYPE == MCU_BB51
     A_ EQU 1                            ; __ Bm Cm Am Vn RX __ __  |  Ap Ac Bp Bc Cp Cc __ __  |  no     no     low    _
     B_ EQU 2                            ; __ Bm Cm Am Vn RX __ __  |  Ac Ap Bc Bp Cc Cp __ __  |  no     yes    high   _
     C_ EQU 3                            ; __ Bm Cm Am Vn RX __ __  |  Ac Ap Bc Bp Cc Cp __ __  |  yes    yes    high   _
@@ -128,13 +130,13 @@ ENDIF
 
 PWM_CENTERED EQU DEADTIME > 0           ; Use center aligned pwm on ESCs with dead time
 
-IF MCU_TYPE == 0
+IF MCU_TYPE == MCU_BB1
     IS_MCU_48MHZ EQU 0
 ELSE
     IS_MCU_48MHZ EQU 1
 ENDIF
 
-IF MCU_TYPE < 3 AND PWM_FREQ < 3
+IF PWM_FREQ < 3
     ; Number of bits in pwm high byte
     PWM_BITS_H EQU (2 + IS_MCU_48MHZ - PWM_CENTERED - PWM_FREQ)
 ENDIF
@@ -425,7 +427,7 @@ pgm_start:
     mov  WDTCN, #0DEh                   ; Disable watchdog (WDT)
     mov  WDTCN, #0ADh
     mov  SP, #Stack                     ; Initialize stack (16 bytes of indirect RAM)
-IF MCU_TYPE < 2
+IF MCU_TYPE == MCU_BB1 or MCU_TYPE == MCU_BB2
     orl  VDM0CN, #080h                  ; Enable the VDD monitor
 ENDIF
     mov  RSTSRC, #06h                   ; Set missing clock and VDD monitor as a reset source if not 1S capable
@@ -443,11 +445,11 @@ ENDIF
     mov  P1, #P1_INIT
     mov  P1SKIP, #P1_SKIP
     mov  P2MDOUT, #P2_PUSHPULL
-IF MCU_TYPE >= 1
+IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
     ; Not available on BB1
     mov  SFRPAGE, #20h
     mov  P2MDIN, #P2_DIGITAL
-IF MCU_TYPE == 1
+IF MCU_TYPE == MCU_BB2
     ; Not available on BB51
     mov  P2SKIP, #P2_SKIP
 ENDIF
@@ -484,7 +486,7 @@ init_no_signal:
     mov  Flash_Key_2, #0
     call switch_power_off
 
-IF MCU_TYPE >= 1
+IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
     Set_MCU_Clk_24MHz                   ; Set clock frequency
 ENDIF
 
@@ -499,7 +501,7 @@ input_high_check:
 
     call beep_enter_bootloader
 
-IF MCU_TYPE == 2
+IF MCU_TYPE == MCU_BB51
     ljmp 0F000h                         ; Jump to bootloader
 ELSE
     ljmp 1C00h                          ; Jump to bootloader
@@ -553,7 +555,7 @@ setup_dshot:
     setb IE_EA                          ; Enable all interrupts
 
 ; Setup variables for DShot150 (Only on 24MHz because frame length threshold cannot be scaled up)
-IF MCU_TYPE == 0
+IF MCU_TYPE == MCU_BB1
     mov  DShot_Timer_Preset, #-64       ; Load DShot sync timer preset (for DShot150)
     mov  DShot_Pwm_Thr, #8              ; Load DShot qualification pwm threshold (for DShot150)
     mov  DShot_Frame_Length_Thr, #160   ; Load DShot frame length criteria
@@ -583,7 +585,7 @@ ENDIF
     jz   arming_begin
 
 ; Setup variables for DShot600 (Only on 48MHz for performance reasons)
-IF MCU_TYPE >= 1
+IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
     mov  DShot_Timer_Preset, #-64       ; Load DShot sync timer preset (for DShot600)
     mov  DShot_Pwm_Thr, #8              ; Load DShot pwm threshold (for DShot600)
     mov  DShot_Frame_Length_Thr, #40    ; Load DShot frame length criteria
@@ -722,7 +724,7 @@ motor_start:
     mov  Temp_Pwm_Level_Setpoint, Pwm_Limit_Beg
 
 ; Begin startup sequence
-IF MCU_TYPE >= 1
+IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
     Set_MCU_Clk_48MHz
 
     ; Scale DShot criteria for 48MHz
@@ -983,7 +985,7 @@ exit_run_mode:
     mov  Flags0, #0                     ; Clear run time flags (in case they are used in interrupts)
     mov  Flags1, #0
 
-IF MCU_TYPE >= 1
+IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
     Set_MCU_Clk_24MHz
 
     ; Scale DShot criteria for 24MHz

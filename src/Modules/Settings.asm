@@ -141,7 +141,7 @@ decode_demag_done:
 ; For BB51 (MCU_TYPE == 2) 1s power rating code path is mandatory
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-IF MCU_TYPE < 2
+IF MCU_TYPE == MCU_BB1 or MCU_TYPE == MCU_BB2
     ; Read power rating and decode temperature limit
     mov  Temp1, #Pgm_Power_Rating
     cjne @Temp1, #01h, decode_temp_use_adc_use_vdd_3V3_vref

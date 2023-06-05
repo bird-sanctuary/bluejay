@@ -95,7 +95,7 @@ set_pwm_limit_low_rpm_exit:
 set_pwm_limit_high_rpm:
     clr  C
     mov  A, Comm_Period4x_L
-IF MCU_TYPE >= 1
+IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
     subb A, #0A0h                       ; Limit Comm_Period4x to 160,which is ~510k erpm
 ELSE
     subb A, #0E4h                       ; Limit Comm_Period4x to 228,which is ~358k erpm

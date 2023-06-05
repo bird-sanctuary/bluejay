@@ -59,7 +59,7 @@ init:
     mov  SP, #0c0h                      ; Stack = 64 upper bytes of RAM
     ; Initialize clock
     mov  CLKSEL, #00h                   ; Set clock divider to 1
-IF MCU_TYPE < 2
+IF MCU_TYPE == MCU_BB1 or MCU_TYPE = MCU_BB2
     ; Initialize VDD monitor
     orl  VDM0CN, #080h                  ; Enable the VDD monitor
 ENDIF
@@ -132,7 +132,7 @@ id5:
     jz   ($+4)                          ; Check CRC
     ajmp abd
 
-; Send info about chip/bootloader (BOOT_MSG + BOOT_INFO)
+    ; Send info about chip/bootloader (BOOT_MSG + BOOT_INFO)
     mov  Parah, #((BOOT_INFO - BOOT_MSG) + 4)
 in1:
     clr  A
@@ -259,9 +259,9 @@ pro4:
 pro5:
     clr  C
     mov  A, DPH                         ; Check that address is not in bootloader area
-IF MCU_TYPE < 2
+IF MCU_TYPE == MCU_BB1 or MCU_TYPE = MCU_BB2
     subb A, #1Ch
-ELSEIF MCU_TYPE == 2
+ELSEIF MCU_TYPE == MCU_BB51
     subb A, #0F0h
 ENDIF
     jc   ($+5)
