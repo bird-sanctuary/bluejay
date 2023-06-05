@@ -22,11 +22,9 @@
 ; along with Bluejay.  If not, see <http://www.gnu.org/licenses/>.
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; ESC programming (EEPROM emulation)
 ;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -35,7 +33,7 @@
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 read_all_eeprom_parameters:
-; Check initialized signature
+    ; Check initialized signature
     mov  DPTR, #Eep_Initialized_L
     mov  Temp1, #Bit_Access
     call read_eeprom_byte
@@ -57,7 +55,7 @@ read_eeprom_store_defaults:
     sjmp read_eeprom_exit
 
 read_eeprom_read:
-; Read eeprom
+    ; Read eeprom
     mov  DPTR, #_Eep_Pgm_Gov_P_Gain
     mov  Temp1, #_Pgm_Gov_P_Gain
     mov  Temp4, #10                     ; 10 parameters
@@ -67,8 +65,8 @@ read_eeprom_block1:
     inc  Temp1
     djnz Temp4, read_eeprom_block1
 
-; Read eeprom after Eep_Initialized_x flags
-; Temp4 = EEPROM_B2_PARAMETERS_COUNT parameters: [_Eep_Enable_TX_Program - Eep_Pgm_Power_Rating]
+    ; Read eeprom after Eep_Initialized_x flags
+    ; Temp4 = EEPROM_B2_PARAMETERS_COUNT parameters: [_Eep_Enable_TX_Program - Eep_Pgm_Power_Rating]
     mov  DPTR, #_Eep_Enable_TX_Program
     mov  Temp1, #_Pgm_Enable_TX_Program
     mov  Temp4, #EEPROM_B2_PARAMETERS_COUNT
@@ -106,8 +104,8 @@ erase_and_store_all_in_eeprom:
     mov  A, #EEPROM_LAYOUT_REVISION
     call write_eeprom_byte_from_acc
 
-; Write eeprom before Eep_Initialized_x flags
-; Temp4 = 10 parameters [_Eep_Pgm_Gov_P_Gain - Eep_Initialized_x]
+    ; Write eeprom before Eep_Initialized_x flags
+    ; Temp4 = 10 parameters [_Eep_Pgm_Gov_P_Gain - Eep_Initialized_x]
     mov  DPTR, #_Eep_Pgm_Gov_P_Gain
     mov  Temp1, #_Pgm_Gov_P_Gain
     mov  Temp4, #10
@@ -117,8 +115,8 @@ write_eeprom_block1:
     inc  Temp1
     djnz Temp4, write_eeprom_block1
 
-; Write eeprom after Eep_Initialized_x flags
-; Temp4 = EEPROM_B2_PARAMETERS_COUNT parameters: [_Eep_Enable_TX_Program - Eep_Pgm_Power_Rating]
+    ; Write eeprom after Eep_Initialized_x flags
+    ; Temp4 = EEPROM_B2_PARAMETERS_COUNT parameters: [_Eep_Enable_TX_Program - Eep_Pgm_Power_Rating]
     mov  DPTR, #_Eep_Enable_TX_Program
     mov  Temp1, #_Pgm_Enable_TX_Program
     mov  Temp4, #EEPROM_B2_PARAMETERS_COUNT
@@ -128,13 +126,13 @@ write_eeprom_block2:
     inc  Temp1
     djnz Temp4, write_eeprom_block2
 
-; Now write tags, melogy and signature
+    ; Now write tags, melogy and signature
     call write_tags
     call write_melody
     call write_eeprom_signature
     mov  DPTR, #Eep_Dummy               ; Set pointer to uncritical area
 
-; Give time to flash controller to settle data down
+    ; Give time to flash controller to settle data down
     call wait200ms
     ret
 
@@ -185,9 +183,7 @@ ENDIF
     ret
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;
 ; Erase flash (erases the flash segment used for "eeprom" variables)
-;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 erase_flash:
     orl  PSCTL, #02h                    ; Set the PSEE bit
@@ -200,9 +196,7 @@ erase_flash:
     ret
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;
 ; Write eeprom signature
-;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 write_eeprom_signature:
     mov  DPTR, #Eep_Initialized_L
@@ -215,9 +209,7 @@ write_eeprom_signature:
     ret
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;
 ; Read all tags from flash and store in temporary storage
-;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 read_tags:
     mov  Temp3, #48                     ; Number of tags
@@ -234,9 +226,7 @@ read_tag:
     ret
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;
 ; Write all tags from temporary storage and store in flash
-;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 write_tags:
     mov  Temp3, #48                     ; Number of tags
@@ -251,9 +241,7 @@ write_tag:
     ret
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;
 ; Read bytes from flash and store in external memory
-;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 read_melody:
     mov  Temp3, #140                    ; Number of bytes
@@ -270,9 +258,7 @@ read_melody_byte:
     ret
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;
 ; Write bytes from external memory and store in flash
-;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 write_melody:
     mov  Temp3, #140                    ; Number of bytes

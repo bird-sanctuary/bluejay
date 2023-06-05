@@ -1,4 +1,4 @@
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Bluejay digital ESC firmware for controlling brushless motors in multirotors
 ;
@@ -22,11 +22,9 @@
 ; along with Bluejay.  If not, see <http://www.gnu.org/licenses/>.
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Commutation
 ;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -36,6 +34,7 @@
 ; Performs commutation switching
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
+
 ; Comm phase 1 to comm phase 2
 comm1_comm2:                            ; C->A
     jb   Flag_Motor_Dir_Rev, comm1_comm2_rev

@@ -1,4 +1,4 @@
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Bluejay digital ESC firmware for controlling brushless motors in multirotors
 ;
@@ -21,7 +21,7 @@
 ; You should have received a copy of the GNU General Public License
 ; along with Bluejay.  If not, see <http://www.gnu.org/licenses/>.
 ;
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Bluejay is a fork of BLHeli_S <https://github.com/bitdump/BLHeli> by Steffen Skaug.
 ;
@@ -29,7 +29,8 @@
 ;
 ; This file is best viewed with tab width set to 5.
 ;
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
 ; Master clock is internal 24MHz oscillator (or 48MHz, for which the times below are halved)
 ; Although 24/48 are used in the code, the exact clock frequencies are 24.5MHz or 49.0 MHz
 ; Timer0 (41.67ns counts) always counts up and is used for
@@ -44,7 +45,8 @@
 ; PCA0 (41.67ns counts) always counts up and is used for
 ; - Hardware PWM generation
 ;
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
 ; Motor control:
 ; - Brushless motor control with 6 states for each electrical 360 degrees
 ; - An advance timing of 0deg has zero cross 30deg after one commutation and 30deg before the next
@@ -59,7 +61,8 @@
 ; Motor startup:
 ; There is a startup phase and an initial run phase, before normal bemf commutation run begins.
 ;
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
 ; Legend:
 ; RX            Receive/transmit pin
 ; Am, Bm, Cm    Comparator inputs for BEMF
@@ -67,7 +70,8 @@
 ; Ap, Bp, Cp    PWM pins
 ; Ac, Bc, Cc    Complementary PWM pins
 ;
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+
 ; List of enumerated supported ESCs
 ; PORT 0                    PORT 1                    PWM    COM    PWM    LED
 ; P0 P1 P2 P3 P4 P5 P6 P7    P0 P1 P2 P3 P4 P5 P6 P7        inv    inv    side    n
@@ -108,21 +112,17 @@ IF MCU_TYPE = 2
     C_ EQU 3                            ; __ Bm Cm Am Vn RX __ __ Ac Ap Bc Bp Cc Cp __ __ yes yes high _
 ENDIF
 
-;**** **** **** **** ****
 ; Select the port mapping to use (or unselect all for use with external batch compile file)
 ;ESCNO            EQU    A_
 
-;**** **** **** **** ****
 ; Select the MCU type (or unselect for use with external batch compile file)
 ;MCU_TYPE        EQU    0    ; BB1
 ;MCU_TYPE        EQU    1    ; BB2
 ;MCU_TYPE        EQU    2    ; BB51
 
-;**** **** **** **** ****
 ; Select the FET dead time (or unselect for use with external batch compile file)
 ;DEADTIME            EQU    15    ; 20.4ns per step
 
-;**** **** **** **** ****
 ; Select the pwm frequency (or unselect for use with external batch compile file)
 ;PWM_FREQ            EQU    0    ; 0=24, 1=48, 2=96 kHz
 
@@ -142,8 +142,9 @@ ENDIF
 $include (Modules\Common.asm)
 $include (Modules\Macros.asm)
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Programming defaults
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 DEFAULT_PGM_RPM_POWER_SLOPE EQU 9       ; 0=Off,1..13 (Power limit factor in relation to rpm)
 DEFAULT_PGM_COMM_TIMING EQU 4           ; 1=Low 2=MediumLow 3=Medium 4=MediumHigh 5=High
 DEFAULT_PGM_DEMAG_COMP EQU 2            ; 1=Disabled 2=Low 3=High
@@ -165,8 +166,9 @@ DEFAULT_PGM_DITHERING EQU 1             ; 0=Disabled,1=Enabled
 DEFAULT_PGM_STARTUP_POWER_MAX EQU 25    ; 0..255 => (1000..2000 Throttle): Maximum startup power
 DEFAULT_PGM_BRAKING_STRENGTH EQU 255    ; 0..255 => 0..100 % Braking
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Temporary register definitions
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 Temp1 EQU R0
 Temp2 EQU R1
 Temp3 EQU R2
@@ -176,9 +178,10 @@ Temp6 EQU R5
 Temp7 EQU R6
 Temp8 EQU R7
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; RAM definitions
 ; Bit-addressable data segment
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 DSEG AT 20h
 Bit_Access: DS 1                        ; MUST BE AT THIS ADDRESS. Variable at bit accessible address (for non interrupt routines)
 Bit_Access_Int: DS 1                    ; Variable at bit accessible address (for interrupts)
@@ -201,7 +204,7 @@ Flags1: DS 1                            ; State flags. Reset upon motor_start
     Flag_High_Rpm BIT Flags1.6          ; Set when motor rpm is high (Comm_Period4x_H less than 2)
 
 Flags2: DS 1                            ; State flags. NOT reset upon motor_start
-;                        BIT    Flags2.0
+    ; BIT    Flags2.0
     Flag_Pgm_Dir_Rev BIT Flags2.1       ; Set if the programmed direction is reversed
     Flag_Pgm_Bidir BIT Flags2.2         ; Set if the programmed control mode is bidirectional operation
     Flag_32ms_Elapsed BIT Flags2.3      ; Set when timer2 interrupt is triggered
@@ -217,8 +220,10 @@ Flags3: DS 1                            ; State flags. NOT reset upon motor_star
 
 Tlm_Data_L: DS 1                        ; DShot telemetry data (lo byte)
 Tlm_Data_H: DS 1                        ; DShot telemetry data (hi byte)
-;**** **** **** **** ****
+
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Direct addressing data segment
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 DSEG AT 30h
 Rcp_Outside_Range_Cnt: DS 1             ; RC pulse outside range counter (incrementing)
 Rcp_Timeout_Cntd: DS 1                  ; RC pulse timeout counter (decrementing)
@@ -279,8 +284,10 @@ DShot_GCR_Start_Delay: DS 1
 Ext_Telemetry_L: DS 1                   ; Extended telemetry data to be sent
 Ext_Telemetry_H: DS 1
 Scheduler_Counter: DS 1                 ; Scheduler Heartbeat
-;**** **** **** **** ****
+
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Indirect addressing data segments
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ISEG AT 080h                            ; The variables below must be in this sequence
 _Pgm_Gov_P_Gain: DS 1                   ;
 Pgm_Startup_Power_Min: DS 1             ; Minimum power during startup phase
@@ -331,9 +338,10 @@ Dithering_Patterns: DS 16               ; Bit patterns for pwm dithering
 ISEG AT 0D0h
 Temp_Storage: DS 48                     ; Temporary storage (internal memory)
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; EEPROM code segments
 ; A segment of the flash is used as "EEPROM", which is not available in SiLabs MCUs
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 IF MCU_TYPE == 2
     CSEG AT 3000h
 ELSE
@@ -403,8 +411,8 @@ ELSE
 ENDIF
 Eep_Pgm_Beep_Melody: DB 2,58,4,32,52,66,13,0,69,45,13,0,52,66,13,0,78,39,211,0,69,45,208,25,52,25,0
 
-;**** **** **** **** ****
-    Interrupt_Table_Definition          ; SiLabs interrupts
+
+Interrupt_Table_Definition              ; SiLabs interrupts
 CSEG AT 80h                             ; Code segment after interrupt vectors
 
 ; Submodule includes
@@ -419,14 +427,8 @@ $include (Modules\Eeprom.asm)
 $include (Modules\Settings.asm)
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Main program
-;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Main program entry point
 ;
@@ -443,7 +445,7 @@ ENDIF
     mov  RSTSRC, #06h                   ; Set missing clock and VDD monitor as a reset source if not 1S capable
     mov  CLKSEL, #00h                   ; Set clock divider to 1 (Oscillator 0 at 24MHz)
     call switch_power_off
-; Ports initialization
+    ; Ports initialization
     mov  P0, #P0_INIT
     mov  P0MDIN, #P0_DIGITAL
     mov  P0MDOUT, #P0_PUSHPULL
@@ -468,7 +470,7 @@ ENDIF
     Initialize_Crossbar                 ; Initialize the crossbar and related functionality
     call switch_power_off               ; Switch power off again,after initializing ports
 
-; Clear RAM
+    ; Clear RAM
     clr  A                              ; Clear accumulator
     mov  Temp1, A                       ; Clear Temp1
 clear_ram:
@@ -479,7 +481,7 @@ clear_ram:
     call read_all_eeprom_parameters     ; Read all programmed parameters
     call decode_settings                ; Decode programmed settings
 
-; Initializing beeps
+    ; Initializing beeps
     clr  IE_EA                          ; Disable interrupts explicitly
     call wait100ms                      ; Wait a bit to avoid audible resets if not properly powered
     call play_beep_melody               ; Play startup beep melody
@@ -488,9 +490,7 @@ clear_ram:
     call wait100ms                      ; Wait for flight controller to get ready
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;
 ; No signal entry point
-;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 init_no_signal:
     clr  IE_EA                          ; Disable interrupts explicitly
@@ -528,7 +528,7 @@ bootloader_done:
     clr  Flag_Had_Signal
 
 setup_dshot:
-; Setup timers for DShot
+    ; Setup timers for DShot
     mov  TCON, #51h                     ; Timer0/1 run and Int0 edge triggered
     mov  CKCON0, #01h                   ; Timer0/1 clock is system clock divided by 4 (for DShot150)
     mov  TMOD, #0AAh                    ; Timer0/1 set to 8-bits auto reload and gated by Int0/1
@@ -548,7 +548,7 @@ setup_dshot:
 
     call detect_rcp_level               ; Detect RCP level (normal or inverted DShot)
 
-; Route RCP according to detected DShot signal (normal or inverted)
+    ; Route RCP according to detected DShot signal (normal or inverted)
     mov  IT01CF, #(80h + (RTX_PIN SHL 4) + RTX_PIN) ; Route RCP input to Int0/1,with Int1 inverted
     jnb  Flag_Rcp_DShot_Inverted, ($+6)
     mov  IT01CF, #(08h + (RTX_PIN SHL 4) + RTX_PIN) ; Route RCP input to Int0/1,with Int0 inverted
@@ -559,7 +559,7 @@ setup_dshot:
     clr  Flag_Telemetry_Pending         ; Clear DShot telemetry flag
     clr  Flag_Ext_Tele                  ; Clear extended telemetry enabled flag
 
-; Setup interrupts
+    ; Setup interrupts
     mov  IE, #2Dh                       ; Enable Timer1/2 interrupts and Int0/1 interrupts
     mov  EIE1, #80h                     ; Enable Timer3 interrupts
     mov  IP, #03h                       ; High priority to Timer0 and Int0 interrupts
@@ -583,14 +583,14 @@ ENDIF
 
     mov  CKCON0, #0Ch                   ; Timer0/1 clock is system clock (for DShot300/600)
 
-; Setup variables for DShot300
+    ; Setup variables for DShot300
     mov  DShot_Timer_Preset, #-128      ; Load DShot sync timer preset (for DShot300)
     mov  DShot_Pwm_Thr, #16             ; Load DShot pwm threshold (for DShot300)
     mov  DShot_Frame_Length_Thr, #80    ; Load DShot frame length criteria
 
     Set_DShot_Tlm_Bitrate 375000        ; = 5/4 * 300000
 
-; Test whether signal is DShot300
+    ; Test whether signal is DShot300
     mov  Rcp_Outside_Range_Cnt, #10     ; Set out of range counter
     call wait100ms                      ; Wait for new RC pulse
     mov  A, Rcp_Outside_Range_Cnt       ; Check if pulses were accepted
@@ -706,13 +706,11 @@ wait_for_start_check_rcp:
 wait_for_start_nonzero:
     call wait100ms                      ; Wait to see if start pulse was glitch
 
-; If Rcp returned to stop - start over
+    ; If Rcp returned to stop - start over
     jb   Flag_Rcp_Stop, wait_for_start_loop
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;
 ; Motor start entry point
-;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 motor_start:
     clr  IE_EA                          ; Disable interrupts
@@ -729,7 +727,7 @@ motor_start:
 
     mov  Ext_Telemetry_H, #0            ; Clear extended telemetry data
 
-; Set up start operating conditions
+    ; Set up start operating conditions
     clr  IE_EA                          ; Disable interrupts
     mov  Temp2, #Pgm_Startup_Power_Max
     mov  Pwm_Limit_Beg, @Temp2          ; Set initial pwm limit
@@ -768,8 +766,9 @@ ENDIF
     mov  C, Flag_Rcp_Dir_Rev            ; Read force direction
     mov  Flag_Motor_Dir_Rev, C          ; Set spinning direction
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Motor start beginning
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 motor_start_bidir_done:
     setb Flag_Startup_Phase             ; Set startup phase flags
     setb Flag_Initial_Run_Phase
@@ -787,93 +786,92 @@ motor_start_bidir_done:
 ;
 ; Run entry point
 ;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-
 ; Run 1 = B(p-on) + C(n-pwm) - comparator A evaluated
 ; Out_cA changes from low to high
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 run1:
     call wait_for_comp_out_high         ; Wait for high
-;        setup_comm_wait            ; Setup wait time from zero cross to commutation
-;        evaluate_comparator_integrity    ; Check whether comparator reading has been normal
+    ; setup_comm_wait                    ; Setup wait time from zero cross to commutation
+    ; evaluate_comparator_integrity      ; Check whether comparator reading has been normal
     call wait_for_comm                  ; Wait from zero cross to commutation
     call comm1_comm2                    ; Commutate
     call calc_next_comm_period          ; Calculate next timing and wait advance timing wait
-;        wait_advance_timing            ; Wait advance timing and start zero cross wait
-;        calc_new_wait_times
-;        wait_before_zc_scan            ; Wait zero cross wait and start zero cross timeout
+    ; wait_advance_timing                ; Wait advance timing and start zero cross wait
+    ; calc_new_wait_times
+    ; wait_before_zc_scan                ; Wait zero cross wait and start zero cross timeout
 
 ; Run 2 = A(p-on) + C(n-pwm) - comparator B evaluated
 ; Out_cB changes from high to low
 run2:
     call wait_for_comp_out_low
-;        setup_comm_wait
-;        evaluate_comparator_integrity
+    ; setup_comm_wait
+    ; evaluate_comparator_integrity
     call set_pwm_limit                  ; Set pwm power limit for low or high rpm
     call wait_for_comm
     call comm2_comm3
     call calc_next_comm_period
-;        wait_advance_timing
-;        calc_new_wait_times
-;        wait_before_zc_scan
+    ; wait_advance_timing
+    ; calc_new_wait_times
+    ; wait_before_zc_scan
 
 ; Run 3 = A(p-on) + B(n-pwm) - comparator C evaluated
 ; Out_cC changes from low to high
 run3:
     call wait_for_comp_out_high
-;        setup_comm_wait
-;        evaluate_comparator_integrity
+    ; setup_comm_wait
+    ; evaluate_comparator_integrity
     call wait_for_comm
     call comm3_comm4
     call calc_next_comm_period
-;        wait_advance_timing
-;        calc_new_wait_times
-;        wait_before_zc_scan
+    ; wait_advance_timing
+    ; calc_new_wait_times
+    ; wait_before_zc_scan
 
 ; Run 4 = C(p-on) + B(n-pwm) - comparator A evaluated
 ; Out_cA changes from high to low
 run4:
     call wait_for_comp_out_low
-;        setup_comm_wait
-;        evaluate_comparator_integrity
+    ; setup_comm_wait
+    ; evaluate_comparator_integrity
     call wait_for_comm
     call comm4_comm5
     call calc_next_comm_period
-;        wait_advance_timing
-;        calc_new_wait_times
-;        wait_before_zc_scan
+    ; wait_advance_timing
+    ; calc_new_wait_times
+    ; wait_before_zc_scan
 
 ; Run 5 = C(p-on) + A(n-pwm) - comparator B evaluated
 ; Out_cB changes from low to high
 run5:
     call wait_for_comp_out_high
-;        setup_comm_wait
-;        evaluate_comparator_integrity
+    ; setup_comm_wait
+    ; evaluate_comparator_integrity
     call wait_for_comm
     call comm5_comm6
     call calc_next_comm_period
-;        wait_advance_timing
-;        calc_new_wait_times
-;        wait_before_zc_scan
+    ; wait_advance_timing
+    ; calc_new_wait_times
+    ; wait_before_zc_scan
 
 ; Run 6 = B(p-on) + A(n-pwm) - comparator C evaluated
 ; Out_cC changes from high to low
 run6:
     call wait_for_comp_out_low
-;        setup_comm_wait
-;        evaluate_comparator_integrity
+    ; setup_comm_wait
+    ; evaluate_comparator_integrity
     call wait_for_comm
     call comm6_comm1
     call calc_next_comm_period
     call scheduler_run
-;        wait_advance_timing
-;        calc_new_wait_times
-;        wait_before_zc_scan
+    ; wait_advance_timing
+    ; calc_new_wait_times
+    ; wait_before_zc_scan
 
-; Check if it is startup phases
+    ; Check if it is startup phases
     jnb  Flag_Initial_Run_Phase, normal_run_checks
     jnb  Flag_Startup_Phase, initial_run_phase
 
-; Startup phase
+    ; Startup phase
     mov  Pwm_Limit, Pwm_Limit_Beg       ; Set initial max power
     clr  C
     mov  A, Startup_Cnt                 ; Load startup counter
@@ -884,20 +882,20 @@ run6:
     sjmp exit_run_mode
 
 startup_phase_done:
-; Clear startup phase flag & remove pwm limits
+    ; Clear startup phase flag & remove pwm limits
     clr  Flag_Startup_Phase
     mov  Pwm_Limit, #255                ; Reset temperature level pwm limit
     mov  Pwm_Limit_By_Rpm, #255
     mov  Temp_Pwm_Level_Setpoint, #255  ; Reset temperature level setpoint
 
 initial_run_phase:
-; If it is a direction change - branch
+    ; If it is a direction change - branch
     jb   Flag_Dir_Change_Brake, normal_run_checks
 
-; Decrement startup rotation count
+    ; Decrement startup rotation count
     mov  A, Initial_Run_Rot_Cntd
     dec  A
-; Check number of initial rotations
+    ; Check number of initial rotations
     jz   initial_run_phase_done         ; Branch if counter is zero
 
     mov  Initial_Run_Rot_Cntd, A        ; Not zero - store counter
@@ -913,7 +911,7 @@ initial_run_phase_done:
     jmp  run1                           ; Continue with normal run
 
 normal_run_checks:
-; Reset stall count
+    ; Reset stall count
     mov  Startup_Stall_Cnt, #0
     setb Flag_Motor_Running
 
@@ -924,14 +922,14 @@ normal_run_checks:
     mov  A, @Temp2
     jz   run6_check_timeout
 
-; Exit run mode after 100ms when using brake on stop
+    ; Exit run mode after 100ms when using brake on stop
     clr  C
     mov  A, Rcp_Stop_Cnt                ; Load stop RC pulse counter value
     subb A, #3                          ; Is number of stop RC pulses above limit?
     jnc  exit_run_mode                  ; Yes - exit run mode
 
 run6_check_timeout:
-; Exit run mode immediately if timeout
+    ; Exit run mode immediately if timeout
     mov  A, Rcp_Timeout_Cntd            ; Load RC pulse timeout counter value
     jz   exit_run_mode                  ; If it is zero - go back to wait for power on
 
@@ -946,10 +944,10 @@ run6_check_speed:
     jmp  run1                           ; No - go back to run 1
 
 run6_bidir:
-; Check if direction change braking is in progress
+    ; Check if direction change braking is in progress
     jb   Flag_Dir_Change_Brake, run6_bidir_braking
 
-; Check if actual rotation direction matches force direction
+    ; Check if actual rotation direction matches force direction
     jb   Flag_Motor_Dir_Rev, run6_bidir_check_reversal
     jb   Flag_Rcp_Dir_Rev, run6_bidir_reversal
     sjmp run6_check_speed
@@ -958,7 +956,7 @@ run6_bidir_check_reversal:
     jb   Flag_Rcp_Dir_Rev, run6_check_speed
 
 run6_bidir_reversal:
-; Initiate direction and start braking
+    ; Initiate direction and start braking
     setb Flag_Dir_Change_Brake          ; Set brake flag
     mov  Pwm_Limit, Pwm_Limit_Beg       ; Set max power while braking to initial power limit
     jmp  run4                           ; Go back to run 4,thereby changing force direction
@@ -971,7 +969,7 @@ run6_bidir_braking:
     subb A, #20h                        ; Bidirectional braking termination speed (~9970 erpm)
     jc   run6_bidir_continue            ; No - continue braking
 
-; Braking done, set new spinning direction
+    ; Braking done, set new spinning direction
     clr  Flag_Dir_Change_Brake          ; Clear braking flag
     mov  C, Flag_Rcp_Dir_Rev            ; Read force direction
     mov  Flag_Motor_Dir_Rev, C          ; Set spinning direction
@@ -1022,10 +1020,10 @@ ENDIF
 
     setb IE_EA                          ; Enable all interrupts
 
-; Check if RCP is zero, then it is a normal stop or signal timeout
+    ; Check if RCP is zero, then it is a normal stop or signal timeout
     jb   Flag_Rcp_Stop, exit_run_mode_no_stall
 
-; Signal stall
+    ; Signal stall
     setb Flag_Stall_Notify
 
     clr  C                              ; Otherwise - it's a stall
@@ -1037,7 +1035,7 @@ ENDIF
     ljmp motor_start                    ; Go back and try starting motors again
 
 exit_run_mode_stall_done:
-; Stalled too many times
+    ; Stalled too many times
     clr  IE_EA
     call beep_motor_stalled
     setb IE_EA

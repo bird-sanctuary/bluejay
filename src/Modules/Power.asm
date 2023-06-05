@@ -22,11 +22,9 @@
 ; along with Bluejay.  If not, see <http://www.gnu.org/licenses/>.
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Power control
 ;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -52,8 +50,8 @@ switch_power_off:
 set_pwm_limit:
     jb   Flag_High_Rpm, set_pwm_limit_high_rpm ; If high rpm,limit pwm by rpm instead
 
-;set_pwm_limit_low_rpm:
-; Set pwm limit
+    ;set_pwm_limit_low_rpm:
+    ; Set pwm limit
     mov  Temp1, #0FFh                   ; Default full power
     jb   Flag_Startup_Phase, set_pwm_limit_low_rpm_exit ; Exit if startup phase set
 

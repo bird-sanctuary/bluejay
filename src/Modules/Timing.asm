@@ -22,11 +22,9 @@
 ; along with Bluejay.  If not, see <http://www.gnu.org/licenses/>.
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Timing
 ;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -37,7 +35,7 @@
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 initialize_timing:
-; Initialize commutation period to 7.5ms (~1330 erpm)
+    ; Initialize commutation period to 7.5ms (~1330 erpm)
     mov  Comm_Period4x_L, #00h
     mov  Comm_Period4x_H, #0F0h
     ret
@@ -53,7 +51,7 @@ initialize_timing:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 calc_next_comm_period:
-; Read commutation time
+    ; Read commutation time
     clr  IE_EA
     clr  TMR2CN0_TR2                    ; Timer2 disabled
     mov  Temp1, TMR2L                   ; Load Timer2 value
@@ -73,7 +71,7 @@ ENDIF
 
     jb   Flag_Startup_Phase, calc_next_comm_startup
 
-; Calculate this commutation time
+    ; Calculate this commutation time
     clr  C
     mov  A, Temp1
     subb A, Prev_Comm_L                 ; Calculate the new commutation time
@@ -91,7 +89,7 @@ ENDIF
     ajmp calc_next_comm_period_fast     ; Branch high rpm
 
 calc_next_comm_startup:
-; Calculate this commutation time
+    ; Calculate this commutation time
     mov  Temp4, Prev_Comm_L
     mov  Temp5, Prev_Comm_H
     mov  Temp6, Prev_Comm_X
@@ -111,19 +109,19 @@ IF MCU_TYPE >= 1
 ENDIF
     jz   calc_next_comm_startup_no_X
 
-; Extended byte is not zero, so commutation time is above 0xFFFF
+    ; Extended byte is not zero, so commutation time is above 0xFFFF
     mov  Comm_Period4x_L, #0FFh
     mov  Comm_Period4x_H, #0FFh
     ajmp calc_next_comm_done
 
 calc_next_comm_startup_no_X:
-; Extended byte = 0, so commutation time fits within two bytes
+    ; Extended byte = 0, so commutation time fits within two bytes
     mov  Temp7, Prev_Prev_Comm_L
     mov  Temp8, Prev_Prev_Comm_H
     mov  Prev_Prev_Comm_L, Temp4
     mov  Prev_Prev_Comm_H, Temp5
 
-; Calculate the new commutation time based upon the two last commutations (to reduce sensitivity to offset)
+    ; Calculate the new commutation time based upon the two last commutations (to reduce sensitivity to offset)
     clr  C
     mov  A, Temp1
     subb A, Temp7
@@ -138,7 +136,7 @@ calc_next_comm_startup_no_X:
     sjmp calc_next_comm_div_4_1
 
 calc_next_comm_normal:
-; Prepare averaging by dividing Comm_Period4x and current commutation period (Temp2/1) according to speed.
+    ; Prepare averaging by dividing Comm_Period4x and current commutation period (Temp2/1) according to speed.
     mov  Temp3, Comm_Period4x_L         ; Comm_Period4x holds the time of 4 commutations
     mov  Temp4, Comm_Period4x_H
 
@@ -150,23 +148,23 @@ calc_next_comm_normal:
     subb A, #4                          ; Is Comm_Period4x_H below 8? (above ~40k erpm)
     jc   calc_next_comm_div_8_2         ; Yes - Use averaging for low speeds
 
-; No - Use averaging for even lower speeds
+    ; No - Use averaging for even lower speeds
 
-; Do not average very fast during initial run
+    ; Do not average very fast during initial run
     jb   Flag_Initial_Run_Phase, calc_next_comm_div_8_2_slow
 
 calc_next_comm_div_4_1:
-; Update Comm_Period4x from 1 new commutation period
+    ; Update Comm_Period4x from 1 new commutation period
 
-; Divide Temp4/3 by 4 and store in Temp6/5
+    ; Divide Temp4/3 by 4 and store in Temp6/5
     Divide_By_4 Temp4, Temp3, Temp6, Temp5
 
     sjmp calc_next_comm_average_and_update
 
 calc_next_comm_div_8_2:
-; Update Comm_Period4x from 1/2 new commutation period
+    ; Update Comm_Period4x from 1/2 new commutation period
 
-; Divide Temp4/3 by 8 and store in Temp5
+    ; Divide Temp4/3 by 8 and store in Temp5
     Divide_11Bit_By_8 Temp4, Temp3, Temp5
     mov  Temp6, #0
 
@@ -177,9 +175,9 @@ calc_next_comm_div_8_2:
     sjmp calc_next_comm_average_and_update
 
 calc_next_comm_div_8_2_slow:
-; Update Comm_Period4x from 1/2 new commutation period
+    ; Update Comm_Period4x from 1/2 new commutation period
 
-; Divide Temp4/3 by 8 and store in Temp6/5
+    ; Divide Temp4/3 by 8 and store in Temp6/5
     Divide_By_8 Temp4, Temp3, Temp6, Temp5
 
     clr  C                              ; Divide by 2
@@ -189,19 +187,19 @@ calc_next_comm_div_8_2_slow:
     sjmp calc_next_comm_average_and_update
 
 calc_next_comm_div_16_4:
-; Update Comm_Period4x from 1/4 new commutation period
+    ; Update Comm_Period4x from 1/4 new commutation period
 
-; Divide Temp4/3 by 16 and store in Temp5
+    ; Divide Temp4/3 by 16 and store in Temp5
     Divide_12Bit_By_16 Temp4, Temp3, Temp5
     mov  Temp6, #0
 
-; Divide Temp2/1 by 4 and store in Temp2/1
+    ; Divide Temp2/1 by 4 and store in Temp2/1
     Divide_By_4 Temp2, Temp1, Temp2, Temp1
 
 calc_next_comm_average_and_update:
-; Comm_Period4x = Comm_Period4x - (Comm_Period4x / (16, 8 or 4)) + (Comm_Period / (4, 2 or 1))
+    ; Comm_Period4x = Comm_Period4x - (Comm_Period4x / (16, 8 or 4)) + (Comm_Period / (4, 2 or 1))
 
-; Temp6/5: Comm_Period4x divided by (16, 8 or 4)
+    ; Temp6/5: Comm_Period4x divided by (16, 8 or 4)
     clr  C                              ; Subtract a fraction
     mov  A, Temp3                       ; Comm_Period4x_L
     subb A, Temp5
@@ -210,7 +208,7 @@ calc_next_comm_average_and_update:
     subb A, Temp6
     mov  Temp4, A
 
-; Temp2/1: This commutation period divided by (4, 2 or 1)
+    ; Temp2/1: This commutation period divided by (4, 2 or 1)
     mov  A, Temp3                       ; Add the divided new time
     add  A, Temp1
     mov  Comm_Period4x_L, A
@@ -230,14 +228,14 @@ calc_next_comm_done:
     setb Flag_High_Rpm                  ; Yes - Set high rpm flag
 
 calc_next_comm_15deg:
-; Commutation period: 360 deg / 6 runs = 60 deg
-; 60 deg / 4 = 15 deg
+    ; Commutation period: 360 deg / 6 runs = 60 deg
+    ; 60 deg / 4 = 15 deg
 
-; Load current commutation timing and compute 15 deg timing
-; Divide Comm_Period4x by 16 (Comm_Period1x divided by 4) and store in Temp4/3
+    ; Load current commutation timing and compute 15 deg timing
+    ; Divide Comm_Period4x by 16 (Comm_Period1x divided by 4) and store in Temp4/3
     Divide_By_16 Comm_Period4x_H, Comm_Period4x_L, Temp4, Temp3
 
-; Subtract timing reduction
+    ; Subtract timing reduction
     clr  C
     mov  A, Temp3
     subb A, #2                          ; Set timing reduction
@@ -257,15 +255,18 @@ calc_next_comm_15deg_set_min:
 
     sjmp calc_next_comm_period_exit
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
 ; Calculate next commutation period (fast)
 ; Fast calculation (Comm_Period4x_H less than 2)
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 calc_next_comm_period_fast:
-; Calculate new commutation time
+    ; Calculate new commutation time
     mov  Temp3, Comm_Period4x_L         ; Comm_Period4x holds the time of 4 commutations
     mov  Temp4, Comm_Period4x_H
 
-; Divide by 16 and store in Temp5
+    ; Divide by 16 and store in Temp5
     Divide_12Bit_By_16 Temp4, Temp3, Temp5
 
     clr  C
@@ -276,7 +277,7 @@ calc_next_comm_period_fast:
     subb A, #0
     mov  Temp4, A
 
-; Note: Temp2 is assumed to be zero (approx. Comm_Period4x_H / 4)
+    ; Note: Temp2 is assumed to be zero (approx. Comm_Period4x_H / 4)
     mov  A, Temp1                       ; Divide by 4
     rr   A
     rr   A
@@ -325,22 +326,19 @@ calc_next_comm_period_exit:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 wait_advance_timing:
-; If it has not already, we wait here for the Wt_Adv_Start_ delay to elapse.
+    ; If it has not already, we wait here for the Wt_Adv_Start_ delay to elapse.
     Wait_For_Timer3
 
-; At this point Timer3 has (already) wrapped and been reloaded with the Wt_Zc_Scan_Start_ delay.
-; In case this delay has also elapsed, Timer3 has been reloaded with a short delay any number of times.
-; - The interrupt flag is set and the pending flag will clear immediately after enabling the interrupt.
-
+    ; At this point Timer3 has (already) wrapped and been reloaded with the Wt_Zc_Scan_Start_ delay.
+    ; In case this delay has also elapsed, Timer3 has been reloaded with a short delay any number of times.
+    ; - The interrupt flag is set and the pending flag will clear immediately after enabling the interrupt.
     mov  TMR3RLL, Wt_ZC_Tout_Start_L    ; Setup next wait time
     mov  TMR3RLH, Wt_ZC_Tout_Start_H
     setb Flag_Timer3_Pending
     orl  EIE1, #80h                     ; Enable Timer3 interrupts
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;
 ; Calculate new wait times
-;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 calc_new_wait_times:
     mov  Temp1, #Pgm_Comm_Timing        ; Load commutation timing setting
@@ -360,18 +358,18 @@ IF MCU_TYPE >= 1
     rlca Temp2
 ENDIF
 
-; Temp2/1 = 15deg Timer2 period
 
+    ; Temp2/1 = 15deg Timer2 period
     jb   Flag_High_Rpm, calc_new_wait_times_fast ; Branch if high rpm
 
-; Load programmed commutation timing
+    ; Load programmed commutation timing
     jnb  Flag_Startup_Phase, adjust_comm_timing
 
     mov  Temp8, #3                      ; Set dedicated timing during startup
     sjmp load_comm_timing_done
 
 adjust_comm_timing:
-; Adjust commutation timing according to demag metric
+    ; Adjust commutation timing according to demag metric
     clr  C
     mov  A, Demag_Detected_Metric       ; Check demag metric
     subb A, #130
@@ -418,7 +416,7 @@ load_comm_timing_done:
     mov  A, Temp8
     jb   ACC.0, adjust_timing_two_steps ; If an odd number - branch
 
-; Commutation timing setting is 2 or 4
+    ; Commutation timing setting is 2 or 4
     mov  A, Temp1                       ; Store 22.5deg in Temp1/2 (15deg + 7.5deg)
     add  A, Temp5
     mov  Temp1, A
@@ -434,7 +432,7 @@ load_comm_timing_done:
     sjmp store_times_up_or_down
 
 adjust_timing_two_steps:
-; Commutation timing setting is 1 or 5
+    ; Commutation timing setting is 1 or 5
     mov  A, Temp1                       ; Store 30deg in Temp1/2 (15deg + 15deg)
     setb C                              ; Add 1 to final result (Temp1/2 * 2 + 1)
     addc A, Temp1
@@ -465,7 +463,7 @@ store_times_decrease:
     mov  Wt_Adv_Start_L, Temp3          ; New commutation advance time (~15deg nominal)
     mov  Wt_Adv_Start_H, Temp4
 
-; Set very short delays for all but advance time during startup, in order to widen zero cross capture range
+    ; Set very short delays for all but advance time during startup, in order to widen zero cross capture range
     jnb  Flag_Startup_Phase, calc_new_wait_times_exit
     mov  Wt_Comm_Start_L, #-16
     mov  Wt_Comm_Start_H, #-1
@@ -476,8 +474,9 @@ store_times_decrease:
 
     sjmp calc_new_wait_times_exit
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Calculate new wait times fast routine
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 calc_new_wait_times_fast:
     mov  A, Temp1                       ; Copy values
     mov  Temp3, A
@@ -535,13 +534,12 @@ calc_new_wait_times_exit:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 wait_before_zc_scan:
-; If it has not already, we wait here for the Wt_Zc_Scan_Start_ delay to elapse.
+    ; If it has not already, we wait here for the Wt_Zc_Scan_Start_ delay to elapse.
     Wait_For_Timer3
 
-; At this point Timer3 has (already) wrapped and been reloaded with the Wt_ZC_Tout_Start_ delay.
-; In case this delay has also elapsed, Timer3 has been reloaded with a short delay any number of times.
-; - The interrupt flag is set and the pending flag will clear immediately after enabling the interrupt.
-
+    ; At this point Timer3 has (already) wrapped and been reloaded with the Wt_ZC_Tout_Start_ delay.
+    ; In case this delay has also elapsed, Timer3 has been reloaded with a short delay any number of times.
+    ; - The interrupt flag is set and the pending flag will clear immediately after enabling the interrupt.
     mov  Startup_Zc_Timeout_Cntd, #2
 
 setup_zc_scan_timeout:
@@ -609,7 +607,7 @@ comp_init:
     mov  Comparator_Read_Cnt, #0        ; Reset number of comparator reads
 
 comp_start:
-; Set number of comparator readings required
+    ; Set number of comparator readings required
     mov  Temp3, #(1 SHL IS_MCU_48MHZ)   ; Number of OK readings required
     mov  Temp4, #(1 SHL IS_MCU_48MHZ)   ; Max number of readings required
     jb   Flag_High_Rpm, comp_check_timeout ; Branch if high rpm
@@ -623,8 +621,8 @@ comp_start:
     sjmp comp_check_timeout
 
 comp_not_startup:
-; Too low value (~<15) causes rough running at pwm harmonics.
-; Too high a value (~>35) causes the RCT4215 630 to run rough on full throttle
+    ; Too low value (~<15) causes rough running at pwm harmonics.
+    ; Too high a value (~>35) causes the RCT4215 630 to run rough on full throttle
     mov  Temp4, #(20 SHL IS_MCU_48MHZ)
     mov  A, Comm_Period4x_H             ; Set number of readings higher for lower speeds
 IF MCU_TYPE == 0
@@ -647,7 +645,7 @@ comp_check_timeout:
 
     jnb  Flag_Startup_Phase, comp_check_timeout_timeout_extended
 
-; Extend timeout during startup
+    ; Extend timeout during startup
     djnz Startup_Zc_Timeout_Cntd, comp_check_timeout_extend_timeout
 
 comp_check_timeout_timeout_extended:
@@ -663,7 +661,7 @@ comp_check_timeout_not_timed_out:
     anl  A, #40h
     cjne A, B, comp_read_wrong
 
-; Comp read ok
+    ; Comp read ok
     mov  A, Startup_Cnt                 ; Force a timeout for the first commutation
     jz   comp_start
 
@@ -751,10 +749,10 @@ setup_comm_wait:
     clr  IE_EA
     anl  EIE1, #7Fh                     ; Disable Timer3 interrupts
 
-; It is necessary to update the timer reload registers before the timer registers,
-; to avoid a reload of the previous values in case of a short Wt_Comm_Start delay.
+    ; It is necessary to update the timer reload registers before the timer registers,
+    ; to avoid a reload of the previous values in case of a short Wt_Comm_Start delay.
 
-; Advance wait time will be loaded by Timer3 immediately after the commutation wait elapses
+    ; Advance wait time will be loaded by Timer3 immediately after the commutation wait elapses
     mov  TMR3RLL, Wt_Adv_Start_L        ; Setup next wait time
     mov  TMR3RLH, Wt_Adv_Start_H
     mov  TMR3CN0, #00h                  ; Timer3 disabled and interrupt flag cleared
@@ -799,15 +797,15 @@ eval_comp_exit:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 wait_for_comm:
-; Update demag metric
+    ; Update demag metric
     mov  A, Demag_Detected_Metric       ; Sliding average of 8,256 when demag and 0 when not. Limited to minimum 120
     mov  B, #7
     mul  AB                             ; Multiply by 7
 
     jnb  Flag_Demag_Detected, wait_for_comm_demag_event_added
-; Add new value for current demag status
+    ; Add new value for current demag status
     inc  B
-; Signal demag
+    ; Signal demag
     setb Flag_Demag_Notify
 
 wait_for_comm_demag_event_added:
@@ -823,7 +821,7 @@ wait_for_comm_demag_event_added:
     jnc  ($+5)
     mov  Demag_Detected_Metric, #120
 
-; Update demag metric max
+    ; Update demag metric max
     clr  C
     mov  A, Demag_Detected_Metric
     subb A, Demag_Detected_Metric_Max
@@ -831,27 +829,26 @@ wait_for_comm_demag_event_added:
     mov  Demag_Detected_Metric_Max, Demag_Detected_Metric
 
 wait_for_comm_demag_metric_max_updated:
-; Check demag metric
+    ; Check demag metric
     clr  C
     mov  A, Demag_Detected_Metric
     subb A, Demag_Pwr_Off_Thresh
     jc   wait_for_comm_wait
 
-; Signal desync
+    ; Signal desync
     setb Flag_Desync_Notify             ;
 
-; Cut power if many consecutive demags. This will help retain sync during hard accelerations
+    ; Cut power if many consecutive demags. This will help retain sync during hard accelerations
     All_Pwm_Fets_Off
     Set_All_Pwm_Phases_Off
 
 wait_for_comm_wait:
-; If it has not already, we wait here for the Wt_Comm_Start_ delay to elapse.
+    ; If it has not already, we wait here for the Wt_Comm_Start_ delay to elapse.
     Wait_For_Timer3
 
-; At this point Timer3 has (already) wrapped and been reloaded with the Wt_Adv_Start_ delay.
-; In case this delay has also elapsed, Timer3 has been reloaded with a short delay any number of times.
-; - The interrupt flag is set and the pending flag will clear immediately after enabling the interrupt.
-
+    ; At this point Timer3 has (already) wrapped and been reloaded with the Wt_Adv_Start_ delay.
+    ; In case this delay has also elapsed, Timer3 has been reloaded with a short delay any number of times.
+    ; - The interrupt flag is set and the pending flag will clear immediately after enabling the interrupt.
     mov  TMR3RLL, Wt_Zc_Scan_Start_L    ; Setup next wait time
     mov  TMR3RLH, Wt_Zc_Scan_Start_H
     setb Flag_Timer3_Pending

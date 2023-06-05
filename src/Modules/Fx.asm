@@ -266,14 +266,14 @@ play_beep_melody:
     mov  DPTR, #(Eep_Pgm_Beep_Melody + 04h)
 
 play_beep_melody_loop:
-; Read current location at Eep_Pgm_Beep_Melody to Temp4 and increment DPTR. If the value is 0, no point trying to play this note
+    ; Read current location at Eep_Pgm_Beep_Melody to Temp4 and increment DPTR. If the value is 0, no point trying to play this note
     clr  A
     movc A, @A+DPTR
     inc  DPTR
     mov  Temp4, A
     jz   play_beep_melody_exit
 
-; Read current location at Eep_Pgm_Beep_Melody to Temp3. If the value zero, that means this is a silent note
+    ; Read current location at Eep_Pgm_Beep_Melody to Temp3. If the value zero, that means this is a silent note
     clr  A
     movc A, @A+DPTR
     mov  Temp3, A

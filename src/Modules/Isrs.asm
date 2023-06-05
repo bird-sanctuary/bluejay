@@ -22,11 +22,9 @@
 ; along with Bluejay.  If not, see <http://www.gnu.org/licenses/>.
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Interrupt handlers
 ;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -49,8 +47,8 @@ t0_int:
 
     inc  Temp1                          ; Set pointer to uncritical position
 
-; If last pulse is high, telemetry is finished,
-; otherwise wait for it to return to high
+    ; If last pulse is high, telemetry is finished,
+    ; otherwise wait for it to return to high
     jb   RTX_BIT, t0_int_dshot_tlm_finish
 
 t0_int_dshot_tlm_transition:
@@ -62,7 +60,7 @@ t0_int_dshot_tlm_transition:
     reti
 
 t0_int_dshot_tlm_finish:
-; Configure RTX_PIN for digital input
+    ; Configure RTX_PIN for digital input
     anl  RTX_MDOUT, #(NOT (1 SHL RTX_PIN)) ; Set RTX_PIN output mode to open-drain
     setb RTX_BIT                        ; Float high
 
@@ -102,14 +100,14 @@ t1_int:
     push ACC
     push B
 
-; Note: Interrupts are not explicitly disabled
-; Assume higher priority interrupts (Int0, Timer0) to be disabled at this point
+    ; Note: Interrupts are not explicitly disabled
+    ; Assume higher priority interrupts (Int0, Timer0) to be disabled at this point
     clr  TMR2CN0_TR2                    ; Timer2 disabled
     mov  Temp2, TMR2L                   ; Read timer value
     mov  Temp3, TMR2H
     setb TMR2CN0_TR2                    ; Timer2 enabled
 
-; Check frame time length
+    ; Check frame time length
     clr  C
     mov  A, Temp2
     subb A, DShot_Frame_Start_L
@@ -125,15 +123,15 @@ t1_int:
     subb A, DShot_Frame_Length_Thr
     jnc  t1_int_frame_fail              ; Frame too long
 
-; Check that correct number of pulses is received
+    ; Check that correct number of pulses is received
     cjne Temp1, #16, t1_int_frame_fail  ; Read current pointer
 
-; Decode transmitted data
+    ; Decode transmitted data
     mov  Temp1, #0                      ; Set pointer
     mov  Temp2, DShot_Pwm_Thr           ; DShot pulse width criteria
     mov  Temp6, #0                      ; Reset timestamp
 
-; Decode DShot data Msb. Use more code space to save time (by not using loop)
+    ; Decode DShot data Msb. Use more code space to save time (by not using loop)
     Decode_DShot_2Bit Temp5, t1_int_frame_fail
     Decode_DShot_2Bit Temp5, t1_int_frame_fail
     sjmp t1_int_decode_lsb
@@ -142,7 +140,7 @@ t1_int_frame_fail:
     sjmp t1_int_outside_range
 
 t1_int_decode_lsb:
-; Decode DShot data Lsb
+    ; Decode DShot data Lsb
     Decode_DShot_2Bit Temp4, t1_int_outside_range
     Decode_DShot_2Bit Temp4, t1_int_outside_range
     Decode_DShot_2Bit Temp4, t1_int_outside_range
@@ -160,7 +158,7 @@ t1_int_outside_range:
     subb A, #50                         ; Allow a given number of outside pulses
     jc   t1_int_exit_timeout            ; If outside limits - ignore first pulses
 
-; RCP signal has not timed out, but pulses are not recognized as DShot
+    ; RCP signal has not timed out, but pulses are not recognized as DShot
     setb Flag_Rcp_Stop                  ; Set pulse length to zero
     mov  DShot_Cmd, #0                  ; Reset DShot command
     mov  DShot_Cmd_Cnt, #0
@@ -172,11 +170,11 @@ t1_int_exit_timeout:
     ajmp t1_int_exit_no_tlm
 
 t1_int_decode_checksum:
-; Decode DShot data checksum
+    ; Decode DShot data checksum
     Decode_DShot_2Bit Temp3, t1_int_outside_range
     Decode_DShot_2Bit Temp3, t1_int_outside_range
 
-; XOR check (in inverted data, which is ok), only low nibble is considered
+    ; XOR check (in inverted data, which is ok), only low nibble is considered
     mov  A, Temp4
     swap A
     xrl  A, Temp4
@@ -187,7 +185,7 @@ t1_int_decode_checksum:
     anl  A, #0Fh
     jnz  t1_int_outside_range           ; XOR check
 
-; Invert DShot data and subtract 96 (still 12 bits)
+    ; Invert DShot data and subtract 96 (still 12 bits)
     clr  C
     mov  A, Temp4
     cpl  A
@@ -223,10 +221,10 @@ t1_int_dshot_set_cmd:
     mov  DShot_Cmd_Cnt, #0
 
 t1_int_normal_range:
-; Check for bidirectional operation (0=stop, 96-2095->fwd, 2096-4095->rev)
+    ; Check for bidirectional operation (0=stop, 96-2095->fwd, 2096-4095->rev)
     jnb  Flag_Pgm_Bidir, t1_int_not_bidir ; If not bidirectional operation - branch
 
-; Subtract 2000 (still 12 bits)
+    ; Subtract 2000 (still 12 bits)
     clr  C
     mov  A, Temp4
     subb A, #0D0h
@@ -247,7 +245,7 @@ t1_int_bidir_set:
     rlca Temp5
 
 t1_int_not_bidir:
-; From here Temp5/Temp4 should be at most 3999 (4095-96)
+    ; From here Temp5/Temp4 should be at most 3999 (4095-96)
     mov  A, Temp4                       ; Divide by 16 (12 to 8-bit)
     anl  A, #0F0h
     orl  A, Temp5                       ; Note: Assumes Temp5 to be 4-bit
@@ -255,12 +253,14 @@ t1_int_not_bidir:
     mov  B, #5                          ; Divide by 5 (80 in total)
     div  AB
     mov  Temp3, A
-; Align to 11 bits
-;clr    C                       ; Note: Cleared by div
+
+    ; Align to 11 bits
+    ;clr    C                       ; Note: Cleared by div
     rrca Temp5
     mov  A, Temp4
     rrc  A
-; Scale from 2000 to 2048
+
+    ; Scale from 2000 to 2048
     add  A, Temp3
     mov  Temp4, A
     mov  A, Temp5
@@ -270,10 +270,10 @@ t1_int_not_bidir:
     mov  Temp4, #0FFh
     mov  Temp5, #07h
 
-; Do not boost when changing direction in bidirectional mode
+    ; Do not boost when changing direction in bidirectional mode
     jb   Flag_Motor_Started, t1_int_startup_boosted
 
-; Boost pwm during direct start
+    ; Boost pwm during direct start
     jnb  Flag_Initial_Run_Phase, t1_int_startup_boosted
 
     mov  A, Temp5
@@ -304,7 +304,7 @@ t1_int_stall_boost:
     mov  Temp5, #07h
 
 t1_int_startup_boosted:
-; Set 8-bit value
+    ; Set 8-bit value
     mov  A, Temp4
     anl  A, #0F8h
     orl  A, Temp5                       ; Assumes Temp5 to be 3-bit (11-bit rcp)
@@ -325,12 +325,12 @@ t1_int_rcp_not_zero:
     clr  Flag_Rcp_Stop                  ; Pulse ready
 
 t1_int_zero_rcp_checked:
-; Decrement outside range counter
+    ; Decrement outside range counter
     mov  A, Rcp_Outside_Range_Cnt
     jz   ($+4)
     dec  Rcp_Outside_Range_Cnt
 
-; Set pwm limit
+    ; Set pwm limit
     clr  C
     mov  A, Pwm_Limit                   ; Limit to the smallest
     mov  Temp6, A                       ; Store limit in Temp6
@@ -338,7 +338,7 @@ t1_int_zero_rcp_checked:
     jc   ($+4)
     mov  Temp6, Pwm_Limit_By_Rpm
 
-; Check against limit
+    ; Check against limit
     clr  C
     mov  A, Temp6
     subb A, Temp2                       ; 8-bit rc pulse
@@ -486,21 +486,21 @@ ENDIF
 
     mov  Rcp_Timeout_Cntd, #10          ; Set timeout count
 
-; Prepare DShot telemetry
+    ; Prepare DShot telemetry
     jnb  Flag_Rcp_DShot_Inverted, t1_int_exit_no_tlm ; Only send telemetry for inverted DShot
     jnb  Flag_Telemetry_Pending, t1_int_exit_no_tlm ; Check if telemetry packet is ready
 
-; Prepare Timer0 for sending telemetry data
+    ; Prepare Timer0 for sending telemetry data
     mov  CKCON0, #01h                   ; Timer0 is system clock divided by 4
     mov  TMOD, #0A2h                    ; Timer0 runs free not gated by Int0
 
-; Configure RTX_PIN for digital output
+    ; Configure RTX_PIN for digital output
     setb RTX_BIT                        ; Default to high level
     orl  RTX_MDOUT, #(1 SHL RTX_PIN)    ; Set output mode to push-pull
 
     mov  Temp1, #0                      ; Set pointer to start
 
-; Note: Delay must be large enough to ensure port is ready for output
+    ; Note: Delay must be large enough to ensure port is ready for output
     mov  TL0, DShot_GCR_Start_Delay     ; Telemetry will begin after this delay
     clr  TCON_TF0                       ; Clear Timer0 overflow flag
     setb IE_ET0                         ; Enable Timer0 interrupts
@@ -535,7 +535,7 @@ t2_int:
     inc  Timer2_X                       ; Increment extended byte
     setb Flag_32ms_Elapsed              ; Set 32ms elapsed flag
 
-; Check RC pulse timeout counter
+    ; Check RC pulse timeout counter
     mov  A, Rcp_Timeout_Cntd            ; RC pulse timeout count zero?
     jnz  t2_int_rcp_timeout_decrement
     setb Flag_Rcp_Stop                  ; If zero -> Set rcp stop in case of timeout
@@ -545,16 +545,18 @@ t2_int_rcp_timeout_decrement:
     dec  Rcp_Timeout_Cntd               ; No - decrement
 
 t2_int_flag_rcp_stop_check:
-; If rc pulse is not zero
+    ; If rc pulse is not zero
     jnb  Flag_Rcp_Stop, t2_int_exit     ; If rc pulse is not zero don't increment rcp stop counter
 
-; Increment Rcp_Stop_Cnt clipping it to 255
+    ; Increment Rcp_Stop_Cnt clipping it to 255
     mov  A, Rcp_Stop_Cnt
     inc  A
     jz   ($+4)
     inc  Rcp_Stop_Cnt
 
-; **************   Return from timer2 **********
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+; Return from timer2
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 t2_int_exit:
     pop  ACC                            ; Restore preserved registers
     reti
@@ -615,9 +617,9 @@ int1_int:
     clr  IE_EX1                         ; Disable Int1 interrupts
     setb TCON_TR1                       ; Start Timer1
 
-; Note: Interrupts are not explicitly disabled, assuming higher priority interrupts:
-; - Timer0 to be disabled at this point
-; - Int0 to not trigger for valid DShot signal
+    ; Note: Interrupts are not explicitly disabled, assuming higher priority interrupts:
+    ; - Timer0 to be disabled at this point
+    ; - Int0 to not trigger for valid DShot signal
     clr  TMR2CN0_TR2                    ; Timer2 disabled
     mov  DShot_Frame_Start_L, TMR2L     ; Read timer value
     mov  DShot_Frame_Start_H, TMR2H

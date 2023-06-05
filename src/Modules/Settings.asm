@@ -22,11 +22,9 @@
 ; along with Bluejay.  If not, see <http://www.gnu.org/licenses/>.
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Settings
 ;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -98,14 +96,14 @@ decode_settings:
     mov  C, ACC.0                       ; Set direction (Normal / Reversed)
     mov  Flag_Pgm_Dir_Rev, C
 
-; Check startup power
+    ; Check startup power
     mov  Temp1, #Pgm_Startup_Power_Max
     mov  A, #80                         ; Limit to at most 80
     subb A, @Temp1
     jnc  ($+4)
     mov  @Temp1, #80
 
-; Check low rpm power slope
+    ; Check low rpm power slope
     mov  Temp1, #Pgm_Rpm_Power_Slope
     mov  A, #13                         ; Limit to at most 13
     subb A, @Temp1
@@ -114,7 +112,7 @@ decode_settings:
 
     mov  Low_Rpm_Pwr_Slope, @Temp1
 
-; Decode demag compensation
+    ; Decode demag compensation
     mov  Temp1, #Pgm_Demag_Comp
     mov  A, @Temp1
     mov  Demag_Pwr_Off_Thresh, #255     ; Set default
@@ -129,18 +127,20 @@ decode_demag_high:
     mov  Demag_Pwr_Off_Thresh, #130     ; Settings for demag comp high
 
 decode_demag_done:
-; Decode temperature protection limit
+    ; Decode temperature protection limit
     mov  Temp_Prot_Limit, #0
     mov  Temp1, #Pgm_Enable_Temp_Prot
     mov  A, @Temp1
     mov  Temp2, A                       ; Temp2 = *Pgm_Enable_Temp_Prot;
     jz   decode_temp_done
 
-; ******************************************************************
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
 ; Power rating only applies to BB21 because voltage references behave diferently
 ; depending on an external voltage regulator is used or not.
 ; For BB51 (MCU_TYPE == 2) 1s power rating code path is mandatory
-; ******************************************************************
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 IF MCU_TYPE < 2
     ; Read power rating and decode temperature limit
     mov  Temp1, #Pgm_Power_Rating

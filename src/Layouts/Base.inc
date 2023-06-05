@@ -1,4 +1,4 @@
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Bluejay digital ESC firmware for controlling brushless motors in multirotors
 ;
@@ -20,7 +20,7 @@
 ; You should have received a copy of the GNU General Public License
 ; along with Bluejay.  If not, see <http://www.gnu.org/licenses/>.
 ;
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Base layout
 ;
@@ -28,11 +28,11 @@
 ; - Specify PWM_ACTIVE_HIGH, COM_ACTIVE_HIGH and COMPARATOR_PORT
 ; - Set CUSTOM_* flags to override default implementation
 ;
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Bootloader definitions
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Note: The RTX pin must be on port 0 because we use the IT01CF register for interrupts
 RTX_PORT EQU P0                         ; Receive/Transmit port
 RTX_MDOUT EQU P0MDOUT                   ; Set to 1 for PUSHPULL
@@ -41,9 +41,9 @@ RTX_SKIP EQU P0SKIP                     ; Set to 1 for SKIP
 
 RTX_BIT EQU RTX_PORT.RTX_PIN            ; RTX pin value
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; PWM pin routing and polarity setup
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 $if NOT CUSTOM_PWM_SETUP
 
 Initialize_Crossbar MACRO
@@ -61,9 +61,9 @@ ENDM
 
 $endif
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; PWM channels and updating
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 $if NOT CUSTOM_PWM_UPDATE
 
 Enable_Power_Pwm_Module MACRO
@@ -100,9 +100,9 @@ ENDM
 
 $endif
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Comparator setup and phase change
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 IF COMPARATOR_PORT == 0
     CMP_CN0 EQU CMP0CN0
     CMP_MD EQU CMP0MD
@@ -172,9 +172,9 @@ ELSE                                    ; COM FET active low
     cOFF LIT 'setb'
 ENDIF
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; PWM phase change
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 $if NOT CUSTOM_PWM_PHASE
 
 ; All pwm and complementary pwm pins must be on port 1 to use the base code below
@@ -218,9 +218,9 @@ ENDM
 
 $endif
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Toggling FETs on/off
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 $if NOT CUSTOM_FET_TOGGLING
 
 A_Pwm_Fet_On MACRO
@@ -315,9 +315,9 @@ ENDM
 
 $endif
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; ADC and temperature measurement
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Temperature measurement ADC value for which main motor power is limited at 80degC (low byte, assuming high byte is 1)
 TEMP_LIMIT_2S EQU 49                    ; When using vdd 3.3V reference
 TEMP_LIMIT_1S EQU 92                    ; When using 1.65V internal reference
@@ -368,9 +368,9 @@ ENDM
 Stop_Adc MACRO
 ENDM
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; LEDs
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 $if NOT CUSTOM_LED
 
 Set_LED_0 MACRO

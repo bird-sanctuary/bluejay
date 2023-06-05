@@ -22,11 +22,9 @@
 ; along with Bluejay.  If not, see <http://www.gnu.org/licenses/>.
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Macros
 ;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 DSHOT_TLM_CLOCK EQU 24500000            ; 24.5MHz
@@ -126,8 +124,9 @@ Decode_DShot_2Bit MACRO dest,decode_fail
     inc  Temp1
 ENDM
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Compound instructions for convenience
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 xcha MACRO var1,var2                    ; Exchange via accumulator
     mov  A, var1
     xch  A, var2
@@ -171,12 +170,14 @@ imov MACRO reg,val                      ; Increment pointer register and move
     mov  @reg, val                      ; Write value to memory address pointed to by register
 ENDM
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
 ; Division
 ;
 ; ih, il: input (hi byte, lo byte)
 ; oh, ol: output (hi byte, lo byte)
 ;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 Divide_By_16 MACRO ih,il,oh,ol
     mov  A, ih
     swap A

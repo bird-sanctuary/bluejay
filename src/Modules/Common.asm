@@ -1,4 +1,4 @@
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Bluejay digital ESC firmware for controlling brushless motors in multirotors
 ;
@@ -21,15 +21,15 @@
 ; You should have received a copy of the GNU General Public License
 ; along with Bluejay.  If not, see <http://www.gnu.org/licenses/>.
 ;
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Common definitions for EFM8BB1x/2x/5x based ESCs
 ;
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
-;*********************
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Device SiLabs EFM8BB1x/2x/51
-;*********************
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 IF MCU_TYPE == 0
     $include (Silabs/SI_EFM8BB1_Defs.inc)
 ELSEIF MCU_TYPE == 1
@@ -38,12 +38,13 @@ ELSEIF MCU_TYPE == 2
     $include (Silabs/SI_EFM8BB51_Defs.inc)
 ENDIF
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Uses internal calibrated oscillator set to 24/48Mhz
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; ESC selection statements
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 IF MCU_TYPE < 2
 IF ESCNO == A_
     $include (Layouts/A.inc)            ; Select pinout A
@@ -91,10 +92,10 @@ ELSEIF ESCNO == V_
     $include (Layouts/V.inc)            ; Select pinout V
 ELSEIF ESCNO == W_
     $include (Layouts/W.inc)            ; Select pinout W
-    ;ELSEIF ESCNO == X_
-    ;$include (Layouts/X.inc)            ; Select pinout X
-    ;ELSEIF ESCNO == Y_
-    ;$include (Layouts/Y.inc)            ; Select pinout Y
+;ELSEIF ESCNO == X_
+    ;$include (Layouts/X.inc)           ; Select pinout X
+;ELSEIF ESCNO == Y_
+    ;$include (Layouts/Y.inc)           ; Select pinout Y
 ELSEIF ESCNO == Z_
     $include (Layouts/Z.inc)            ; Select pinout Z
 ENDIF
@@ -119,9 +120,9 @@ ELSEIF MCU_TYPE == 2
     SIGNATURE_002 EQU 0B5h
 ENDIF
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Constant definitions
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ESC_C EQU "A" + ESCNO - 1               ; ESC target letter
 
 ; MCU letter (24Mhz=L, 48Mhz=H, BB51=X)

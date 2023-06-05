@@ -54,14 +54,17 @@ BL_Flash_Key_2: DS 1
 CSEG AT BOOT_START                      ; Bootloader start
 init:
     clr  IE_EA
-; Select register bank 0 for main program routines
+
+    ; Select register bank 0 for main program routines
     clr  PSW.3                          ; Select register bank 0 for main program routines
-; Disable the WDT.
+
+    ; Disable the WDT.
     mov  WDTCN, #0DEh                   ; Disable watchdog
     mov  WDTCN, #0ADh
-; Initialize stack
+
+    ; Initialize stack
     mov  SP, #0c0h                      ; Stack = 64 upper bytes of RAM
-; Initialize clock
+    ; Initialize clock
     mov  CLKSEL, #00h                   ; Set clock divider to 1
 IF MCU_TYPE < 2
     ; Initialize VDD monitor
@@ -70,16 +73,19 @@ ENDIF
     mov  Baudl, #38h                    ; Wait 100us
     mov  Baudh, #03h
     acall waitf
-; Initialize flash keys
+
+    ; Initialize flash keys
     mov  BL_Flash_Key_1, #0A5h          ; First key code
     mov  BL_Flash_Key_2, #0F1h          ; Second key code
-; Initialize ports
+
+    ; Initialize ports
     orl  RTX_MDIN, #(1 SHL RTX_PIN)     ; Set digital
     anl  RTX_MDOUT, #NOT(1 SHL RTX_PIN) ; Disable pushpull
     setb RTX_PORT.RTX_PIN               ; Set data high
     mov  RTX_SKIP, #0FFh
     mov  XBR2, #40h                     ; ; Enable crossbar
-; Set number of connect attempts before exiting bootloader
+
+    ; Set number of connect attempts before exiting bootloader
     mov  Cmdh, #250
 
 ; Identifier scanning
@@ -184,7 +190,7 @@ mai2:
 
     cjne Cmdh, #0, mai4                 ; Jump if command != 0 (and not set buffer)
 
-; Run application/restart bootloader
+    ; Run application/restart bootloader
     mov  A, Cmdl
     jz   rst
 exit:
@@ -223,7 +229,7 @@ mai4:
     subb A, #3
     jnc  mai5                           ; Jump if command >= 3
 
-; Program/erase
+    ; Program/erase
     mov  A, Cmdh
     mov  C, ACC.0
     mov  Bit_Reg.0, C
@@ -236,7 +242,7 @@ mai4:
     jnc  mai1                           ; Jump if in bootloader segment
     jb   Bit_Reg.0, pro3                ; Jump if program command
 
-; Erase flash
+    ; Erase flash
     orl  PSCTL, #02h                    ; Set the PSEE bit
     orl  PSCTL, #01h                    ; Set the PSWE bit
     mov  FLKEY, BL_Flash_Key_1          ; First key code
@@ -299,6 +305,7 @@ rd1:
 
 mai6:
     ajmp mai1
+
 ; Send char with crc
 putw:
     mov  Paral, Crcl
@@ -325,6 +332,7 @@ put1:
 
 put2:
     djnz Bit_Cnt, put1
+
 ; Send char
 putc:
     acall waitf
@@ -373,6 +381,7 @@ getx:
     rrc  A
     mov  Cntl, A
     acall waith
+
 get2:
     acall waitf                         ; Wait one baud
     clr  C
@@ -409,9 +418,11 @@ get3:
 waitf:
     mov  Cntl, Baudl
     mov  Cnth, Baudh
+
 waith:
     inc  Cntl
     inc  Cnth
+
 wait1:
     djnz Cntl, wait1
     djnz Cnth, wait1
@@ -421,4 +432,4 @@ wait1:
 
 BOOT_SIGN: DB "BLHeli"
 BOOT_MSG: DB "471d"                     ; Interface-MCU_BootlaoderRevision
-BOOT_INFO: DB SIGNATURE_001,SIGNATURE_002,BOOT_VERSION,BOOT_PAGES
+BOOT_INFO: DB SIGNATURE_001, SIGNATURE_002, BOOT_VERSION, BOOT_PAGES

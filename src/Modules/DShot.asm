@@ -1,4 +1,4 @@
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Bluejay digital ESC firmware for controlling brushless motors in multirotors
 ;
@@ -22,11 +22,9 @@
 ; along with Bluejay.  If not, see <http://www.gnu.org/licenses/>.
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; DShot
 ;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -77,14 +75,14 @@ dshot_cmd_beeps_check:
     sjmp dshot_cmd_exit
 
 dshot_cmd_check_count:
-; Remaining commands must be received 6 times in a row
+    ; Remaining commands must be received 6 times in a row
     clr  C
     mov  A, DShot_Cmd_Cnt
     subb A, #6
     jc   dshot_cmd_exit_no_clear
 
 dshot_cmd_direction_normal:
-; Set motor spinning direction to normal
+    ; Set motor spinning direction to normal
     cjne Temp1, #7, dshot_cmd_direction_reverse
 
     clr  Flag_Pgm_Dir_Rev
@@ -92,7 +90,7 @@ dshot_cmd_direction_normal:
     sjmp dshot_cmd_exit
 
 dshot_cmd_direction_reverse:
-; Set motor spinning direction to reversed
+    ; Set motor spinning direction to reversed
     cjne Temp1, #8, dshot_cmd_direction_bidir_off
 
     setb Flag_Pgm_Dir_Rev
@@ -100,7 +98,7 @@ dshot_cmd_direction_reverse:
     sjmp dshot_cmd_exit
 
 dshot_cmd_direction_bidir_off:
-; Set motor control mode to normal (not bidirectional)
+    ; Set motor control mode to normal (not bidirectional)
     cjne Temp1, #9, dshot_cmd_direction_bidir_on
 
     clr  Flag_Pgm_Bidir
@@ -108,7 +106,7 @@ dshot_cmd_direction_bidir_off:
     sjmp dshot_cmd_exit
 
 dshot_cmd_direction_bidir_on:
-; Set motor control mode to bidirectional
+    ; Set motor control mode to bidirectional
     cjne Temp1, #10, dshot_cmd_extended_telemetry_enable
 
     setb Flag_Pgm_Bidir
@@ -116,7 +114,7 @@ dshot_cmd_direction_bidir_on:
     sjmp dshot_cmd_exit
 
 dshot_cmd_extended_telemetry_enable:
-; Enable extended telemetry
+    ; Enable extended telemetry
     cjne Temp1, #13, dshot_cmd_extended_telemetry_disable
 
     mov  Ext_Telemetry_L, #00h
@@ -127,7 +125,7 @@ dshot_cmd_extended_telemetry_enable:
     sjmp dshot_cmd_exit
 
 dshot_cmd_extended_telemetry_disable:
-; Disable extended telemetry
+    ; Disable extended telemetry
     cjne Temp1, #14, dshot_cmd_direction_user_normal
 
     mov  Ext_Telemetry_L, #0FFh
@@ -138,7 +136,7 @@ dshot_cmd_extended_telemetry_disable:
     sjmp dshot_cmd_exit
 
 dshot_cmd_direction_user_normal:
-; Set motor spinning direction to user programmed direction
+    ; Set motor spinning direction to user programmed direction
     cjne Temp1, #20, dshot_cmd_direction_user_reverse
 
     mov  Temp2, #Pgm_Direction          ; Read programmed direction
@@ -150,7 +148,7 @@ dshot_cmd_direction_user_normal:
     sjmp dshot_cmd_exit
 
 dshot_cmd_direction_user_reverse:       ; Temporary reverse
-; Set motor spinning direction to reverse of user programmed direction
+    ; Set motor spinning direction to reverse of user programmed direction
     cjne Temp1, #21, dshot_cmd_save_settings
 
     mov  Temp2, #Pgm_Direction          ; Read programmed direction
@@ -210,7 +208,7 @@ dshot_tlm_create_packet:
 
     Early_Return_Packet_Stage 0
 
-; If coded telemetry ready jump to telemetry ready
+    ; If coded telemetry ready jump to telemetry ready
     mov  A, Ext_Telemetry_H
     jnz  dshot_tlm_ready
 
@@ -219,8 +217,8 @@ dshot_tlm_create_packet:
     mov  Tlm_Data_H, Comm_Period4x_H
     setb IE_EA
 
-; Calculate e-period (6 commutations) in microseconds
-; Comm_Period * 6 * 0.5 = Comm_Period4x * 3/4 (1/2 + 1/4)
+    ; Calculate e-period (6 commutations) in microseconds
+    ; Comm_Period * 6 * 0.5 = Comm_Period4x * 3/4 (1/2 + 1/4)
     mov  C, Tlm_Data_H.0
     rrc  A
     mov  Temp2, A
@@ -238,11 +236,11 @@ dshot_tlm_create_packet:
     addc A, Temp2
     mov  Temp4, A                       ; Comm_Period3x_H
 
-; Timer2 ticks are ~489ns (not 500ns), so use approximation for better accuracy:
-; E-period = Comm_Period3x - 4 * Comm_Period4x_H
+    ; Timer2 ticks are ~489ns (not 500ns), so use approximation for better accuracy:
+    ; E-period = Comm_Period3x - 4 * Comm_Period4x_H
 
-; Note: For better performance assume Comm_Period4x_H < 64 (6-bit, above ~5k erpm)
-; At lower speed result will be less precise
+    ; Note: For better performance assume Comm_Period4x_H < 64 (6-bit, above ~5k erpm)
+    ; At lower speed result will be less precise
     mov  A, Tlm_Data_H                  ; Comm_Period4x_H
     rl   A                              ; Multiply by 4
     rl   A
@@ -260,39 +258,39 @@ dshot_tlm_create_packet:
 dshot_tlm_ready:
     Early_Return_Packet_Stage 1
 
-; If extended telemetry ready jump to extended telemetry coded
+    ; If extended telemetry ready jump to extended telemetry coded
     mov  A, Ext_Telemetry_H
     jnz  dshot_tlm_ext_coded
 
-; 12-bit encode telemetry data
+    ; 12-bit encode telemetry data
     mov  A, Tlm_Data_H
     jnz  dshot_12bit_encode
     mov  A, Tlm_Data_L                  ; Already 12-bit
     jnz  dshot_tlm_12bit_encoded
 
-; If period is zero then reset to FFFFh (FFFh for 12-bit)
+    ; If period is zero then reset to FFFFh (FFFh for 12-bit)
     mov  Tlm_Data_H, #0Fh
     mov  Tlm_Data_L, #0FFh
     sjmp dshot_tlm_12bit_encoded
 
 dshot_tlm_ext_coded:
-; Move extended telemetry data to telemetry data to send
+    ; Move extended telemetry data to telemetry data to send
     mov  Tlm_Data_L, Ext_Telemetry_L
     mov  Tlm_Data_H, Ext_Telemetry_H
-; Clear extended telemetry data
+    ; Clear extended telemetry data
     mov  Ext_Telemetry_H, #0
 
 dshot_tlm_12bit_encoded:
     Early_Return_Packet_Stage 2
     mov  A, Tlm_Data_L
 
-; Compute inverted xor checksum (4-bit)
+    ; Compute inverted xor checksum (4-bit)
     swap A
     xrl  A, Tlm_Data_L
     xrl  A, Tlm_Data_H
     cpl  A
 
-; GCR encode the telemetry data (16-bit)
+    ; GCR encode the telemetry data (16-bit)
     mov  Temp1, #Temp_Storage           ; Store pulse timings in Temp_Storage
     mov  @Temp1, DShot_GCR_Pulse_Time_1 ; Final transition time
 
@@ -332,7 +330,7 @@ dshot_tlm_12bit_encoded:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 dshot_12bit_encode:
-; Encode 16-bit e-period as a 12-bit value
+    ; Encode 16-bit e-period as a 12-bit value
     jb   ACC.7, dshot_12bit_7           ; ACC = Tlm_Data_H
     jb   ACC.6, dshot_12bit_6
     jb   ACC.5, dshot_12bit_5
@@ -344,7 +342,7 @@ dshot_12bit_encode:
     jmp  dshot_tlm_12bit_encoded
 
 dshot_12bit_7:
-;mov    A, Tlm_Data_H
+    ;mov  A, Tlm_Data_H
     mov  C, Tlm_Data_L.7
     rlc  A
     mov  Tlm_Data_L, A
@@ -352,7 +350,7 @@ dshot_12bit_7:
     jmp  dshot_tlm_12bit_encoded
 
 dshot_12bit_6:
-;mov    A, Tlm_Data_H
+    ;mov  A, Tlm_Data_H
     mov  C, Tlm_Data_L.7
     rlc  A
     mov  C, Tlm_Data_L.6
@@ -362,7 +360,7 @@ dshot_12bit_6:
     jmp  dshot_tlm_12bit_encoded
 
 dshot_12bit_5:
-;mov    A, Tlm_Data_H
+    ;mov  A, Tlm_Data_H
     mov  C, Tlm_Data_L.7
     rlc  A
     mov  C, Tlm_Data_L.6
