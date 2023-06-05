@@ -1,4 +1,4 @@
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Bluejay digital ESC firmware for controlling brushless motors in multirotors
 ;
@@ -22,13 +22,10 @@
 ; along with Bluejay.  If not, see <http://www.gnu.org/licenses/>.
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; DShot
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
@@ -38,19 +35,18 @@
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 detect_rcp_level:
-    mov A, #50                  ; Must detect the same level 50 times (25 us)
-    mov C, RTX_BIT
+    mov  A, #50                         ; Must detect the same level 50 times (25 us)
+    mov  C, RTX_BIT
 
 detect_rcp_level_read:
-    jc  ($+5)
-    jb  RTX_BIT, detect_rcp_level   ; Level changed from low to high - start over
-    jnc ($+5)
-    jnb RTX_BIT, detect_rcp_level   ; Level changed from high to low - start over
-    djnz    ACC, detect_rcp_level_read
+    jc   ($+5)
+    jb   RTX_BIT, detect_rcp_level      ; Level changed from low to high - start over
+    jnc  ($+5)
+    jnb  RTX_BIT, detect_rcp_level      ; Level changed from high to low - start over
+    djnz ACC, detect_rcp_level_read
 
-    mov Flag_Rcp_DShot_Inverted, C
+    mov  Flag_Rcp_DShot_Inverted, C
     ret
-
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
@@ -60,139 +56,138 @@ detect_rcp_level_read:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 dshot_cmd_check:
-    mov A, DShot_Cmd
-    jnz dshot_cmd_beeps_check
+    mov  A, DShot_Cmd
+    jnz  dshot_cmd_beeps_check
     ret
 
 dshot_cmd_beeps_check:
-    mov Temp1, A
-    clr C
-    subb    A, #6               ; Beacon beeps for command 1-5
-    jnc dshot_cmd_check_count
+    mov  Temp1, A
+    clr  C
+    subb A, #6                          ; Beacon beeps for command 1-5
+    jnc  dshot_cmd_check_count
 
-    clr IE_EA                   ; Disable all interrupts
-    call    switch_power_off    ; Switch power off in case braking is set
-    call    beacon_beep
-    call    wait200ms           ; Wait a bit for next beep
-    setb    IE_EA               ; Enable all interrupts
+    clr  IE_EA                          ; Disable all interrupts
+    call switch_power_off               ; Switch power off in case braking is set
+    call beacon_beep
+    call wait200ms                      ; Wait a bit for next beep
+    setb IE_EA                          ; Enable all interrupts
 
-    sjmp    dshot_cmd_exit
+    sjmp dshot_cmd_exit
 
 dshot_cmd_check_count:
     ; Remaining commands must be received 6 times in a row
-    clr C
-    mov A, DShot_Cmd_Cnt
-    subb    A, #6
-    jc  dshot_cmd_exit_no_clear
+    clr  C
+    mov  A, DShot_Cmd_Cnt
+    subb A, #6
+    jc   dshot_cmd_exit_no_clear
 
 dshot_cmd_direction_normal:
     ; Set motor spinning direction to normal
-    cjne    Temp1, #7, dshot_cmd_direction_reverse
+    cjne Temp1, #7, dshot_cmd_direction_reverse
 
-    clr Flag_Pgm_Dir_Rev
+    clr  Flag_Pgm_Dir_Rev
 
-    sjmp    dshot_cmd_exit
+    sjmp dshot_cmd_exit
 
 dshot_cmd_direction_reverse:
     ; Set motor spinning direction to reversed
-    cjne    Temp1, #8, dshot_cmd_direction_bidir_off
+    cjne Temp1, #8, dshot_cmd_direction_bidir_off
 
-    setb    Flag_Pgm_Dir_Rev
+    setb Flag_Pgm_Dir_Rev
 
-    sjmp    dshot_cmd_exit
+    sjmp dshot_cmd_exit
 
 dshot_cmd_direction_bidir_off:
     ; Set motor control mode to normal (not bidirectional)
-    cjne    Temp1, #9, dshot_cmd_direction_bidir_on
+    cjne Temp1, #9, dshot_cmd_direction_bidir_on
 
-    clr Flag_Pgm_Bidir
+    clr  Flag_Pgm_Bidir
 
-    sjmp    dshot_cmd_exit
+    sjmp dshot_cmd_exit
 
 dshot_cmd_direction_bidir_on:
     ; Set motor control mode to bidirectional
-    cjne    Temp1, #10, dshot_cmd_extended_telemetry_enable
+    cjne Temp1, #10, dshot_cmd_extended_telemetry_enable
 
-    setb    Flag_Pgm_Bidir
+    setb Flag_Pgm_Bidir
 
-    sjmp    dshot_cmd_exit
+    sjmp dshot_cmd_exit
 
 dshot_cmd_extended_telemetry_enable:
     ; Enable extended telemetry
-    cjne    Temp1, #13, dshot_cmd_extended_telemetry_disable
+    cjne Temp1, #13, dshot_cmd_extended_telemetry_disable
 
-    mov Ext_Telemetry_L, #00h
-    mov Ext_Telemetry_H, #0Eh   ; Send state/event 0 frame to signal telemetry enable
+    mov  Ext_Telemetry_L, #00h
+    mov  Ext_Telemetry_H, #0Eh          ; Send state/event 0 frame to signal telemetry enable
 
-    setb    Flag_Ext_Tele
+    setb Flag_Ext_Tele
 
-    sjmp    dshot_cmd_exit
+    sjmp dshot_cmd_exit
 
 dshot_cmd_extended_telemetry_disable:
     ; Disable extended telemetry
-    cjne    Temp1, #14, dshot_cmd_direction_user_normal
+    cjne Temp1, #14, dshot_cmd_direction_user_normal
 
-    mov Ext_Telemetry_L, #0FFh
-    mov Ext_Telemetry_H, #0Eh   ; Send state/event 0xff frame to signal telemetry disable
+    mov  Ext_Telemetry_L, #0FFh
+    mov  Ext_Telemetry_H, #0Eh          ; Send state/event 0xff frame to signal telemetry disable
 
-    clr     Flag_Ext_Tele
+    clr  Flag_Ext_Tele
 
-    sjmp    dshot_cmd_exit
+    sjmp dshot_cmd_exit
 
 dshot_cmd_direction_user_normal:
     ; Set motor spinning direction to user programmed direction
-    cjne    Temp1, #20, dshot_cmd_direction_user_reverse
+    cjne Temp1, #20, dshot_cmd_direction_user_reverse
 
-    mov Temp2, #Pgm_Direction       ; Read programmed direction
-    mov A, @Temp2
-    dec A
-    mov C, ACC.0                    ; Set direction
-    mov Flag_Pgm_Dir_Rev, C
+    mov  Temp2, #Pgm_Direction          ; Read programmed direction
+    mov  A, @Temp2
+    dec  A
+    mov  C, ACC.0                       ; Set direction
+    mov  Flag_Pgm_Dir_Rev, C
 
-    sjmp    dshot_cmd_exit
+    sjmp dshot_cmd_exit
 
 dshot_cmd_direction_user_reverse:       ; Temporary reverse
     ; Set motor spinning direction to reverse of user programmed direction
-    cjne    Temp1, #21, dshot_cmd_save_settings
+    cjne Temp1, #21, dshot_cmd_save_settings
 
-    mov Temp2, #Pgm_Direction       ; Read programmed direction
-    mov A, @Temp2
-    dec A
-    mov C, ACC.0
-    cpl C                       ; Set reverse direction
-    mov Flag_Pgm_Dir_Rev, C
+    mov  Temp2, #Pgm_Direction          ; Read programmed direction
+    mov  A, @Temp2
+    dec  A
+    mov  C, ACC.0
+    cpl  C                              ; Set reverse direction
+    mov  Flag_Pgm_Dir_Rev, C
 
-    sjmp    dshot_cmd_exit
+    sjmp dshot_cmd_exit
 
 dshot_cmd_save_settings:
-    cjne    Temp1, #12, dshot_cmd_exit
+    cjne Temp1, #12, dshot_cmd_exit
 
-    clr A                       ; Set programmed direction from flags
-    mov C, Flag_Pgm_Dir_Rev
-    mov ACC.0, C
-    mov C, Flag_Pgm_Bidir
-    mov ACC.1, C
-    inc A
-    mov Temp2, #Pgm_Direction       ; Store programmed direction
-    mov @Temp2, A
+    clr  A                              ; Set programmed direction from flags
+    mov  C, Flag_Pgm_Dir_Rev
+    mov  ACC.0, C
+    mov  C, Flag_Pgm_Bidir
+    mov  ACC.1, C
+    inc  A
+    mov  Temp2, #Pgm_Direction          ; Store programmed direction
+    mov  @Temp2, A
 
-    mov Flash_Key_1, #0A5h          ; Initialize flash keys to valid values
-    mov Flash_Key_2, #0F1h
+    mov  Flash_Key_1, #0A5h             ; Initialize flash keys to valid values
+    mov  Flash_Key_2, #0F1h
 
-    call    erase_and_store_all_in_eeprom
+    call erase_and_store_all_in_eeprom
 
-    mov Flash_Key_1, #0         ; Reset flash keys to invalid values
-    mov Flash_Key_2, #0
+    mov  Flash_Key_1, #0                ; Reset flash keys to invalid values
+    mov  Flash_Key_2, #0
 
-    setb    IE_EA
+    setb IE_EA
 
 dshot_cmd_exit:
-    mov DShot_Cmd, #0               ; Clear DShot command and exit
-    mov DShot_Cmd_Cnt, #0
+    mov  DShot_Cmd, #0                  ; Clear DShot command and exit
+    mov  DShot_Cmd_Cnt, #0
 
 dshot_cmd_exit_no_clear:
     ret
-
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
@@ -208,122 +203,121 @@ dshot_cmd_exit_no_clear:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 dshot_tlm_create_packet:
-    push    PSW
-    mov PSW, #10h                   ; Select register bank 2
+    push PSW
+    mov  PSW, #10h                      ; Select register bank 2
 
     Early_Return_Packet_Stage 0
 
     ; If coded telemetry ready jump to telemetry ready
-    mov A, Ext_Telemetry_H
-    jnz dshot_tlm_ready
+    mov  A, Ext_Telemetry_H
+    jnz  dshot_tlm_ready
 
-    clr IE_EA
-    mov A, Comm_Period4x_L          ; Read commutation period
-    mov Tlm_Data_H, Comm_Period4x_H
-    setb    IE_EA
+    clr  IE_EA
+    mov  A, Comm_Period4x_L             ; Read commutation period
+    mov  Tlm_Data_H, Comm_Period4x_H
+    setb IE_EA
 
     ; Calculate e-period (6 commutations) in microseconds
     ; Comm_Period * 6 * 0.5 = Comm_Period4x * 3/4 (1/2 + 1/4)
-    mov C, Tlm_Data_H.0
-    rrc A
-    mov Temp2, A
-    mov C, Tlm_Data_H.1
-    rrc A
-    add A, Temp2
-    mov Temp3, A                    ; Comm_Period3x_L
+    mov  C, Tlm_Data_H.0
+    rrc  A
+    mov  Temp2, A
+    mov  C, Tlm_Data_H.1
+    rrc  A
+    add  A, Temp2
+    mov  Temp3, A                       ; Comm_Period3x_L
 
-    mov A, Tlm_Data_H
-    rr  A
-    clr ACC.7
-    mov Temp2, A
-    rr  A
-    clr ACC.7
-    addc    A, Temp2
-    mov Temp4, A                    ; Comm_Period3x_H
+    mov  A, Tlm_Data_H
+    rr   A
+    clr  ACC.7
+    mov  Temp2, A
+    rr   A
+    clr  ACC.7
+    addc A, Temp2
+    mov  Temp4, A                       ; Comm_Period3x_H
 
     ; Timer2 ticks are ~489ns (not 500ns), so use approximation for better accuracy:
     ; E-period = Comm_Period3x - 4 * Comm_Period4x_H
 
     ; Note: For better performance assume Comm_Period4x_H < 64 (6-bit, above ~5k erpm)
     ; At lower speed result will be less precise
-    mov A, Tlm_Data_H               ; Comm_Period4x_H
-    rl  A                       ; Multiply by 4
-    rl  A
-    anl A, #0FCh
-    mov Temp5, A
+    mov  A, Tlm_Data_H                  ; Comm_Period4x_H
+    rl   A                              ; Multiply by 4
+    rl   A
+    anl  A, #0FCh
+    mov  Temp5, A
 
-    clr C
-    mov A, Temp3                    ; Comm_Period3x_L
-    subb    A, Temp5
-    mov Tlm_Data_L, A
-    mov A, Temp4                    ; Comm_Period3x_H
-    subb    A, #0
-    mov Tlm_Data_H, A
+    clr  C
+    mov  A, Temp3                       ; Comm_Period3x_L
+    subb A, Temp5
+    mov  Tlm_Data_L, A
+    mov  A, Temp4                       ; Comm_Period3x_H
+    subb A, #0
+    mov  Tlm_Data_H, A
 
 dshot_tlm_ready:
     Early_Return_Packet_Stage 1
 
     ; If extended telemetry ready jump to extended telemetry coded
-    mov A, Ext_Telemetry_H
-    jnz dshot_tlm_ext_coded
+    mov  A, Ext_Telemetry_H
+    jnz  dshot_tlm_ext_coded
 
     ; 12-bit encode telemetry data
-    mov A, Tlm_Data_H
-    jnz dshot_12bit_encode
-    mov A, Tlm_Data_L               ; Already 12-bit
-    jnz dshot_tlm_12bit_encoded
+    mov  A, Tlm_Data_H
+    jnz  dshot_12bit_encode
+    mov  A, Tlm_Data_L                  ; Already 12-bit
+    jnz  dshot_tlm_12bit_encoded
 
     ; If period is zero then reset to FFFFh (FFFh for 12-bit)
-    mov Tlm_Data_H, #0Fh
-    mov Tlm_Data_L, #0FFh
+    mov  Tlm_Data_H, #0Fh
+    mov  Tlm_Data_L, #0FFh
     sjmp dshot_tlm_12bit_encoded
 
 dshot_tlm_ext_coded:
     ; Move extended telemetry data to telemetry data to send
-    mov Tlm_Data_L, Ext_Telemetry_L
-    mov Tlm_Data_H, Ext_Telemetry_H
+    mov  Tlm_Data_L, Ext_Telemetry_L
+    mov  Tlm_Data_H, Ext_Telemetry_H
     ; Clear extended telemetry data
-    mov Ext_Telemetry_H, #0
+    mov  Ext_Telemetry_H, #0
 
 dshot_tlm_12bit_encoded:
     Early_Return_Packet_Stage 2
-    mov A, Tlm_Data_L
+    mov  A, Tlm_Data_L
 
     ; Compute inverted xor checksum (4-bit)
-    swap    A
-    xrl A, Tlm_Data_L
-    xrl A, Tlm_Data_H
-    cpl A
+    swap A
+    xrl  A, Tlm_Data_L
+    xrl  A, Tlm_Data_H
+    cpl  A
 
     ; GCR encode the telemetry data (16-bit)
-    mov Temp1, #Temp_Storage        ; Store pulse timings in Temp_Storage
-    mov @Temp1, DShot_GCR_Pulse_Time_1; Final transition time
+    mov  Temp1, #Temp_Storage           ; Store pulse timings in Temp_Storage
+    mov  @Temp1, DShot_GCR_Pulse_Time_1 ; Final transition time
 
-    call    dshot_gcr_encode            ; GCR encode lowest 4-bit of A (store through Temp1)
+    call dshot_gcr_encode               ; GCR encode lowest 4-bit of A (store through Temp1)
 
     Early_Return_Packet_Stage 3
 
-    mov A, Tlm_Data_L
-    call    dshot_gcr_encode
+    mov  A, Tlm_Data_L
+    call dshot_gcr_encode
 
     Early_Return_Packet_Stage 4
 
-    mov A, Tlm_Data_L
-    swap    A
-    call    dshot_gcr_encode
+    mov  A, Tlm_Data_L
+    swap A
+    call dshot_gcr_encode
 
     Early_Return_Packet_Stage 5
 
-    mov A, Tlm_Data_H
-    call    dshot_gcr_encode
+    mov  A, Tlm_Data_H
+    call dshot_gcr_encode
 
-    inc Temp1
-    mov Temp7, #0                   ; Reset current packet stage
+    inc  Temp1
+    mov  Temp7, #0                      ; Reset current packet stage
 
-    pop PSW
-    setb    Flag_Telemetry_Pending      ; Mark that packet is ready to be sent
+    pop  PSW
+    setb Flag_Telemetry_Pending         ; Mark that packet is ready to be sent
     ret
-
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
@@ -337,86 +331,85 @@ dshot_tlm_12bit_encoded:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 dshot_12bit_encode:
     ; Encode 16-bit e-period as a 12-bit value
-    jb  ACC.7, dshot_12bit_7        ; ACC = Tlm_Data_H
-    jb  ACC.6, dshot_12bit_6
-    jb  ACC.5, dshot_12bit_5
-    jb  ACC.4, dshot_12bit_4
-    jb  ACC.3, dshot_12bit_3
-    jb  ACC.2, dshot_12bit_2
-    jb  ACC.1, dshot_12bit_1
-    mov A, Tlm_Data_L               ; Already 12-bit (E=0)
-    jmp dshot_tlm_12bit_encoded
+    jb   ACC.7, dshot_12bit_7           ; ACC = Tlm_Data_H
+    jb   ACC.6, dshot_12bit_6
+    jb   ACC.5, dshot_12bit_5
+    jb   ACC.4, dshot_12bit_4
+    jb   ACC.3, dshot_12bit_3
+    jb   ACC.2, dshot_12bit_2
+    jb   ACC.1, dshot_12bit_1
+    mov  A, Tlm_Data_L                  ; Already 12-bit (E=0)
+    jmp  dshot_tlm_12bit_encoded
 
 dshot_12bit_7:
-    ;mov    A, Tlm_Data_H
-    mov C, Tlm_Data_L.7
-    rlc A
-    mov Tlm_Data_L, A
-    mov Tlm_Data_H, #0fh
-    jmp dshot_tlm_12bit_encoded
+    ;mov  A, Tlm_Data_H
+    mov  C, Tlm_Data_L.7
+    rlc  A
+    mov  Tlm_Data_L, A
+    mov  Tlm_Data_H, #0fh
+    jmp  dshot_tlm_12bit_encoded
 
 dshot_12bit_6:
-    ;mov    A, Tlm_Data_H
-    mov C, Tlm_Data_L.7
-    rlc A
-    mov C, Tlm_Data_L.6
-    rlc A
-    mov Tlm_Data_L, A
-    mov Tlm_Data_H, #0dh
-    jmp dshot_tlm_12bit_encoded
+    ;mov  A, Tlm_Data_H
+    mov  C, Tlm_Data_L.7
+    rlc  A
+    mov  C, Tlm_Data_L.6
+    rlc  A
+    mov  Tlm_Data_L, A
+    mov  Tlm_Data_H, #0dh
+    jmp  dshot_tlm_12bit_encoded
 
 dshot_12bit_5:
-    ;mov    A, Tlm_Data_H
-    mov C, Tlm_Data_L.7
-    rlc A
-    mov C, Tlm_Data_L.6
-    rlc A
-    mov C, Tlm_Data_L.5
-    rlc A
-    mov Tlm_Data_L, A
-    mov Tlm_Data_H, #0bh
-    jmp dshot_tlm_12bit_encoded
+    ;mov  A, Tlm_Data_H
+    mov  C, Tlm_Data_L.7
+    rlc  A
+    mov  C, Tlm_Data_L.6
+    rlc  A
+    mov  C, Tlm_Data_L.5
+    rlc  A
+    mov  Tlm_Data_L, A
+    mov  Tlm_Data_H, #0bh
+    jmp  dshot_tlm_12bit_encoded
 
 dshot_12bit_4:
-    mov A, Tlm_Data_L
-    anl A, #0f0h
-    clr Tlm_Data_H.4
-    orl A, Tlm_Data_H
-    swap    A
-    mov Tlm_Data_L, A
-    mov Tlm_Data_H, #09h
-    jmp dshot_tlm_12bit_encoded
+    mov  A, Tlm_Data_L
+    anl  A, #0f0h
+    clr  Tlm_Data_H.4
+    orl  A, Tlm_Data_H
+    swap A
+    mov  Tlm_Data_L, A
+    mov  Tlm_Data_H, #09h
+    jmp  dshot_tlm_12bit_encoded
 
 dshot_12bit_3:
-    mov A, Tlm_Data_L
-    mov C, Tlm_Data_H.0
-    rrc A
-    mov C, Tlm_Data_H.1
-    rrc A
-    mov C, Tlm_Data_H.2
-    rrc A
-    mov Tlm_Data_L, A
-    mov Tlm_Data_H, #07h
-    jmp dshot_tlm_12bit_encoded
+    mov  A, Tlm_Data_L
+    mov  C, Tlm_Data_H.0
+    rrc  A
+    mov  C, Tlm_Data_H.1
+    rrc  A
+    mov  C, Tlm_Data_H.2
+    rrc  A
+    mov  Tlm_Data_L, A
+    mov  Tlm_Data_H, #07h
+    jmp  dshot_tlm_12bit_encoded
 
 dshot_12bit_2:
-    mov A, Tlm_Data_L
-    mov C, Tlm_Data_H.0
-    rrc A
-    mov C, Tlm_Data_H.1
-    rrc A
-    mov Tlm_Data_L, A
-    mov Tlm_Data_H, #05h
-    jmp dshot_tlm_12bit_encoded
+    mov  A, Tlm_Data_L
+    mov  C, Tlm_Data_H.0
+    rrc  A
+    mov  C, Tlm_Data_H.1
+    rrc  A
+    mov  Tlm_Data_L, A
+    mov  Tlm_Data_H, #05h
+    jmp  dshot_tlm_12bit_encoded
 
 dshot_12bit_1:
-    mov A, Tlm_Data_L
-    mov C, Tlm_Data_H.0
-    rrc A
-    mov Tlm_Data_L, A
-    mov Tlm_Data_H, #03h
-    jmp dshot_tlm_12bit_encoded
-
+    mov  A, Tlm_Data_L
+    mov  C, Tlm_Data_H.0
+    rrc  A
+    mov  Tlm_Data_L, A
+    mov  Tlm_Data_H, #03h
+    jmp  dshot_tlm_12bit_encoded
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
@@ -433,132 +426,131 @@ dshot_12bit_1:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 dshot_gcr_encode:
-    anl A, #0Fh
-    rl  A   ; Multiply by 2 to match jump offsets
-    mov DPTR, #dshot_gcr_encode_jump_table
-    jmp @A+DPTR
+    anl  A, #0Fh
+    rl   A                              ; Multiply by 2 to match jump offsets
+    mov  DPTR, #dshot_gcr_encode_jump_table
+    jmp  @A+DPTR
 
 dshot_gcr_encode_jump_table:
-    ajmp    dshot_gcr_encode_0_11001
-    ajmp    dshot_gcr_encode_1_11011
-    ajmp    dshot_gcr_encode_2_10010
-    ajmp    dshot_gcr_encode_3_10011
-    ajmp    dshot_gcr_encode_4_11101
-    ajmp    dshot_gcr_encode_5_10101
-    ajmp    dshot_gcr_encode_6_10110
-    ajmp    dshot_gcr_encode_7_10111
-    ajmp    dshot_gcr_encode_8_11010
-    ajmp    dshot_gcr_encode_9_01001
-    ajmp    dshot_gcr_encode_A_01010
-    ajmp    dshot_gcr_encode_B_01011
-    ajmp    dshot_gcr_encode_C_11110
-    ajmp    dshot_gcr_encode_D_01101
-    ajmp    dshot_gcr_encode_E_01110
-    ajmp    dshot_gcr_encode_F_01111
+    ajmp dshot_gcr_encode_0_11001
+    ajmp dshot_gcr_encode_1_11011
+    ajmp dshot_gcr_encode_2_10010
+    ajmp dshot_gcr_encode_3_10011
+    ajmp dshot_gcr_encode_4_11101
+    ajmp dshot_gcr_encode_5_10101
+    ajmp dshot_gcr_encode_6_10110
+    ajmp dshot_gcr_encode_7_10111
+    ajmp dshot_gcr_encode_8_11010
+    ajmp dshot_gcr_encode_9_01001
+    ajmp dshot_gcr_encode_A_01010
+    ajmp dshot_gcr_encode_B_01011
+    ajmp dshot_gcr_encode_C_11110
+    ajmp dshot_gcr_encode_D_01101
+    ajmp dshot_gcr_encode_E_01110
+    ajmp dshot_gcr_encode_F_01111
 
 ; GCR encoding is ordered by least significant bit first,
 ; and represented as pulse durations.
 dshot_gcr_encode_0_11001:
-    imov    Temp1, DShot_GCR_Pulse_Time_3
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_3
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_1
     ret
 
 dshot_gcr_encode_1_11011:
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_2
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_2
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_1
     ret
 
 dshot_gcr_encode_2_10010:
-    GCR_Add_Time    Temp1
-    imov    Temp1, DShot_GCR_Pulse_Time_3
-    imov    Temp1, DShot_GCR_Pulse_Time_1
+    GCR_Add_Time Temp1
+    imov Temp1, DShot_GCR_Pulse_Time_3
+    imov Temp1, DShot_GCR_Pulse_Time_1
     ret
 
 dshot_gcr_encode_3_10011:
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_3
-    imov    Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_3
+    imov Temp1, DShot_GCR_Pulse_Time_1
     ret
 
 dshot_gcr_encode_4_11101:
-    imov    Temp1, DShot_GCR_Pulse_Time_2
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_2
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_1
     ret
 
 dshot_gcr_encode_5_10101:
-    imov    Temp1, DShot_GCR_Pulse_Time_2
-    imov    Temp1, DShot_GCR_Pulse_Time_2
-    imov    Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_2
+    imov Temp1, DShot_GCR_Pulse_Time_2
+    imov Temp1, DShot_GCR_Pulse_Time_1
     ret
 
 dshot_gcr_encode_6_10110:
-    GCR_Add_Time    Temp1
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_2
-    imov    Temp1, DShot_GCR_Pulse_Time_1
+    GCR_Add_Time Temp1
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_2
+    imov Temp1, DShot_GCR_Pulse_Time_1
     ret
 
 dshot_gcr_encode_7_10111:
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_2
-    imov    Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_2
+    imov Temp1, DShot_GCR_Pulse_Time_1
     ret
 
 dshot_gcr_encode_8_11010:
-    GCR_Add_Time    Temp1
-    imov    Temp1, DShot_GCR_Pulse_Time_2
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_1
+    GCR_Add_Time Temp1
+    imov Temp1, DShot_GCR_Pulse_Time_2
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_1
     ret
 
 dshot_gcr_encode_9_01001:
-    imov    Temp1, DShot_GCR_Pulse_Time_3
-    imov    Temp1, DShot_GCR_Pulse_Time_2
+    imov Temp1, DShot_GCR_Pulse_Time_3
+    imov Temp1, DShot_GCR_Pulse_Time_2
     ret
 
 dshot_gcr_encode_A_01010:
-    GCR_Add_Time    Temp1
-    imov    Temp1, DShot_GCR_Pulse_Time_2
-    imov    Temp1, DShot_GCR_Pulse_Time_2
+    GCR_Add_Time Temp1
+    imov Temp1, DShot_GCR_Pulse_Time_2
+    imov Temp1, DShot_GCR_Pulse_Time_2
     ret
 
 dshot_gcr_encode_B_01011:
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_2
-    imov    Temp1, DShot_GCR_Pulse_Time_2
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_2
+    imov Temp1, DShot_GCR_Pulse_Time_2
     ret
 
 dshot_gcr_encode_C_11110:
-    GCR_Add_Time    Temp1
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_1
+    GCR_Add_Time Temp1
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_1
     ret
 
 dshot_gcr_encode_D_01101:
-    imov    Temp1, DShot_GCR_Pulse_Time_2
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_2
+    imov Temp1, DShot_GCR_Pulse_Time_2
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_2
     ret
 
 dshot_gcr_encode_E_01110:
-    GCR_Add_Time    Temp1
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_2
+    GCR_Add_Time Temp1
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_2
     ret
 
 dshot_gcr_encode_F_01111:
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_1
-    imov    Temp1, DShot_GCR_Pulse_Time_2
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_1
+    imov Temp1, DShot_GCR_Pulse_Time_2
     ret
-

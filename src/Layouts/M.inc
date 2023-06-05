@@ -1,4 +1,4 @@
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Bluejay digital ESC firmware for controlling brushless motors in multirotors
 ;
@@ -20,94 +20,93 @@
 ; You should have received a copy of the GNU General Public License
 ; along with Bluejay.  If not, see <http://www.gnu.org/licenses/>.
 ;
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Hardware definition file "M".
-; MA MC CC MB RC L0 X  X     X  Cc Bc Ac Cp Bp Ap X
 ;
-;**** **** **** **** ****
+; PORT 0                   |  PORT 1                   |  PWM    COM    PWM    LED
+; P0 P1 P2 P3 P4 P5 P6 P7  |  P0 P1 P2 P3 P4 P5 P6 P7  |  inv    inv    side    n
+; -----------------------  |  -----------------------  |  -------------------------
+; __ __ L0 RX Bm Vn Cm Am  |  __ Ap Bp Cp Ac Bc Cc __  |  no     no     high   1
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
-PWM_ACTIVE_HIGH	EQU	1		; Pwm non-inverted
-COM_ACTIVE_HIGH	EQU	1		; Damping inverted
+PWM_ACTIVE_HIGH EQU 1                   ; Pwm non-inverted
+COM_ACTIVE_HIGH EQU 1                   ; Damping inverted
 
-COMPARATOR_PORT	EQU	0		; All comparator (mux) pins must be on the same port
-COMPARATOR_INVERT	EQU	0		; Comparator output non-inverted
+COMPARATOR_PORT EQU 0                   ; All comparator (mux) pins must be on the same port
+COMPARATOR_INVERT EQU 0                 ; Comparator output non-inverted
 
 IF DEADTIME == 0
-	PCA0CPM_POWER	EQU	PCA0CPM0
-	PCA0CPL_POWER	EQU	PCA0CPL0
-	PCA0CPH_POWER	EQU	PCA0CPH0
+    PCA0CPM_POWER EQU PCA0CPM0
+    PCA0CPL_POWER EQU PCA0CPL0
+    PCA0CPH_POWER EQU PCA0CPH0
 
-	PCA0CPM_DAMP	EQU	PCA0CPM1
-	PCA0CPL_DAMP	EQU	PCA0CPL1
-	PCA0CPH_DAMP	EQU	PCA0CPH1
+    PCA0CPM_DAMP EQU PCA0CPM1
+    PCA0CPL_DAMP EQU PCA0CPL1
+    PCA0CPH_DAMP EQU PCA0CPH1
 ELSE
-	PCA0CPM_POWER	EQU	PCA0CPM0
-	PCA0CPL_POWER	EQU	PCA0CPL0
-	PCA0CPH_POWER	EQU	PCA0CPH0
+    PCA0CPM_POWER EQU PCA0CPM0
+    PCA0CPL_POWER EQU PCA0CPL0
+    PCA0CPH_POWER EQU PCA0CPH0
 
-	PCA0CPM_DAMP	EQU	PCA0CPM1
-	PCA0CPL_DAMP	EQU	PCA0CPL1
-	PCA0CPH_DAMP	EQU	PCA0CPH1
+    PCA0CPM_DAMP EQU PCA0CPM1
+    PCA0CPL_DAMP EQU PCA0CPL1
+    PCA0CPH_DAMP EQU PCA0CPH1
 ENDIF
 
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+; PORT 0 definitions
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+A_Mux EQU 7
+C_Mux EQU 6
+V_Mux EQU 5
+B_Mux EQU 4
+RTX_PIN EQU 3
+LED_0 EQU 2
+;     EQU 1
+;     EQU 0
 
-;*********************
-; PORT 0 definitions *
-;*********************
-A_Mux		EQU	7
-C_Mux		EQU	6
-V_Mux		EQU	5
-B_Mux		EQU	4
-RTX_PIN		EQU	3
-LED_0		EQU	2
-;			EQU	1
-;			EQU	0
+P0_DIGITAL EQU NOT((1 SHL A_Mux) + (1 SHL B_Mux) + (1 SHL C_Mux) + (1 SHL V_Mux))
+P0_INIT EQU NOT(1 SHL LED_0)
+P0_PUSHPULL EQU (1 SHL LED_0)
+P0_SKIP EQU 0FFh
 
-P0_DIGITAL	EQU	NOT((1 SHL A_Mux) + (1 SHL B_Mux) + (1 SHL C_Mux) + (1 SHL V_Mux))
-P0_INIT		EQU	NOT(1 SHL LED_0)
-P0_PUSHPULL	EQU	(1 SHL LED_0)
-P0_SKIP		EQU	0FFh
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+; PORT 1 definitions
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;     EQU 7
+C_Com EQU 6
+B_Com EQU 5
+A_Com EQU 4
+C_Pwm EQU 3
+B_Pwm EQU 2
+A_Pwm EQU 1
+;     EQU 0
 
+P1_DIGITAL EQU (1 SHL A_Pwm) + (1 SHL B_Pwm) + (1 SHL C_Pwm) + (1 SHL A_Com) + (1 SHL B_Com) + (1 SHL C_Com)
+P1_INIT EQU 00h
+P1_PUSHPULL EQU (1 SHL A_Pwm) + (1 SHL B_Pwm) + (1 SHL C_Pwm) + (1 SHL A_Com) + (1 SHL B_Com) + (1 SHL C_Com)
+P1_SKIP EQU 0FFh
 
-;*********************
-; PORT 1 definitions *
-;*********************
-;			EQU	7
-C_Com		EQU	6
-B_Com		EQU	5
-A_Com		EQU	4
-C_Pwm		EQU	3
-B_Pwm		EQU	2
-A_Pwm		EQU	1
-;			EQU	0
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+; PORT 2 definitions
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+DebugPin EQU 0
 
+P2_DIGITAL EQU (1 SHL DebugPin)
+P2_PUSHPULL EQU (1 SHL DebugPin)
+P2_SKIP EQU (1 SHL DebugPin)
 
-P1_DIGITAL	EQU	(1 SHL A_Pwm) + (1 SHL B_Pwm) + (1 SHL C_Pwm) + (1 SHL A_Com) + (1 SHL B_Com) + (1 SHL C_Com)
-P1_INIT		EQU	00h
-P1_PUSHPULL	EQU	(1 SHL A_Pwm) + (1 SHL B_Pwm) + (1 SHL C_Pwm) + (1 SHL A_Com) + (1 SHL B_Com) + (1 SHL C_Com)
-P1_SKIP		EQU	0FFh
-
-
-;*********************
-; PORT 2 definitions *
-;*********************
-DebugPin		EQU	0
-
-P2_DIGITAL	EQU	(1 SHL DebugPin)
-P2_PUSHPULL	EQU	(1 SHL DebugPin)
-P2_SKIP		EQU	(1 SHL DebugPin)
-
-
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; LED configuration
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 Set_LED_0 MACRO
-	setb	P0.LED_0
+    setb P0.LED_0
 ENDM
 
 Clear_LED_0 MACRO
-	clr	P0.LED_0
+    clr  P0.LED_0
 ENDM
 
 Set_LED_1 MACRO
@@ -128,9 +127,8 @@ ENDM
 Clear_LED_3 MACRO
 ENDM
 
-
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Inherit base layout
-;**** **** **** **** ****
-$set(CUSTOM_LED)
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+$set (CUSTOM_LED)
 $include (Base.inc)
