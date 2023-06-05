@@ -26,9 +26,10 @@
 ;
 ; "B" with A and C fets swapped.
 ;
-; ------- PORT 0 --------    ------- PORT 1 --------
-; 7  6  5  4  3  2  1  0     7  6  5  4  3  2  1  0
-; X  X  RC X  MC MB MA CC    X  X  Cp Cc Bp Bc Ap Ac
+; PORT 0                   |  PORT 1                   |  PWM    COM    PWM    LED
+; P0 P1 P2 P3 P4 P5 P6 P7  |  P0 P1 P2 P3 P4 P5 P6 P7  |  inv    inv    side    n
+; -----------------------  |  -----------------------  |  -------------------------
+; Vn Am Bm Cm __ RX __ __  |  Ac Ap Bc Bp Cc Cp __ __  |  no     no     high   _
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 

@@ -22,11 +22,12 @@
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
-; Hardware definition file "V"
+; Hardware definition file "V".
 ;
-; ------- PORT 0 --------    ------- PORT 1 --------
-; 7  6  5  4  3  2  1  0     7  6  5  4  3  2  1  0
-; Cc X  RC X  MC CC MB MA    X  Ap Ac Bp X  X  Bc Cp
+; PORT 0                   |  PORT 1                   |  PWM    COM    PWM    LED
+; P0 P1 P2 P3 P4 P5 P6 P7  |  P0 P1 P2 P3 P4 P5 P6 P7  |  inv    inv    side    n
+; -----------------------  |  -----------------------  |  -------------------------
+; Am Bm Vn Cm __ RX __ Cc  |  Cp Bc __ __ Bp Ac Ap __  |  no     no     high   _
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 

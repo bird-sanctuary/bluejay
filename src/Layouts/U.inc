@@ -26,9 +26,10 @@
 ;
 ; Like "M", but with 3 LEDs.
 ;
-; ------- PORT 0 --------    ------- PORT 1 --------
-; 7  6  5  4  3  2  1  0     7  6  5  4  3  2  1  0
-; MA MC CC MB RC L0 L1 L2    X  Cc Bc Ac Cp Bp Ap X
+; PORT 0                   |  PORT 1                   |  PWM    COM    PWM    LED
+; P0 P1 P2 P3 P4 P5 P6 P7  |  P0 P1 P2 P3 P4 P5 P6 P7  |  inv    inv    side    n
+; -----------------------  |  -----------------------  |  -------------------------
+; L2 L1 L0 RX Bm Vn Cm Am  |  __ Ap Bp Cp Ac Bc Cc __  |  no     no     high   3
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 

@@ -24,9 +24,10 @@
 ;
 ; Hardware definition file "C".
 ;
-; ------- PORT 0 --------    ------- PORT 1 --------
-; 7  6  5  4  3  2  1  0     7  6  5  4  3  2  1  0
-; Ac Ap MC MB MA CC X  RC    X  X  X  X  Cc Cp Bc Bp
+; PORT 0                   |  PORT 1                   |  PWM    COM    PWM    LED
+; P0 P1 P2 P3 P4 P5 P6 P7  |  P0 P1 P2 P3 P4 P5 P6 P7  |  inv    inv    side    n
+; -----------------------  |  -----------------------  |  -------------------------
+; RX __ Vn Am Bm Cm Ap Ac  |  Bp Bc Cp Cc __ __ __ __  |  no     no     high   _
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 

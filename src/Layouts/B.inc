@@ -26,9 +26,10 @@
 ;
 ; Equals "A", but with A and C fets swapped and pwm and com fets swapped.
 ;
-; ------- PORT 0 --------    ------- PORT 1 --------
-; 7  6  5  4  3  2  1  0     7  6  5  4  3  2  1  0
-; X  X  RC X  MC MB MA CC    X  X  Ap Ac Bp Bc Cp Cc
+; PORT 0                   |  PORT 1                   |  PWM    COM    PWM    LED
+; P0 P1 P2 P3 P4 P5 P6 P7  |  P0 P1 P2 P3 P4 P5 P6 P7  |  inv    inv    side    n
+; -----------------------  |  -----------------------  |  -------------------------
+; Vn Am Bm Cm __ RX __ __  |  Cc Cp Bc Bp Ac Ap __ __  |  no     no     high   _
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 

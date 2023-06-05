@@ -24,9 +24,10 @@
 ;
 ; Hardware definition file "T".
 ;
-; ------- PORT 0 --------    ------- PORT 1 --------
-; 7  6  5  4  3  2  1  0     7  6  5  4  3  2  1  0
-; RC X  MA X  MB CC MC X     X  X  Cp Bp Ap Ac Bc Cc
+; PORT 0                   |  PORT 1                   |  PWM    COM    PWM    LED
+; P0 P1 P2 P3 P4 P5 P6 P7  |  P0 P1 P2 P3 P4 P5 P6 P7  |  inv    inv    side    n
+; -----------------------  |  -----------------------  |  -------------------------
+; __ Cm Vn Bm __ Am __ RX  |  Cc Bc Ac Ap Bp Cp __ __  |  no     no     high   _
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 

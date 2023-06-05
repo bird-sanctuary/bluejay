@@ -26,9 +26,10 @@
 ;
 ; "I" with different comp ordering.
 ;
-; ------- PORT 0 --------    ------- PORT 1 --------
-; 7  6  5  4  3  2  1  0     7  6  5  4  3  2  1  0
-; X  X  RC X  CC MA MB MC    X  X  Ac Bc Cc Ap Bp Cp
+; PORT 0                   |  PORT 1                   |  PWM    COM    PWM    LED
+; P0 P1 P2 P3 P4 P5 P6 P7  |  P0 P1 P2 P3 P4 P5 P6 P7  |  inv    inv    side    n
+; -----------------------  |  -----------------------  |  -------------------------
+; Cm Bm Am Vn __ RX __ __  |  Cp Bp Ap Cc Bc Ac __ __  |  no     no     high   _
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 

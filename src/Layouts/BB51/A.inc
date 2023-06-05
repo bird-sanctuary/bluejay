@@ -24,9 +24,10 @@
 ;
 ; Hardware definition file "A" for BB51.
 ;
-; ------- PORT 0 --------    ------- PORT 1 --------
-; 7  6  5  4  3  2  1  0     7  6  5  4  3  2  1  0
-; X  X  RC CC MA MC MB X     X  X  Cc Cp Bc Bp Ac Ap
+; PORT 0                   |  PORT 1                   |  PWM    COM    PWM    LED
+; P0 P1 P2 P3 P4 P5 P6 P7  |  P0 P1 P2 P3 P4 P5 P6 P7  |  inv    inv    side    n
+; -----------------------  |  -----------------------  |  -------------------------
+; __ Bm Cm Am Vn RX __ __  |  Ap Ac Bp Bc Cp Cc __ __  |  no     no     low    _
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 

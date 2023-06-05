@@ -24,11 +24,10 @@
 ;
 ; Hardware definition file "W".
 ;
-; This is for tristate input style FET driver chips.
-;
-; ------- PORT 0 --------    ------- PORT 1 --------
-; 7  6  5  4  3  2  1  0     7  6  5  4  3  2  1  0
-; RC MC MB X CC MA  X  X     X  Ap Bp Cp X  X  X  X
+; PORT 0                   |  PORT 1                   |  PWM    COM    PWM    LED
+; P0 P1 P2 P3 P4 P5 P6 P7  |  P0 P1 P2 P3 P4 P5 P6 P7  |  inv    inv    side    n
+; -----------------------  |  -----------------------  |  -------------------------
+; __ __ Am Vn __ Bm Cm RX  |  __ __ __ __ Cp Bp Ap __  |  n/a    n/a    high   _
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 

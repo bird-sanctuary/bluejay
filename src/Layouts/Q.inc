@@ -22,11 +22,12 @@
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
-; Hardware definition file "Q"
+; Hardware definition file "Q".
 ;
-; ------- PORT 0 --------    ------- PORT 1 --------
-; 7  6  5  4  3  2  1  0     7  6  5  4  3  2  1  0
-; Cp Bp Ap L1 L0 X  RC X     X  MA MB MC CC Cc Bc Ac
+; PORT 0                   |  PORT 1                   |  PWM    COM    PWM    LED
+; P0 P1 P2 P3 P4 P5 P6 P7  |  P0 P1 P2 P3 P4 P5 P6 P7  |  inv    inv    side    n
+; -----------------------  |  -----------------------  |  -------------------------
+; __ RX __ L0 L1 Ap Bp Cp  |  Ac Bc Cc Vn Cm Bm Am __  |  no     no     high   2
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 

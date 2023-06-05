@@ -24,9 +24,10 @@
 ;
 ; Hardware definition file "J".
 ;
-; ------- PORT 0 --------    ------- PORT 1 --------
-; 7  6  5  4  3  2  1  0     7  6  5  4  3  2  1  0
-; L2 L1 L0 RC CC MB MC MA    X  X  Cc Bc Ac Cp Bp Ap
+; PORT 0                   |  PORT 1                   |  PWM    COM    PWM    LED
+; P0 P1 P2 P3 P4 P5 P6 P7  |  P0 P1 P2 P3 P4 P5 P6 P7  |  inv    inv    side    n
+; -----------------------  |  -----------------------  |  -------------------------
+; Am Cm Bm Vn RX L0 L1 L2  |  Ap Bp Cp Ac Bc Cc __ __  |  no     no     high   3
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 

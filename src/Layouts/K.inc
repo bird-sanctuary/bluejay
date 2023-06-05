@@ -26,9 +26,10 @@
 ;
 ; Com fets are active low for H/L_N driver and EN_N/PWM driver.
 ;
-; ------- PORT 0 --------    ------- PORT 1 --------    ----- NOTES -----
-; 7  6  5  4  3  2  1  0     7  6  5  4  3  2  1  0
-; X  X  MC X  MB CC MA RC    X  X  Ap Bp Cp Cc Bc Ac    Com fets inverted
+; PORT 0                   |  PORT 1                   |  PWM    COM    PWM    LED
+; P0 P1 P2 P3 P4 P5 P6 P7  |  P0 P1 P2 P3 P4 P5 P6 P7  |  inv    inv    side    n
+; -----------------------  |  -----------------------  |  -------------------------
+; RX Am Vn Bm __ Cm __ __  |  Ac Bc Cc Cp Bp Ap __ __  |  no     yes    high   _
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 

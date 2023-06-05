@@ -27,9 +27,10 @@
 ; Equals "A", but with LED control.
 ; And with HIP2103/4 driver initialization.
 ;
-; ------- PORT 0 --------    ------- PORT 1 --------
-; 7  6  5  4  3  2  1  0     7  6  5  4  3  2  1  0
-; L1 L0 RC X  MC MB MA CC    X  L2 Cc Cp Bc Bp Ac Ap
+; PORT 0                   |  PORT 1                   |  PWM    COM    PWM    LED
+; P0 P1 P2 P3 P4 P5 P6 P7  |  P0 P1 P2 P3 P4 P5 P6 P7  |  inv    inv    side    n
+; -----------------------  |  -----------------------  |  -------------------------
+; Vn Am Bm Cm __ RX L0 L1  |  Ap Ac Bp Bc Cp Cc L2 __  |  no     no     high   3
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
