@@ -139,6 +139,7 @@ IF MCU_TYPE < 3 AND PWM_FREQ < 3
     PWM_BITS_H EQU (2 + IS_MCU_48MHZ - PWM_CENTERED - PWM_FREQ)
 ENDIF
 
+$include (Modules\Codespace.asm)
 $include (Modules\Common.asm)
 $include (Modules\Macros.asm)
 
@@ -340,11 +341,7 @@ Temp_Storage: DS 48                     ; Temporary storage (internal memory)
 ; EEPROM code segments
 ; A segment of the flash is used as "EEPROM", which is not available in SiLabs MCUs
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-IF MCU_TYPE == 2
-    CSEG AT 3000h
-ELSE
-    CSEG AT 1A00h
-ENDIF
+CSEG AT CSEG_EEPROM
 EEPROM_FW_MAIN_REVISION EQU 0           ; Main revision of the firmware
 EEPROM_FW_SUB_REVISION EQU 19           ; Sub revision of the firmware
 EEPROM_LAYOUT_REVISION EQU 206          ; Revision of the EEPROM layout
@@ -395,22 +392,14 @@ Eep_Pgm_LED_Control: DB DEFAULT_PGM_LED_CONTROL ; EEPROM copy of programmed LED 
 Eep_Pgm_Power_Rating: DB DEFAULT_PGM_POWER_RATING ; EEPROM copy of programmed power rating
 
 Eep_Dummy: DB 0FFh                      ; EEPROM address for safety reason
-IF MCU_TYPE == 2
-    CSEG AT 3060h
-ELSE
-    CSEG AT 1A60h
-ENDIF
+CSEG AT CSEG_NAME
 Eep_Name: DB "Bluejay         "         ; Name tag (16 Bytes)
 
-IF MCU_TYPE == 2
-    CSEG AT 3070h
-ELSE
-    CSEG AT 1A70h
-ENDIF
+CSEG AT CSEG_MELODY
 Eep_Pgm_Beep_Melody: DB 2,58,4,32,52,66,13,0,69,45,13,0,52,66,13,0,78,39,211,0,69,45,208,25,52,25,0
 
     Interrupt_Table_Definition          ; SiLabs interrupts
-CSEG AT 80h                             ; Code segment after interrupt vectors
+CSEG AT CSEG_AFTER_INTERRUPTS           ; Code segment after interrupt vectors
 
 ; Submodule includes
 $include (Modules\Isrs.asm)
@@ -1061,11 +1050,7 @@ exit_run_mode_brake_done:
 ; as code flash after offset 1A00 is used for EEPROM storage
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-IF MCU_TYPE == 2
-    CSEG AT 2FFDh
-ELSE
-    CSEG AT 19FDh
-ENDIF
+CSEG AT CSEG_RESET
 reset:
     ljmp pgm_start
 

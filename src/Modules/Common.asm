@@ -140,25 +140,15 @@ DT_C1 EQU "0" + ((DEADTIME / 10) MOD 10)
 DT_C0 EQU "0" + (DEADTIME MOD 10)
 
 ; ESC layout tag
-IF MCU_TYPE < 2
-    CSEG AT 1A40h
-ELSEIF MCU_TYPE == 2
-    CSEG AT 3040h
-ENDIF
-
+CSEG AT CSEG_LAYOUT_TAG
 IF DEADTIME < 100
     Eep_ESC_Layout: DB "#",ESC_C,"_",MCU_C,"_",DT_C1,DT_C0,"#        "
 ELSE
     Eep_ESC_Layout: DB "#",ESC_C,"_",MCU_C,"_",DT_C2,DT_C1,DT_C0,"#       "
 ENDIF
 
-IF MCU_TYPE < 2
-    CSEG AT 1A50h
-ELSEIF MCU_TYPE == 2
-    CSEG AT 3050h
-ENDIF
-
 ; Project and MCU tag (16 Bytes)
+CSEG AT CSEG_MCU_TAG
 IF MCU_TYPE == 0
     Eep_ESC_MCU: DB "#BLHELI$EFM8B10#"
 ELSEIF MCU_TYPE == 1
