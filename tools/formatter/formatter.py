@@ -350,6 +350,9 @@ for path in processPaths:
     else:
         formattedLines = formattedLinesRough
 
+    if formattedLines[-1] != "":
+        formattedLines.append("")
+
     file.write("\n".join(formattedLines))
     file.close()
 
