@@ -34,6 +34,9 @@ parser.add_argument("--indent-macros", dest="indentMacros", action="store_true",
                     default=False, help="Indent code within macros")
 parser.add_argument("--min-indentation", dest="minIndentation",
                     default=1, help="Minimum indentation for all instructions")
+parser.add_argument("--format-comments", dest="formatComments", action="store_true",
+                    default=False, help="Attempt to format comments")
+
 
 args = parser.parse_args()
 
@@ -47,6 +50,7 @@ lint = args.lint
 indentLabels = args.indentLabels
 indentMacros = args.indentMacros
 minIndentation = args.minIndentation
+formatComments = args.formatComments
 
 if lint:
     suffix = ".asmb"
@@ -301,51 +305,52 @@ for path in processPaths:
 
         formattedLinesRough.append(line)
 
-    """
-    inBanner = False
-    lineCount = len(formattedLinesRough)
-    index = 0
-    while index < lineCount:
-        line = formattedLinesRough[index]
+    if formatComments:
+        inBanner = False
+        lineCount = len(formattedLinesRough)
+        index = 0
+        while index < lineCount:
+            line = formattedLinesRough[index]
 
-        if line.startswith(";"):
-            if line.startswith(";**** "):
-                # While in Banner, just push comment lines
-                inBanner = True
+            if line.startswith(";"):
+                if line.startswith(";**** "):
+                    # While in Banner, just push comment lines
+                    inBanner = True
 
-            if inBanner:
-                formattedLines.append(line)
-                index += 1
-
-            else:
-                # find first line that is not a comment (or empty) and apply
-                # indentation to all previous lines
-                offset = 1
-                while (
-                    formattedLinesRough[index + offset].startswith(";") or
-                    formattedLinesRough[index + offset] == ""
-                ):
-                    offset += 1
-
-                spacePrefix = formattedLinesRough[index + offset]
-                spaceCount = len(spacePrefix) - len(spacePrefix.lstrip())
-
-                targetIndex = index + offset
-                while index < targetIndex:
-                    line = formattedLinesRough[index]
-                    if line != "":
-                        line = "%s%s" % (" " * spaceCount, line)
-
+                if inBanner:
                     formattedLines.append(line)
                     index += 1
 
-        else:
-            inBanner = False
-            formattedLines.append(line)
-            index += 1
-    """
+                else:
+                    # find first line that is not a comment (or empty) and apply
+                    # indentation to all previous lines
+                    offset = 1
+                    while (
+                        formattedLinesRough[index + offset].startswith(";") or
+                        formattedLinesRough[index + offset] == ""
+                    ):
+                        offset += 1
 
-    file.write("\n".join(formattedLinesRough))
+                    spacePrefix = formattedLinesRough[index + offset]
+                    spaceCount = len(spacePrefix) - len(spacePrefix.lstrip())
+
+                    targetIndex = index + offset
+                    while index < targetIndex:
+                        line = formattedLinesRough[index]
+                        if line != "":
+                            line = "%s%s" % (" " * spaceCount, line)
+
+                        formattedLines.append(line)
+                        index += 1
+
+            else:
+                inBanner = False
+                formattedLines.append(line)
+                index += 1
+    else:
+        formattedLines = formattedLinesRough
+
+    file.write("\n".join(formattedLines))
     file.close()
 
     if lint:
