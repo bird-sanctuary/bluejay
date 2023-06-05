@@ -1,4 +1,4 @@
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Bluejay digital ESC firmware for controlling brushless motors in multirotors
 ;
@@ -20,12 +20,18 @@
 ; You should have received a copy of the GNU General Public License
 ; along with Bluejay.  If not, see <http://www.gnu.org/licenses/>.
 ;
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
-; Hardware definition file "E". Equals "A", but with LED control. And with HIP2103/4 driver initialization
+; Hardware definition file "E".
+;
+; Equals "A", but with LED control.
+; And with HIP2103/4 driver initialization.
+;
+; ------- PORT 0 --------    ------- PORT 1 --------
+; 7  6  5  4  3  2  1  0     7  6  5  4  3  2  1  0
 ; L1 L0 RC X  MC MB MA CC    X  L2 Cc Cp Bc Bp Ac Ap
 ;
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 PWM_ACTIVE_HIGH EQU 1                   ; Pwm non-inverted
 COM_ACTIVE_HIGH EQU 1                   ; Damping inverted
@@ -51,13 +57,13 @@ ELSE
     PCA0CPH_DAMP EQU PCA0CPH1
 ENDIF
 
-;*********************
-; PORT 0 definitions *
-;*********************
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+; PORT 0 definitions
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 LED_1 EQU 7
 LED_0 EQU 6
 RTX_PIN EQU 5
-;            EQU    4
+;     EQU 4
 C_Mux EQU 3
 B_Mux EQU 2
 A_Mux EQU 1
@@ -68,10 +74,10 @@ P0_INIT EQU NOT((1 SHL LED_0) + (1 SHL LED_1))
 P0_PUSHPULL EQU (1 SHL LED_0) + (1 SHL LED_1)
 P0_SKIP EQU 0FFh
 
-;*********************
-; PORT 1 definitions *
-;*********************
-;            EQU    7
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+; PORT 1 definitions
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;     EQU 7
 LED_2 EQU 6
 C_Com EQU 5
 C_Pwm EQU 4
@@ -85,18 +91,18 @@ P1_INIT EQU 00h
 P1_PUSHPULL EQU (1 SHL A_Pwm) + (1 SHL B_Pwm) + (1 SHL C_Pwm) + (1 SHL A_Com) + (1 SHL B_Com) + (1 SHL C_Com) + (1 SHL LED_2)
 P1_SKIP EQU 0FFh
 
-;*********************
-; PORT 2 definitions *
-;*********************
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+; PORT 2 definitions
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 DebugPin EQU 0
 
 P2_DIGITAL EQU (1 SHL DebugPin)
 P2_PUSHPULL EQU (1 SHL DebugPin)
 P2_SKIP EQU (1 SHL DebugPin)
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; ESC specific
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 Initialize_Crossbar MACRO
     mov  XBR2, #40h                     ; Crossbar enabled
     mov  XBR1, #02h                     ; CEX0 and CEX1 routed to pins
@@ -118,9 +124,9 @@ ELSE
 ENDIF
 ENDM
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; LED configuration
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 Set_LED_0 MACRO
     setb P0.LED_0
 ENDM
@@ -151,8 +157,8 @@ ENDM
 Clear_LED_3 MACRO
 ENDM
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Inherit base layout
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 $set (CUSTOM_PWM_SETUP,CUSTOM_LED)
 $include (Base.inc)

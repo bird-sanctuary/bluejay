@@ -1,4 +1,4 @@
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Bluejay digital ESC firmware for controlling brushless motors in multirotors
 ;
@@ -20,12 +20,15 @@
 ; You should have received a copy of the GNU General Public License
 ; along with Bluejay.  If not, see <http://www.gnu.org/licenses/>.
 ;
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Hardware definition file "Q"
+;
+; ------- PORT 0 --------    ------- PORT 1 --------
+; 7  6  5  4  3  2  1  0     7  6  5  4  3  2  1  0
 ; Cp Bp Ap L1 L0 X  RC X     X  MA MB MC CC Cc Bc Ac
 ;
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 PWM_ACTIVE_HIGH EQU 1                   ; Pwm non-inverted
 COM_ACTIVE_HIGH EQU 1                   ; Damping inverted
@@ -51,27 +54,27 @@ ELSE
     PCA0CPH_DAMP EQU PCA0CPH1
 ENDIF
 
-;*********************
-; PORT 0 definitions *
-;*********************
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+; PORT 0 definitions
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 C_Pwm EQU 7
 B_Pwm EQU 6
 A_Pwm EQU 5
 LED_1 EQU 4
 LED_0 EQU 3
-;            EQU    2
+;     EQU 2
 RTX_PIN EQU 1
-;            EQU    0
+;     EQU 0
 
 P0_DIGITAL EQU 0FFh
 P0_INIT EQU (1 SHL RTX_PIN)
 P0_PUSHPULL EQU (1 SHL LED_0) + (1 SHL LED_1) + (1 SHL A_Pwm) + (1 SHL B_Pwm) + (1 SHL C_Pwm)
 P0_SKIP EQU 0FFh
 
-;*********************
-; PORT 1 definitions *
-;*********************
-;            EQU    7
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+; PORT 1 definitions
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;     EQU 7
 A_Mux EQU 6
 B_Mux EQU 5
 C_Mux EQU 4
@@ -85,18 +88,18 @@ P1_INIT EQU 00h
 P1_PUSHPULL EQU (1 SHL A_Com) + (1 SHL B_Com) + (1 SHL C_Com)
 P1_SKIP EQU 0FFh
 
-;*********************
-; PORT 2 definitions *
-;*********************
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+; PORT 2 definitions
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 DebugPin EQU 0
 
 P2_DIGITAL EQU (1 SHL DebugPin)
 P2_PUSHPULL EQU (1 SHL DebugPin)
 P2_SKIP EQU (1 SHL DebugPin)
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; PWM Phase
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 P_A_Pwm EQU P0.A_Pwm
 P_A_Com EQU P1.A_Com
 P_B_Pwm EQU P0.B_Pwm
@@ -142,9 +145,9 @@ Set_All_Pwm_Phases_Off MACRO
     mov  P1SKIP, #0FFh
 ENDM
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; LED configuration
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 Set_LED_0 MACRO
     setb P0.LED_0
 ENDM
@@ -173,8 +176,8 @@ ENDM
 Clear_LED_3 MACRO
 ENDM
 
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Inherit base layout
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 $set (CUSTOM_PWM_PHASE,CUSTOM_LED)
 $include (Base.inc)
