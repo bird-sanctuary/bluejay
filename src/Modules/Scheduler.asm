@@ -24,7 +24,7 @@
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Scheduler
-;   Each step 32ms, cycle 256ms (8 steps)
+;   Each step 128ms, cycle 1024ms (8 steps)
 ;
 ;   ReqSch00:   - Steps even [0, 2, 4, 6]
 ;   ReqSch01:       - Update temperature setpoint
@@ -44,17 +44,30 @@
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 scheduler_run:
-    ; Exit if not 32ms elapsed, otherwise start schedule
-    jbc  Flag_32ms_Elapsed, scheduler_start
+    ; Exit if not 16ms elapsed, otherwise start schedule
+    jbc  Flag_16ms_Elapsed, scheduler_start
     ret
 
-scheduler_start:
+scheduler_check_time:
     ; Increment Scheduler Counter
     inc  Scheduler_Counter
 
-; Choose between odd or even steps
+    ; Scheduler timebase will be 128ms
+    ; Get the remainder of dividing Scheduler_Counter by 8
+    mov A, Scheduler_Counter
+    anl A, #07h
+    jz scheduler_start
+
+    ; 128ms not fully elapsed so do nothing
+    ret
+
+scheduler_start:
+    ; Choose between odd or even steps
+    ; Remember: At this point Scheduler_Counter[2:0] are 0
+    ; because we are at multiple of 128ms in time
+    ; Won't divide to save cpu cycles
     mov  A, Scheduler_Counter
-    jb   ACC.0, scheduler_steps_odd
+    jb   ACC.3, scheduler_steps_odd
 
 scheduler_steps_even:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -120,7 +133,7 @@ scheduler_steps_even_demag_metric_frame_prepare:
 
 scheduler_steps_odd:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-; UPDATE TEMPERATURE PWM LIMIT
+; UPDATE TEMPERATURE PWM LIMIT EVERY 256ms (ON ODD STEP)
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
     ; Check temp protection enabled, and exit when protection is disabled
@@ -152,15 +165,18 @@ scheduler_steps_odd_choose_step:
     ; Check telemetry is enable to produce telemetry frames
     jnb  Flag_Ext_Tele, scheduler_steps_odd_restart_ADC
 
-    ; Let A = Scheduler_Counter % 8, so A = [0 - 7] value
+    ; Remember: At this point Scheduler_Counter[2:0] are 0
+    ; because we are at multiple of 128ms in time
+    ; Won't divide by 8 to save cpu cycles
+    ; Keep Scheduler_Counter[5:3] bits for the corresponding time step
     mov  A, Scheduler_Counter
-    anl  A, #07h
+    anl  A, #38h
 
 scheduler_steps_odd_status_frame:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; [TELEMETRY] SEND STATUS FRAME
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-    cjne A, #1, scheduler_steps_odd_debug1_frame
+    cjne A, #08h, scheduler_steps_odd_debug1_frame
 
     ; if (Demag_Detected_Metric_Max >= 120)
     ;   stat.demagMetricMax = (Demag_Detected_Metric_Max - 120) / 9
@@ -202,7 +218,7 @@ scheduler_steps_odd_debug1_frame:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; [TELEMETRY] SEND DEBUG1 FRAME
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-    cjne A, #3, scheduler_steps_odd_debug2_frame
+    cjne A, #18h, scheduler_steps_odd_debug2_frame
 
     ; Stub for debug 1
     mov  Ext_Telemetry_L, #088h         ; Set telemetry low value
@@ -215,7 +231,7 @@ scheduler_steps_odd_debug2_frame:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; [TELEMETRY] SEND DEBUG2 FRAME
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-    cjne A, #5, scheduler_steps_odd_temperature_frame
+    cjne A, #28h, scheduler_steps_odd_temperature_frame
 
     ; Stub for debug 2
     mov  Ext_Telemetry_L, #0AAh         ; Set telemetry low value
@@ -228,7 +244,7 @@ scheduler_steps_odd_temperature_frame:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; [TELEMETRY] SEND TEMPERATURE FRAME
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-    cjne A, #7, scheduler_steps_odd_restart_ADC
+    cjne A, #38h, scheduler_steps_odd_restart_ADC
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
