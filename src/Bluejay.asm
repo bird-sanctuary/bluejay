@@ -401,7 +401,7 @@ CSEG AT CSEG_MELODY
 Eep_Pgm_Beep_Melody: DB 2,58,4,32,52,66,13,0,69,45,13,0,52,66,13,0,78,39,211,0,69,45,208,25,52,25,0
 
     Interrupt_Table_Definition          ; SiLabs interrupts
-CSEG AT CSEG_AFTER_INTERRUPTS           ; Code segment after interrupt vectors
+CSEG AT CSEG_APP                        ; Code segment after interrupt vectors
 
 ; Submodule includes
 $include (Modules\Isrs.asm)

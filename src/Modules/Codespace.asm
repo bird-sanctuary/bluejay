@@ -26,7 +26,7 @@
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
     ; General
-    CSEG_AFTER_INTERRUPTS EQU 80h
+    CSEG_APP EQU 80h
 
 IF MCU_TYPE == MCU_BB51
     ; BB51
