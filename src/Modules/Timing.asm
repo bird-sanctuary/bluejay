@@ -62,7 +62,7 @@ calc_next_comm_period:
     setb TMR2CN0_TR2                    ; Timer2 enabled
     setb IE_EA
 
-IF MCU_TYPE >= 1
+IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
     clr  C                              ; Divide time by 2 on 48MHz
     rrca Temp3
     rrca Temp2
@@ -80,7 +80,7 @@ ENDIF
     mov  A, Temp2
     subb A, Prev_Comm_H
     mov  Prev_Comm_H, Temp2             ; Save timestamp as previous commutation
-IF MCU_TYPE >= 1
+IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
     anl  A, #7Fh
 ENDIF
     mov  Temp2, A                       ; Store commutation period in Temp2 (hi byte)
@@ -104,7 +104,7 @@ calc_next_comm_startup:
     subb A, Temp5
     mov  A, Temp3
     subb A, Temp6                       ; Calculate the new extended commutation time
-IF MCU_TYPE >= 1
+IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
     anl  A, #7Fh
 ENDIF
     jz   calc_next_comm_startup_no_X
@@ -352,7 +352,7 @@ calc_new_wait_times:
     clr  A
     subb A, Temp4
     mov  Temp2, A
-IF MCU_TYPE >= 1
+IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
     clr  C
     rlca Temp1                          ; Multiply by 2
     rlca Temp2
@@ -552,7 +552,7 @@ setup_zc_scan_timeout:
     clr  C
     rrca Temp2
     rrca Temp1
-IF MCU_TYPE == 0
+IF MCU_TYPE == MCU_BB1
     clr  C
     rrca Temp2
     rrca Temp1
@@ -624,7 +624,7 @@ comp_not_startup:
     ; Too high a value (~>35) causes the RCT4215 630 to run rough on full throttle
     mov  Temp4, #(20 SHL IS_MCU_48MHZ)
     mov  A, Comm_Period4x_H             ; Set number of readings higher for lower speeds
-IF MCU_TYPE == 0
+IF MCU_TYPE == MCU_BB1
     clr  C
     rrc  A
 ENDIF
@@ -711,7 +711,7 @@ comp_read_wrong_low_rpm:
     mov  A, Comm_Period4x_H             ; Set timeout to ~4x comm period 4x value
     mov  Temp7, #0FFh                   ; Default to long timeout
 
-IF MCU_TYPE >= 1
+IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
     clr  C
     rlc  A
     jc   comp_read_wrong_load_timeout

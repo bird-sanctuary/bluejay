@@ -6,13 +6,6 @@
 
 XTAL EQU 25000000
 
-; Bootloader segment address
-IF MCU_TYPE < 2
-    BOOT_START EQU 1C00h
-ELSEIF MCU_TYPE == 2
-    BOOT_START EQU 0F000h
-ENDIF
-
 BOOT_DELAY EQU XTAL/4                   ; About 250ms (don't set to fast to avoid connection problems)
 BOOT_BAUDRATE EQU 19200                 ; Only used if no baudrate detection activated,XTAL is than important
 BOOT_VERSION EQU 6                      ; Version 6 (must be not changed)
@@ -51,7 +44,7 @@ Byte_Cnth: DS 1
 BL_Flash_Key_1: DS 1                    ; Flash keys
 BL_Flash_Key_2: DS 1
 
-CSEG AT BOOT_START                      ; Bootloader start
+CSEG AT CSEG_BOOT_START                 ; Bootloader start
 init:
     clr  IE_EA
 
@@ -66,7 +59,7 @@ init:
     mov  SP, #0c0h                      ; Stack = 64 upper bytes of RAM
     ; Initialize clock
     mov  CLKSEL, #00h                   ; Set clock divider to 1
-IF MCU_TYPE < 2
+IF MCU_TYPE == MCU_BB1 or MCU_TYPE = MCU_BB2
     ; Initialize VDD monitor
     orl  VDM0CN, #080h                  ; Enable the VDD monitor
 ENDIF
@@ -139,7 +132,7 @@ id5:
     jz   ($+4)                          ; Check CRC
     ajmp abd
 
-; Send info about chip/bootloader (BOOT_MSG + BOOT_INFO)
+    ; Send info about chip/bootloader (BOOT_MSG + BOOT_INFO)
     mov  Parah, #((BOOT_INFO - BOOT_MSG) + 4)
 in1:
     clr  A
@@ -236,9 +229,9 @@ mai4:
     mov  Paral, #ERRORPROG
     clr  C
     mov  A, DPL
-    subb A, #low(BOOT_START)
+    subb A, #low(CSEG_BOOT_START)
     mov  A, DPH
-    subb A, #high(BOOT_START)
+    subb A, #high(CSEG_BOOT_START)
     jnc  mai1                           ; Jump if in bootloader segment
     jb   Bit_Reg.0, pro3                ; Jump if program command
 
@@ -266,9 +259,9 @@ pro4:
 pro5:
     clr  C
     mov  A, DPH                         ; Check that address is not in bootloader area
-IF MCU_TYPE < 2
+IF MCU_TYPE == MCU_BB1 or MCU_TYPE = MCU_BB2
     subb A, #1Ch
-ELSEIF MCU_TYPE == 2
+ELSEIF MCU_TYPE == MCU_BB51
     subb A, #0F0h
 ENDIF
     jc   ($+5)

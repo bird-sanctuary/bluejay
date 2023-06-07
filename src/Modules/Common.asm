@@ -30,11 +30,11 @@
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Device SiLabs EFM8BB1x/2x/51
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-IF MCU_TYPE == 0
+IF MCU_TYPE == MCU_BB1
     $include (Silabs/SI_EFM8BB1_Defs.inc)
-ELSEIF MCU_TYPE == 1
+ELSEIF MCU_TYPE == MCU_BB2
     $include (Silabs/SI_EFM8BB2_Defs.inc)
-ELSEIF MCU_TYPE == 2
+ELSEIF MCU_TYPE == MCU_BB51
     $include (Silabs/SI_EFM8BB51_Defs.inc)
 ENDIF
 
@@ -45,7 +45,7 @@ ENDIF
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; ESC selection statements
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-IF MCU_TYPE < 2
+IF MCU_TYPE == MCU_BB1 or MCU_TYPE = MCU_BB2
 IF ESCNO == A_
     $include (Layouts/A.inc)            ; Select pinout A
 ELSEIF ESCNO == B_
@@ -101,7 +101,7 @@ ELSEIF ESCNO == Z_
 ENDIF
 ENDIF
 
-IF MCU_TYPE == 2
+IF MCU_TYPE == MCU_BB51
 IF ESCNO == A_
     $include (Layouts/BB51/A.inc)       ; Select pinout A
 ELSEIF ESCNO == B_
@@ -112,11 +112,11 @@ ENDIF
 ENDIF
 
 SIGNATURE_001 EQU 0E8h                  ; Device signature
-IF MCU_TYPE == 0
+IF MCU_TYPE == MCU_BB1
     SIGNATURE_002 EQU 0B1h
-ELSEIF MCU_TYPE == 1
+ELSEIF MCU_TYPE == MCU_BB2
     SIGNATURE_002 EQU 0B2h
-ELSEIF MCU_TYPE == 2
+ELSEIF MCU_TYPE == MCU_BB51
     SIGNATURE_002 EQU 0B5h
 ENDIF
 
@@ -126,11 +126,11 @@ ENDIF
 ESC_C EQU "A" + ESCNO - 1               ; ESC target letter
 
 ; MCU letter (24Mhz=L, 48Mhz=H, BB51=X)
-IF MCU_TYPE == 0
+IF MCU_TYPE == MCU_BB1
     MCU_C EQU "L"
-ELSEIF MCU_TYPE == 1
+ELSEIF MCU_TYPE == MCU_BB2
     MCU_C EQU "H"
-ELSEIF MCU_TYPE == 2
+ELSEIF MCU_TYPE == MCU_BB51
     MCU_C EQU "X"
 ENDIF
 
@@ -140,30 +140,20 @@ DT_C1 EQU "0" + ((DEADTIME / 10) MOD 10)
 DT_C0 EQU "0" + (DEADTIME MOD 10)
 
 ; ESC layout tag
-IF MCU_TYPE < 2
-    CSEG AT 1A40h
-ELSEIF MCU_TYPE == 2
-    CSEG AT 3040h
-ENDIF
-
+CSEG AT CSEG_LAYOUT_TAG
 IF DEADTIME < 100
     Eep_ESC_Layout: DB "#",ESC_C,"_",MCU_C,"_",DT_C1,DT_C0,"#        "
 ELSE
     Eep_ESC_Layout: DB "#",ESC_C,"_",MCU_C,"_",DT_C2,DT_C1,DT_C0,"#       "
 ENDIF
 
-IF MCU_TYPE < 2
-    CSEG AT 1A50h
-ELSEIF MCU_TYPE == 2
-    CSEG AT 3050h
-ENDIF
-
 ; Project and MCU tag (16 Bytes)
-IF MCU_TYPE == 0
+CSEG AT CSEG_MCU_TAG
+IF MCU_TYPE == MCU_BB1
     Eep_ESC_MCU: DB "#BLHELI$EFM8B10#"
-ELSEIF MCU_TYPE == 1
+ELSEIF MCU_TYPE == MCU_BB2
     Eep_ESC_MCU: DB "#BLHELI$EFM8B21#"
-ELSEIF MCU_TYPE == 2
+ELSEIF MCU_TYPE == MCU_BB51
     Eep_ESC_MCU: DB "#BLHELI$EFM8B51#"
 ENDIF
 
@@ -209,9 +199,9 @@ ENDM
 
 Set_MCU_Clk_48MHz MACRO
     mov  SFRPAGE, #10h
-IF MCU_TYPE == 1
+IF MCU_TYPE == MCU_BB2
     mov  PFE0CN, #30h                   ; Set flash timing for 48MHz and enable prefetch engine
-ELSEIF MCU_TYPE == 2
+ELSEIF MCU_TYPE == MCU_BB51
     mov  PFE0CN, #10h                   ; Set flash timing for 48MHz
 ENDIF
     mov  SFRPAGE, #00h
