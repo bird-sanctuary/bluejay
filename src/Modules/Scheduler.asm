@@ -227,8 +227,7 @@ scheduler_steps_odd_status_frame_max_loaded:
     mov  Ext_Telemetry_H, #0Eh          ; Set telemetry high value to status frame ID
 
     ; Now restart ADC conversion
-    Stop_Adc
-    Start_Adc
+    Restart_Adc
 
     ; Nothing else to do
     ret
@@ -244,8 +243,7 @@ scheduler_steps_odd_debug1_frame:
     mov  Ext_Telemetry_H, #08h          ; Set telemetry high value to debug1 frame ID
 
     ; Now restart ADC conversion
-    Stop_Adc
-    Start_Adc
+    Restart_Adc
 
     ; Nothing else to do
     ret
@@ -261,8 +259,7 @@ scheduler_steps_odd_debug2_frame:
     mov  Ext_Telemetry_H, #0Ah          ; Set telemetry high value to debug2 frame ID
 
     ; Now restart ADC conversion
-    Stop_Adc
-    Start_Adc
+    Restart_Adc
 
     ; Nothing else to do
     ret
@@ -347,8 +344,7 @@ scheduler_steps_odd_restart_ADC:
 ; START NEW ADC CONVERSION
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
     ; Now restart ADC conversion
-    Stop_Adc
-    Start_Adc
+    Restart_Adc
 
     ; Nothing else to do
     ret
