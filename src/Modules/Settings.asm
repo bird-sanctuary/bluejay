@@ -168,7 +168,7 @@ decode_temp_done:
 
     mov  Temp1, #Pgm_Braking_Strength   ; Read programmed braking strength setting
     mov  A, @Temp1
-IF PWM_BITS_H == 3                      ; Scale braking strength to pwm resolution
+IF PWM_BITS_H == PWM_11_BIT             ; Scale braking strength to pwm resolution
     ; Note: Added for completeness
     ; Currently 11-bit pwm is only used on targets with built-in dead time insertion
     rl   A
@@ -180,7 +180,7 @@ IF PWM_BITS_H == 3                      ; Scale braking strength to pwm resoluti
     mov  A, Temp2
     anl  A, #0F8h
     mov  Pwm_Braking_L, A
-ELSEIF PWM_BITS_H == 2
+ELSEIF PWM_BITS_H == PWM_10_BIT
     rl   A
     rl   A
     mov  Temp2, A
@@ -189,7 +189,7 @@ ELSEIF PWM_BITS_H == 2
     mov  A, Temp2
     anl  A, #0FCh
     mov  Pwm_Braking_L, A
-ELSEIF PWM_BITS_H == 1
+ELSEIF PWM_BITS_H == PWM_9_BIT
     rl   A
     mov  Temp2, A
     anl  A, #01h
@@ -197,7 +197,7 @@ ELSEIF PWM_BITS_H == 1
     mov  A, Temp2
     anl  A, #0FEh
     mov  Pwm_Braking_L, A
-ELSEIF PWM_BITS_H == 0
+ELSEIF PWM_BITS_H == PWM_8_BIT
     mov  Pwm_Braking_H, #0
     mov  Pwm_Braking_L, A
 ENDIF
@@ -210,17 +210,17 @@ decode_pwm_dithering:
     add  A, #0FFh                       ; Carry set if A is not zero
     mov  Flag_Dithering, C              ; Set dithering enabled
 
-IF PWM_BITS_H == 2                      ; Initialize pwm dithering bit patterns
+IF PWM_BITS_H == PWM_10_BIT             ; Initialize pwm dithering bit patterns
     mov  Temp1, #Dithering_Patterns     ; 1-bit dithering (10-bit to 11-bit)
     mov  @Temp1, #00h                   ; 00000000
     imov Temp1, #55h                    ; 01010101
-ELSEIF PWM_BITS_H == 1
+ELSEIF PWM_BITS_H == PWM_9_BIT
     mov  Temp1, #Dithering_Patterns     ; 2-bit dithering (9-bit to 11-bit)
     mov  @Temp1, #00h                   ; 00000000
     imov Temp1, #11h                    ; 00010001
     imov Temp1, #55h                    ; 01010101
     imov Temp1, #77h                    ; 01110111
-ELSEIF PWM_BITS_H == 0
+ELSEIF PWM_BITS_H == PWM_8_BIT
     mov  Temp1, #Dithering_Patterns     ; 3-bit dithering (8-bit to 11-bit)
     mov  @Temp1, #00h                   ; 00000000
     imov Temp1, #01h                    ; 00000001

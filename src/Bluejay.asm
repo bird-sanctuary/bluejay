@@ -72,7 +72,7 @@
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
-$include (Modules\Mcus.asm)
+$include (Modules\Enums.asm)
 
 ; List of enumerated supported ESCs
 ;                                         PORT 0                   |  PORT 1                   |  PWM    COM    PWM    LED
@@ -136,7 +136,7 @@ ELSE
     IS_MCU_48MHZ EQU 1
 ENDIF
 
-IF PWM_FREQ < 3
+IF PWM_FREQ == PWM_24 or PWM_FREQ == PWM_48 or PWM_FREQ == PWM_96
     ; Number of bits in pwm high byte
     PWM_BITS_H EQU (2 + IS_MCU_48MHZ - PWM_CENTERED - PWM_FREQ)
 ENDIF
