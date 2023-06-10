@@ -728,9 +728,11 @@ motor_start:
     clr  IE_EA                          ; Disable interrupts
     mov  Temp2, #Pgm_Startup_Power_Max
     mov  Pwm_Limit_Beg, @Temp2          ; Set initial pwm limit
-    mov  Pwm_Limit, Pwm_Limit_Beg
     mov  Pwm_Limit_By_Rpm, Pwm_Limit_Beg
-    mov  Temp_Pwm_Level_Setpoint, Pwm_Limit_Beg
+
+    ; Set temperature PWM limit and setpoint to the maximum value a
+    mov  Pwm_Limit, #255
+    mov  Temp_Pwm_Level_Setpoint, #255
 
 ; Begin startup sequence
 IF MCU_TYPE >= 1
@@ -869,7 +871,7 @@ run6:
     jnb  Flag_Startup_Phase, initial_run_phase
 
     ; Startup phase
-    mov  Pwm_Limit, Pwm_Limit_Beg       ; Set initial max power
+    mov  Pwm_Limit_By_Rpm, Pwm_Limit_Beg; Set initial max power
     clr  C
     mov  A, Startup_Cnt                 ; Load startup counter
     subb A, #24                         ; Is counter above requirement?
@@ -881,9 +883,7 @@ run6:
 startup_phase_done:
     ; Clear startup phase flag & remove pwm limits
     clr  Flag_Startup_Phase
-    mov  Pwm_Limit, #255                ; Reset temperature level pwm limit
     mov  Pwm_Limit_By_Rpm, #255
-    mov  Temp_Pwm_Level_Setpoint, #255  ; Reset temperature level setpoint
 
 initial_run_phase:
     ; If it is a direction change - branch
@@ -955,11 +955,11 @@ run6_bidir_check_reversal:
 run6_bidir_reversal:
     ; Initiate direction and start braking
     setb Flag_Dir_Change_Brake          ; Set brake flag
-    mov  Pwm_Limit, Pwm_Limit_Beg       ; Set max power while braking to initial power limit
+    mov  Pwm_Limit_By_Rpm, Pwm_Limit_Beg; Set max power while braking to initial power limit
     jmp  run4                           ; Go back to run 4,thereby changing force direction
 
 run6_bidir_braking:
-    mov  Pwm_Limit, Pwm_Limit_Beg       ; Set max power while braking to initial power limit
+    mov  Pwm_Limit_By_Rpm, Pwm_Limit_Beg; Set max power while braking to initial power limit
 
     clr  C
     mov  A, Comm_Period4x_H             ; Is Comm_Period4x below minimum speed?
@@ -972,7 +972,6 @@ run6_bidir_braking:
     mov  Flag_Motor_Dir_Rev, C          ; Set spinning direction
     setb Flag_Initial_Run_Phase
     mov  Initial_Run_Rot_Cntd, #18
-    mov  Pwm_Limit, Pwm_Limit_Beg       ; Set initial max power
 
 run6_bidir_continue:
     jmp  run1                           ; Go back to run 1
