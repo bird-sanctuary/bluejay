@@ -23,16 +23,29 @@
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
+; Divider of scheduler counter as a power of 2 number
+; This macro exists for convenience to easily change scheduler step time
+; In the table below you can find valid values for this parameter
+; Value     Step    Cycle (8 steps)     Zero crossing scan interference
+; 0         16ms    128ms               Medium - High
+; 1         32ms    256ms               Medium
+; 2         64ms    512ms               Low
+; 3         128ms   1024ms              Low
+; 4         256ms   2048ms              Low
+; 5         512ms   4096ms              Low
+SCHEDULER_COUNTER_DIVIDER_POW2  EQU 3
+
 ; Bitmask to get the remainder of dividing a number by 8
-MASK_MOD_8          EQU 007h
+MASK_REMAINDER_DIV8             EQU ((001h SHL SCHEDULER_COUNTER_DIVIDER_POW2) - 001h)
 
-; Mask to get bits 5, 4, and 3 of a number
-MASK_BITS_543       EQU (007h SHL 3)
+; Mask to get the scheduler step
+MASK_STEP                       EQU (007h SHL SCHEDULER_COUNTER_DIVIDER_POW2)
 
-; Scheduler counter values for steps 1, 3, 5, and 7
-ODD_STEP_1          EQU (001h SHL 3)
-ODD_STEP_3          EQU (003h SHL 3)
-ODD_STEP_5          EQU (005h SHL 3)
+; Scheduler steps for steps 1, 3, 5
+STEP1_STATUS_FRAME              EQU (001h SHL SCHEDULER_COUNTER_DIVIDER_POW2)
+STEP3_DEBUG1_FRAME              EQU (003h SHL SCHEDULER_COUNTER_DIVIDER_POW2)
+STEP5_DEBUG2_FRAME              EQU (005h SHL SCHEDULER_COUNTER_DIVIDER_POW2)
+
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
@@ -65,10 +78,10 @@ scheduler_check_time:
     ; Increment Scheduler Counter
     inc  Scheduler_Counter
 
-    ; Scheduler timebase will be 128ms
-    ; Get the remainder of dividing Scheduler_Counter by 8
+    ; Scheduler cycle defined by SCHEDULER_COUNTER_DIVIDER_POW2
+    ; Get the remainder of dividing Scheduler_Counter
     mov A, Scheduler_Counter
-    anl A, #MASK_MOD_8
+    anl A, #MASK_REMAINDER_DIV8
     jz scheduler_start
 
     ; 128ms not fully elapsed so do nothing
@@ -76,11 +89,8 @@ scheduler_check_time:
 
 scheduler_start:
     ; Choose between odd or even steps
-    ; Remember: At this point Scheduler_Counter[2:0] are 0
-    ; because we are at multiple of 128ms in time
-    ; Won't divide to save cpu cycles
     mov  A, Scheduler_Counter
-    jb   ACC.3, scheduler_steps_odd
+    jb   ACC.SCHEDULER_COUNTER_DIVIDER_POW2, scheduler_steps_odd
 
 scheduler_steps_even:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -180,18 +190,15 @@ scheduler_steps_odd_choose_step:
     ; Check telemetry is enabled to produce telemetry frames
     jnb  Flag_Ext_Tele, scheduler_steps_odd_restart_ADC
 
-    ; Remember: At this point Scheduler_Counter[2:0] are 0
-    ; because we are at multiple of 128ms in time
-    ; Won't divide by 8 to save cpu cycles
-    ; Keep Scheduler_Counter[5:3] bits for the corresponding time step
+    ; Get scheduler step
     mov  A, Scheduler_Counter
-    anl  A, #MASK_BITS_543
+    anl  A, #MASK_STEP
 
 scheduler_steps_odd_status_frame:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; [TELEMETRY] SEND STATUS FRAME
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-    cjne A, #ODD_STEP_1, scheduler_steps_odd_debug1_frame
+    cjne A, #STEP1_STATUS_FRAME, scheduler_steps_odd_debug1_frame
 
     ; if (Demag_Detected_Metric_Max >= 120)
     ;   stat.demagMetricMax = (Demag_Detected_Metric_Max - 120) / 9
@@ -236,7 +243,7 @@ scheduler_steps_odd_debug1_frame:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; [TELEMETRY] SEND DEBUG1 FRAME
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-    cjne A, #ODD_STEP_3, scheduler_steps_odd_debug2_frame
+    cjne A, #STEP3_DEBUG1_FRAME, scheduler_steps_odd_debug2_frame
 
     ; Stub for debug 1
     mov  Ext_Telemetry_L, #088h         ; Set telemetry low value
@@ -252,7 +259,7 @@ scheduler_steps_odd_debug2_frame:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; [TELEMETRY] SEND DEBUG2 FRAME
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-    cjne A, #ODD_STEP_5, scheduler_steps_odd_temperature_frame
+    cjne A, #STEP5_DEBUG2_FRAME, scheduler_steps_odd_temperature_frame
 
     ; Stub for debug 2
     mov  Ext_Telemetry_L, #0AAh         ; Set telemetry low value
@@ -269,7 +276,7 @@ scheduler_steps_odd_temperature_frame:
 ; [TELEMETRY] SEND TEMPERATURE FRAME
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
     ; If step is not 1, 3 or 5 it has to be 7, so cjmp is not necessary
-    ; cjne A, #38h, scheduler_steps_odd_restart_ADC
+    ; cjne A, #STEP7_TEMPERATURE_FRAME, scheduler_steps_odd_restart_ADC
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
