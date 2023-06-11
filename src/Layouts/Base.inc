@@ -368,6 +368,11 @@ ENDM
 Stop_Adc MACRO
 ENDM
 
+Restart_Adc MACRO
+    Stop_Adc
+    Start_Adc
+ENDM
+
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; LEDs
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****

@@ -22,9 +22,35 @@
 ; along with Bluejay.  If not, see <http://www.gnu.org/licenses/>.
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
+
+; Divider of scheduler counter as a power of 2 number
+; This macro exists for convenience to easily change scheduler step time
+; In the table below you can find valid values for this parameter
+; Value     Step    Cycle (8 steps)     Zero crossing scan interference
+; 0         16ms    128ms               Medium - High
+; 1         32ms    256ms               Medium
+; 2         64ms    512ms               Low
+; 3         128ms   1024ms              Low
+; 4         256ms   2048ms              Low
+; 5         512ms   4096ms              Low
+SCHEDULER_COUNTER_DIVIDER_POW2  EQU 3
+
+; Bitmask to get the remainder of dividing a number by 8
+MASK_REMAINDER_DIV8             EQU ((001h SHL SCHEDULER_COUNTER_DIVIDER_POW2) - 001h)
+
+; Mask to get the scheduler step
+MASK_STEP                       EQU (007h SHL SCHEDULER_COUNTER_DIVIDER_POW2)
+
+; Scheduler steps for steps 1, 3, 5
+STEP1_STATUS_FRAME              EQU (001h SHL SCHEDULER_COUNTER_DIVIDER_POW2)
+STEP3_DEBUG1_FRAME              EQU (003h SHL SCHEDULER_COUNTER_DIVIDER_POW2)
+STEP5_DEBUG2_FRAME              EQU (005h SHL SCHEDULER_COUNTER_DIVIDER_POW2)
+
+
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Scheduler
-;   Each step 32ms, cycle 256ms (8 steps)
+;   Each step 128ms, cycle 1024ms (8 steps)
 ;
 ;   ReqSch00:   - Steps even [0, 2, 4, 6]
 ;   ReqSch01:       - Update temperature setpoint
@@ -44,17 +70,27 @@
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 scheduler_run:
-    ; Exit if not 32ms elapsed, otherwise start schedule
-    jbc  Flag_32ms_Elapsed, scheduler_start
+    ; Exit if not 16ms elapsed, otherwise start schedule
+    jbc  Flag_16ms_Elapsed, scheduler_check_time
     ret
 
-scheduler_start:
+scheduler_check_time:
     ; Increment Scheduler Counter
     inc  Scheduler_Counter
 
-; Choose between odd or even steps
+    ; Scheduler cycle defined by SCHEDULER_COUNTER_DIVIDER_POW2
+    ; Get the remainder of dividing Scheduler_Counter
+    mov A, Scheduler_Counter
+    anl A, #MASK_REMAINDER_DIV8
+    jz scheduler_start
+
+    ; 128ms not fully elapsed so do nothing
+    ret
+
+scheduler_start:
+    ; Choose between odd or even steps
     mov  A, Scheduler_Counter
-    jb   ACC.0, scheduler_steps_odd
+    jb   ACC.SCHEDULER_COUNTER_DIVIDER_POW2, scheduler_steps_odd
 
 scheduler_steps_even:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -106,7 +142,9 @@ scheduler_steps_even:
 scheduler_steps_even_demag_metric_frame:
     ; Check telemetry is enable to produce telemetry frames
     jb   Flag_Ext_Tele, scheduler_steps_even_demag_metric_frame_prepare
-    jmp  scheduler_exit
+
+    ; No more work to do
+    ret
 
 scheduler_steps_even_demag_metric_frame_prepare:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -115,12 +153,12 @@ scheduler_steps_even_demag_metric_frame_prepare:
     mov  Ext_Telemetry_L, Demag_Detected_Metric ; Set telemetry low value to demag metric data
     mov  Ext_Telemetry_H, #0Ch          ; Set telemetry high value to demag metric frame ID
 
-; No more work to do
-    jmp  scheduler_exit
+    ; No more work to do
+    ret
 
 scheduler_steps_odd:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-; UPDATE TEMPERATURE PWM LIMIT
+; UPDATE TEMPERATURE PWM LIMIT EVERY 256ms (ON ODD STEP)
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
     ; Check temp protection enabled, and exit when protection is disabled
@@ -149,18 +187,18 @@ scheduler_steps_odd_temp_pwm_limit_inc:
 
 ; Now run speciffic odd scheduler step
 scheduler_steps_odd_choose_step:
-    ; Check telemetry is enable to produce telemetry frames
+    ; Check telemetry is enabled to produce telemetry frames
     jnb  Flag_Ext_Tele, scheduler_steps_odd_restart_ADC
 
-    ; Let A = Scheduler_Counter % 8, so A = [0 - 7] value
+    ; Get scheduler step
     mov  A, Scheduler_Counter
-    anl  A, #07h
+    anl  A, #MASK_STEP
 
 scheduler_steps_odd_status_frame:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; [TELEMETRY] SEND STATUS FRAME
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-    cjne A, #1, scheduler_steps_odd_debug1_frame
+    cjne A, #STEP1_STATUS_FRAME, scheduler_steps_odd_debug1_frame
 
     ; if (Demag_Detected_Metric_Max >= 120)
     ;   stat.demagMetricMax = (Demag_Detected_Metric_Max - 120) / 9
@@ -196,39 +234,49 @@ scheduler_steps_odd_status_frame_max_loaded:
     mov  Ext_Telemetry_H, #0Eh          ; Set telemetry high value to status frame ID
 
     ; Now restart ADC conversion
-    sjmp scheduler_steps_odd_restart_ADC
+    Restart_Adc
+
+    ; Nothing else to do
+    ret
 
 scheduler_steps_odd_debug1_frame:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; [TELEMETRY] SEND DEBUG1 FRAME
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-    cjne A, #3, scheduler_steps_odd_debug2_frame
+    cjne A, #STEP3_DEBUG1_FRAME, scheduler_steps_odd_debug2_frame
 
     ; Stub for debug 1
     mov  Ext_Telemetry_L, #088h         ; Set telemetry low value
     mov  Ext_Telemetry_H, #08h          ; Set telemetry high value to debug1 frame ID
 
     ; Now restart ADC conversion
-    sjmp scheduler_steps_odd_restart_ADC
+    Restart_Adc
+
+    ; Nothing else to do
+    ret
 
 scheduler_steps_odd_debug2_frame:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; [TELEMETRY] SEND DEBUG2 FRAME
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-    cjne A, #5, scheduler_steps_odd_temperature_frame
+    cjne A, #STEP5_DEBUG2_FRAME, scheduler_steps_odd_temperature_frame
 
     ; Stub for debug 2
     mov  Ext_Telemetry_L, #0AAh         ; Set telemetry low value
     mov  Ext_Telemetry_H, #0Ah          ; Set telemetry high value to debug2 frame ID
 
     ; Now restart ADC conversion
-    sjmp scheduler_steps_odd_restart_ADC
+    Restart_Adc
+
+    ; Nothing else to do
+    ret
 
 scheduler_steps_odd_temperature_frame:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; [TELEMETRY] SEND TEMPERATURE FRAME
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-    cjne A, #7, scheduler_steps_odd_restart_ADC
+    ; If step is not 1, 3 or 5 it has to be 7, so cjmp is not necessary
+    ; cjne A, #STEP7_TEMPERATURE_FRAME, scheduler_steps_odd_restart_ADC
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
@@ -302,12 +350,8 @@ scheduler_steps_odd_restart_ADC:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; START NEW ADC CONVERSION
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-
-    ; Start a new ADC conversion so after 64ms it will be ready for stage 2 og 128ms scheduler
-    Stop_Adc
-    Start_Adc
+    ; Now restart ADC conversion
+    Restart_Adc
 
     ; Nothing else to do
-
-scheduler_exit:
     ret

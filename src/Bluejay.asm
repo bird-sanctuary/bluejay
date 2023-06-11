@@ -210,7 +210,7 @@ Flags2: DS 1                            ; State flags. NOT reset upon motor_star
     ; BIT    Flags2.0
     Flag_Pgm_Dir_Rev BIT Flags2.1       ; Set if the programmed direction is reversed
     Flag_Pgm_Bidir BIT Flags2.2         ; Set if the programmed control mode is bidirectional operation
-    Flag_32ms_Elapsed BIT Flags2.3      ; Set when timer2 interrupt is triggered
+    Flag_16ms_Elapsed BIT Flags2.3      ; Set when timer2 interrupt is triggered
     Flag_Ext_Tele BIT Flags2.4          ; Set if Extended DHOT telemetry is enabled
     Flag_Rcp_Stop BIT Flags2.5          ; Set if the RC pulse value is zero or if timeout occurs
     Flag_Rcp_Dir_Rev BIT Flags2.6       ; RC pulse direction in bidirectional mode

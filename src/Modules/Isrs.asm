@@ -260,6 +260,7 @@ t1_int_not_bidir:
     mov  A, Temp4
     rrc  A
 
+    ; From here Temp5/Temp4 should be at most 1999 (4095-96) / 2
     ; Scale from 2000 to 2048
     add  A, Temp3
     mov  Temp4, A
@@ -524,7 +525,7 @@ t1_int_exit_no_int:
 ; Timer2 interrupt routine
 ;
 ; Update RC pulse timeout and stop counters
-; Happens every 32ms
+; Happens every 32ms before arming and every 16 ms after arming
 ;
 ; Requirements: No PSW instructions or Temp registers
 ;
@@ -533,7 +534,7 @@ t2_int:
     push ACC
     clr  TMR2CN0_TF2H                   ; Clear interrupt flag
     inc  Timer2_X                       ; Increment extended byte
-    setb Flag_32ms_Elapsed              ; Set 32ms elapsed flag
+    setb Flag_16ms_Elapsed              ; Set 16ms elapsed flag
 
     ; Check RC pulse timeout counter
     mov  A, Rcp_Timeout_Cntd            ; RC pulse timeout count zero?
