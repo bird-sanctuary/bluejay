@@ -28,7 +28,11 @@
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
 ; Device SiLabs EFM8BB1x/2x/51
+;
+; Include defines provided by SiLabs depending on target platform.
+;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 IF MCU_TYPE == MCU_BB1
     $include (Silabs/SI_EFM8BB1_Defs.inc)
@@ -111,7 +115,8 @@ ELSEIF ESCNO == C_
 ENDIF
 ENDIF
 
-SIGNATURE_001 EQU 0E8h                  ; Device signature
+; Build device signature based on target platform: 0xE8, [0xB1 | 0xB2 | 0xB5]
+SIGNATURE_001 EQU 0E8h
 IF MCU_TYPE == MCU_BB1
     SIGNATURE_002 EQU 0B1h
 ELSEIF MCU_TYPE == MCU_BB2
@@ -123,9 +128,19 @@ ENDIF
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Constant definitions
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-ESC_C EQU "A" + ESCNO - 1               ; ESC target letter
 
-; MCU letter (24Mhz=L, 48Mhz=H, BB51=X)
+; ESC layout letter
+ESC_C EQU "A" + ESCNO - 1
+
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
+; MCU letter
+;
+; BB1:  L
+; BB21: H
+; BB51: X
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 IF MCU_TYPE == MCU_BB1
     MCU_C EQU "L"
 ELSEIF MCU_TYPE == MCU_BB2
@@ -139,7 +154,8 @@ DT_C2 EQU "0" + (DEADTIME / 100)
 DT_C1 EQU "0" + ((DEADTIME / 10) MOD 10)
 DT_C0 EQU "0" + (DEADTIME MOD 10)
 
-; ESC layout tag
+; Full ESC layout tag including layout letter, mcu letter and deadtime
+; Eg.: G_H_30, O_L_5,...
 CSEG AT CSEG_LAYOUT_TAG
 IF DEADTIME < 100
     Eep_ESC_Layout: DB "#",ESC_C,"_",MCU_C,"_",DT_C1,DT_C0,"#        "
