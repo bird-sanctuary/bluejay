@@ -345,7 +345,7 @@ t1_int_zero_rcp_checked:
     subb A, Temp2                       ; 8-bit rc pulse
     jnc  t1_int_scale_pwm_resolution
 
-IF PWM_BITS_H == 0                      ; 8-bit pwm
+IF PWM_BITS_H == PWM_8_BIT              ; 8-bit pwm
     mov  A, Temp6
     mov  Temp2, A
 ELSE
@@ -358,7 +358,7 @@ ENDIF
 
 t1_int_scale_pwm_resolution:
 ; Scale pwm resolution and invert (duty cycle is defined inversely)
-IF PWM_BITS_H == 3                      ; 11-bit pwm
+IF PWM_BITS_H == PWM_11_BIT
     mov  A, Temp5
     cpl  A
     anl  A, #7
@@ -366,7 +366,7 @@ IF PWM_BITS_H == 3                      ; 11-bit pwm
     mov  A, Temp4
     cpl  A
     mov  Temp2, A
-ELSEIF PWM_BITS_H == 2                  ; 10-bit pwm
+ELSEIF PWM_BITS_H == PWM_10_BIT
     clr  C
     mov  A, Temp5
     rrc  A
@@ -377,7 +377,7 @@ ELSEIF PWM_BITS_H == 2                  ; 10-bit pwm
     rrc  A
     cpl  A
     mov  Temp2, A
-ELSEIF PWM_BITS_H == 1                  ; 9-bit pwm
+ELSEIF PWM_BITS_H == PWM_9_BIT
     mov  B, Temp5
     mov  A, Temp4
     mov  C, B.0
@@ -392,7 +392,7 @@ ELSEIF PWM_BITS_H == 1                  ; 9-bit pwm
     cpl  A
     anl  A, #1
     mov  Temp3, A
-ELSEIF PWM_BITS_H == 0                  ; 8-bit pwm
+ELSEIF PWM_BITS_H == PWM_8_BIT
     mov  A, Temp2                       ; Temp2 already 8-bit
     cpl  A
     mov  Temp2, A
@@ -400,7 +400,7 @@ ELSEIF PWM_BITS_H == 0                  ; 8-bit pwm
 ENDIF
 
 ; 11-bit effective dithering of 8/9/10-bit pwm
-IF PWM_BITS_H < 3
+IF PWM_BITS_H == PWM_8_BIT or PWM_BITS_H == PWM_9_BIT or PWM_BITS_H == PWM_10_BIT
     jnb  Flag_Dithering, t1_int_set_pwm
 
     mov  A, Temp4                       ; 11-bit low byte
@@ -419,7 +419,7 @@ IF PWM_BITS_H < 3
     add  A, #1
     mov  Temp2, A
     jnz  t1_int_set_pwm
-IF PWM_BITS_H != 0
+IF PWM_BITS_H != PWM_8_BIT
     mov  A, Temp3
     addc A, #0
     mov  Temp3, A
@@ -467,7 +467,7 @@ ENDIF
 
 ; Note: Interrupts are not explicitly disabled
 ; Assume higher priority interrupts (Int0, Timer0) to be disabled at this point
-IF PWM_BITS_H != 0
+IF PWM_BITS_H != PWM_8_BIT
     ; Set power pwm auto-reload registers
     Set_Power_Pwm_Reg_L Temp2
     Set_Power_Pwm_Reg_H Temp3
@@ -477,7 +477,7 @@ ENDIF
 
 IF DEADTIME != 0
     ; Set damp pwm auto-reload registers
-IF PWM_BITS_H != 0
+IF PWM_BITS_H != PWM_8_BIT
     Set_Damp_Pwm_Reg_L Temp4
     Set_Damp_Pwm_Reg_H Temp5
 ELSE
