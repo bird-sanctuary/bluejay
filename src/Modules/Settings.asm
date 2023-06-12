@@ -77,6 +77,7 @@ set_default_parameters:
     imov Temp1, #DEFAULT_PGM_BRAKE_ON_STOP ; Pgm_Brake_On_Stop
     imov Temp1, #DEFAULT_PGM_LED_CONTROL ; Pgm_LED_Control
     imov Temp1, #DEFAULT_PGM_POWER_RATING ; Pgm_Power_Rating
+    imov Temp1, #DEFAULT_PGM_SAFETY_ARM ; Pgm_Safety_Arm
 
     ret
 
