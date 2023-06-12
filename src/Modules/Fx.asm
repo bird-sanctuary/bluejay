@@ -1,4 +1,5 @@
-;**** **** **** **** ****
+
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Bluejay digital ESC firmware for controlling brushless motors in multirotors
 ;
@@ -22,11 +23,9 @@
 ; along with Bluejay.  If not, see <http://www.gnu.org/licenses/>.
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Misc utility functions
 ;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -90,7 +89,8 @@ wait_ms_start:
 ;
 ; Beeper routines (Multiple entry points)
 ;
-; Requirements: Interrupts must be disabled and FETs turned off
+; Requirements:
+; - Interrupts must be disabled and FETs turned off
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 beep_f1:
@@ -204,10 +204,12 @@ beep_motor_stalled:
 ;
 ; Beacon beep
 ;
-; Beep with beacon strength
-; Beep tone 1-5 in Temp1
+; Beep with beacon strength.
 ;
-; Requirements: Interrupts must be disabled and FETs turned off
+; Requirements:
+; - Interrupts must be disabled
+; - FETs must be turned off
+; - Beep tone 1-5 in Temp1
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 beacon_beep:
@@ -249,10 +251,14 @@ beacon_beep_exit:
 ;
 ; A melody has 64 pairs of (item1, item2) - a total of 128 items.
 ; the first 4 values of the 128 items are metadata
-; item2 - is the duration of each pulse of the musical note, lower the value, higher the pitch
-; item1 - if item2 is zero, it is the number of milliseconds of wait time, else it is the number of pulses of item2
+; item2 - is the duration of each pulse of the musical note.
+;         The lower the value, the higher the pitch.
+; item1 - if item2 is zero, it is the number of milliseconds of wait time, else
+;         it is the number of pulses of item2.
 ;
-; Requirements: Interrupts must be disabled and FETs turned off
+; Requirements:
+; - Interrupts must be disabledz
+; - FETs must be turned off
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 play_beep_melody:
