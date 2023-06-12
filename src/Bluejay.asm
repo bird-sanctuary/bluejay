@@ -730,7 +730,7 @@ motor_start:
     mov  Pwm_Limit_Beg, @Temp2          ; Set initial pwm limit
     mov  Pwm_Limit_By_Rpm, Pwm_Limit_Beg
 
-    ; Set temperature PWM limit and setpoint to the maximum value a
+    ; Set temperature PWM limit and setpoint to the maximum value
     mov  Pwm_Limit, #255
     mov  Temp_Pwm_Level_Setpoint, #255
 
