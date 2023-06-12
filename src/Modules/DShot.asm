@@ -29,9 +29,10 @@
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
-; Detect DShot RCP level
+; Detect DShot RC pulse level
 ;
-; Determine if RCP signal level is normal or inverted DShot
+; Determine if RC pulse signal level is normal or inverted DShot. If inverted
+; DShot - we are using
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 detect_rcp_level:
@@ -52,7 +53,23 @@ detect_rcp_level_read:
 ;
 ; Check DShot command
 ;
-; Determine received DShot command and perform action
+; Determine received DShot command and perform action if DShot command is not
+; zero:
+;
+; 1-5: Beacon beep
+;
+; All following commands need to be received 6 times in a row before action is
+; taken:
+;
+;  7: Set motor direction to normal
+;  8: Set motor direction to reverse
+;  9: Disable 3D mode
+; 10: Enable 3D mode
+; 12: Save settings
+; 13: Enable EDT (Extended DShot Telemetry)
+; 14: Disable EDT (Extended DShot Telemetry)
+; 20: Set motor direction to user programmed direction
+; 21: Sete motor direction to reversed user programmed direction
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 dshot_cmd_check:
@@ -82,7 +99,7 @@ dshot_cmd_check_count:
     jc   dshot_cmd_exit_no_clear
 
 dshot_cmd_direction_normal:
-    ; Set motor spinning direction to normal
+    ; 7: Set motor spinning direction to normal
     cjne Temp1, #7, dshot_cmd_direction_reverse
 
     clr  Flag_Pgm_Dir_Rev
@@ -90,7 +107,7 @@ dshot_cmd_direction_normal:
     sjmp dshot_cmd_exit
 
 dshot_cmd_direction_reverse:
-    ; Set motor spinning direction to reversed
+    ; 8: Set motor spinning direction to reversed
     cjne Temp1, #8, dshot_cmd_direction_bidir_off
 
     setb Flag_Pgm_Dir_Rev
@@ -98,15 +115,15 @@ dshot_cmd_direction_reverse:
     sjmp dshot_cmd_exit
 
 dshot_cmd_direction_bidir_off:
-    ; Set motor control mode to normal (not bidirectional)
     cjne Temp1, #9, dshot_cmd_direction_bidir_on
 
+    ; 9: Set motor control mode to normal (not bidirectional)
     clr  Flag_Pgm_Bidir
 
     sjmp dshot_cmd_exit
 
 dshot_cmd_direction_bidir_on:
-    ; Set motor control mode to bidirectional
+    ; 10: Set motor control mode to bidirectional
     cjne Temp1, #10, dshot_cmd_extended_telemetry_enable
 
     setb Flag_Pgm_Bidir
@@ -114,7 +131,7 @@ dshot_cmd_direction_bidir_on:
     sjmp dshot_cmd_exit
 
 dshot_cmd_extended_telemetry_enable:
-    ; Enable extended telemetry
+    ; 13: Enable extended telemetry
     cjne Temp1, #13, dshot_cmd_extended_telemetry_disable
 
     mov  Ext_Telemetry_L, #00h
@@ -125,7 +142,7 @@ dshot_cmd_extended_telemetry_enable:
     sjmp dshot_cmd_exit
 
 dshot_cmd_extended_telemetry_disable:
-    ; Disable extended telemetry
+    ; 14: Disable extended telemetry
     cjne Temp1, #14, dshot_cmd_direction_user_normal
 
     mov  Ext_Telemetry_L, #0FFh
@@ -136,7 +153,7 @@ dshot_cmd_extended_telemetry_disable:
     sjmp dshot_cmd_exit
 
 dshot_cmd_direction_user_normal:
-    ; Set motor spinning direction to user programmed direction
+    ; 20: Set motor spinning direction to user programmed direction
     cjne Temp1, #20, dshot_cmd_direction_user_reverse
 
     mov  Temp2, #Pgm_Direction          ; Read programmed direction
@@ -148,7 +165,7 @@ dshot_cmd_direction_user_normal:
     sjmp dshot_cmd_exit
 
 dshot_cmd_direction_user_reverse:       ; Temporary reverse
-    ; Set motor spinning direction to reverse of user programmed direction
+    ; 21: Set motor spinning direction to reverse of user programmed direction
     cjne Temp1, #21, dshot_cmd_save_settings
 
     mov  Temp2, #Pgm_Direction          ; Read programmed direction
@@ -161,6 +178,7 @@ dshot_cmd_direction_user_reverse:       ; Temporary reverse
     sjmp dshot_cmd_exit
 
 dshot_cmd_save_settings:
+    ; 12: Save settings
     cjne Temp1, #12, dshot_cmd_exit
 
     clr  A                              ; Set programmed direction from flags
@@ -183,8 +201,8 @@ dshot_cmd_save_settings:
     setb IE_EA
 
 dshot_cmd_exit:
-    mov  DShot_Cmd, #0                  ; Clear DShot command and exit
-    mov  DShot_Cmd_Cnt, #0
+    mov  DShot_Cmd, #0                  ; Clear DShot command
+    mov  DShot_Cmd_Cnt, #0              ; Clear Dshot command counter
 
 dshot_cmd_exit_no_clear:
     ret
@@ -236,11 +254,13 @@ dshot_tlm_create_packet:
     addc A, Temp2
     mov  Temp4, A                       ; Comm_Period3x_H
 
-    ; Timer2 ticks are ~489ns (not 500ns), so use approximation for better accuracy:
+    ; Timer2 ticks are ~489ns (not 500ns) - use approximation for better
+    ; accuracy:
+    ;
     ; E-period = Comm_Period3x - 4 * Comm_Period4x_H
 
-    ; Note: For better performance assume Comm_Period4x_H < 64 (6-bit, above ~5k erpm)
-    ; At lower speed result will be less precise
+    ; NOTE: For better performance assume Comm_Period4x_H < 64
+    ;       (6-bit, above ~5k erpm). At lower speed result will be less precise.
     mov  A, Tlm_Data_H                  ; Comm_Period4x_H
     rl   A                              ; Multiply by 4
     rl   A
@@ -326,7 +346,7 @@ dshot_tlm_12bit_encoded:
 ; Encodes 16-bit e-period as a 12-bit value of the form:
 ; <e e e m m m m m m m m m> where M SHL E ~ e-period [us]
 ;
-; Note: Not callable to improve performance
+; NOTE: Not callable to improve performance
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 dshot_12bit_encode:
