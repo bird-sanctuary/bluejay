@@ -1,4 +1,4 @@
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Bluejay digital ESC firmware for controlling brushless motors in multirotors
 ;
@@ -103,7 +103,7 @@ ENDM
 ; Decode 2 bit of a DShot frame
 ;
 ; ASSERT:
-; - Temp1 is a pointer to the first pulse width to be decoded
+; - Temp1 is a pointer to the first pulse timestamp to be decoded
 ; - Temp2 holds DShot pulse width mimimum criteria
 ; - Temp6 holds the previous timestamp
 ;
@@ -235,11 +235,13 @@ ENDM
 ;
 ; Division
 ;
-; ih, il: input (hi byte, lo byte)
+; ih, il: input  (hi byte, lo byte)
 ; oh, ol: output (hi byte, lo byte)
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-Divide_By_16 MACRO ih,il,oh,ol
+
+; 16 bit Division by 16 (swap nibbles, mask and or)
+Divide_By_16 MACRO ih, il, oh, ol
     mov  A, ih
     swap A
     mov  ol, A
@@ -255,7 +257,15 @@ Divide_By_16 MACRO ih,il,oh,ol
     mov  ol, A
 ENDM
 
-Divide_12Bit_By_16 MACRO ih,il,ol       ; Only if ih < 16
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
+; 12 bit Division by 16 (reduces 2 byte to a single)
+;
+; ASSERT:
+; - ih < 16
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+Divide_12Bit_By_16 MACRO ih, il, ol
     mov  A, ih
     swap A
     mov  ol, A
@@ -266,7 +276,8 @@ Divide_12Bit_By_16 MACRO ih,il,ol       ; Only if ih < 16
     mov  ol, A
 ENDM
 
-Divide_By_8 MACRO ih,il,oh,ol
+; 16 bit Division by 8 (swap nibbles, shift, mask and or)
+Divide_By_8 MACRO ih, il, oh, ol
     mov  A, ih
     swap A
     rl   A
@@ -284,7 +295,14 @@ Divide_By_8 MACRO ih,il,oh,ol
     mov  ol, A
 ENDM
 
-Divide_11Bit_By_8 MACRO ih,il,ol        ; Only if ih < 8
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
+; 11 bit Division by 8 (swap nibbles, shift, mask and or)
+;
+; ASSERT:
+; - ih < 8
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+Divide_11Bit_By_8 MACRO ih, il, ol
     mov  A, ih
     swap A
     rl   A
@@ -297,18 +315,26 @@ Divide_11Bit_By_8 MACRO ih,il,ol        ; Only if ih < 8
     mov  ol, A
 ENDM
 
-Divide_By_4 MACRO ih,il,oh,ol
+; 16 bit Division by 4 (divide through 2, two times) (14 cycles)
+Divide_By_4 MACRO ih, il, oh, ol
     clr  C
+
+    ; Hi: Division by 2 through right shift
     mov  A, ih
     rrc  A
     mov  oh, A
+
+    ; Lo: Division by 2 through carry (previous Hi right shift might have set it)
     mov  A, il
     rrc  A
     mov  ol, A
 
+    ; Hi: Division by 2 trough right shift
     clr  C
     mov  A, oh
     rrc  A
+
+    ; Lo: Division by 2 through carry (previous Hi right shift might have set it)
     mov  oh, A
     mov  A, ol
     rrc  A
