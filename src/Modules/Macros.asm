@@ -316,10 +316,10 @@ Divide_11Bit_By_8 MACRO ih, il, ol
 ENDM
 
 ; 16 bit Division by 4 (divide through 2, two times) (14 cycles)
+; ih, oh and il, ol can be the same if inplace operation is fine
 Divide_By_4 MACRO ih, il, oh, ol
-    clr  C
-
     ; Hi: Division by 2 through right shift
+    clr  C
     mov  A, ih
     rrc  A
     mov  oh, A
@@ -333,9 +333,9 @@ Divide_By_4 MACRO ih, il, oh, ol
     clr  C
     mov  A, oh
     rrc  A
+    mov  oh, A
 
     ; Lo: Division by 2 through carry (previous Hi right shift might have set it)
-    mov  oh, A
     mov  A, ol
     rrc  A
     mov  ol, A

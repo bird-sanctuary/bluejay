@@ -52,18 +52,19 @@ initialize_timing:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 calc_next_comm_period:
     ; Read commutation time
-    clr  IE_EA
-    clr  TMR2CN0_TR2                    ; Timer2 disabled
+    clr  IE_EA                          ; Disable all interrupts
+    clr  TMR2CN0_TR2                    ; Disable Timer2
     mov  Temp1, TMR2L                   ; Load Timer2 value
     mov  Temp2, TMR2H
     mov  Temp3, Timer2_X
     jnb  TMR2CN0_TF2H, ($+4)            ; Check if interrupt is pending
     inc  Temp3                          ; If it is pending,then timer has already wrapped
-    setb TMR2CN0_TR2                    ; Timer2 enabled
-    setb IE_EA
+    setb TMR2CN0_TR2                    ; Enable Timer2
+    setb IE_EA                          ; Enable interrupts
 
+; Divide time by 2 on 48MHz
 IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
-    clr  C                              ; Divide time by 2 on 48MHz
+    clr  C
     rrca Temp3
     rrca Temp2
     rrca Temp1
@@ -85,8 +86,8 @@ IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
 ENDIF
     mov  Temp2, A                       ; Store commutation period in Temp2 (hi byte)
 
-    jnb  Flag_High_Rpm, calc_next_comm_normal ; Branch normal rpm
-    ajmp calc_next_comm_period_fast     ; Branch high rpm
+    jnb  Flag_High_Rpm, calc_next_comm_normal ; Branch normal RPM
+    ajmp calc_next_comm_period_fast     ; Branch high RPM
 
 calc_next_comm_startup:
     ; Calculate this commutation time
@@ -141,8 +142,9 @@ calc_next_comm_normal:
     mov  Temp4, Comm_Period4x_H
 
     clr  C
-    mov  A, Temp4                       ; Is Comm_Period4x_H below 4? (above ~80k erpm)
-    subb A, #4
+    mov  A, Temp4
+
+    subb A, #4                          ; Is Comm_Period4x_H below 4? (above ~80k erpm)
     jc   calc_next_comm_div_16_4        ; Yes - Use averaging for high speeds
 
     subb A, #4                          ; Is Comm_Period4x_H below 8? (above ~40k erpm)
@@ -153,42 +155,40 @@ calc_next_comm_normal:
     ; Do not average very fast during initial run
     jb   Flag_Initial_Run_Phase, calc_next_comm_div_8_2_slow
 
+; Update Comm_Period4x from 1 new commutation period
 calc_next_comm_div_4_1:
-    ; Update Comm_Period4x from 1 new commutation period
-
     ; Divide Temp4/3 by 4 and store in Temp6/5
     Divide_By_4 Temp4, Temp3, Temp6, Temp5
 
     sjmp calc_next_comm_average_and_update
 
+; Update Comm_Period4x from 1/2 new commutation period
 calc_next_comm_div_8_2:
-    ; Update Comm_Period4x from 1/2 new commutation period
-
     ; Divide Temp4/3 by 8 and store in Temp5
     Divide_11Bit_By_8 Temp4, Temp3, Temp5
     mov  Temp6, #0
 
-    clr  C                              ; Divide by 2
+    ; Divide by 2
+    clr  C
     rrca Temp2
     rrca Temp1
 
     sjmp calc_next_comm_average_and_update
 
+; Update Comm_Period4x from 1/2 new commutation period
 calc_next_comm_div_8_2_slow:
-    ; Update Comm_Period4x from 1/2 new commutation period
-
     ; Divide Temp4/3 by 8 and store in Temp6/5
     Divide_By_8 Temp4, Temp3, Temp6, Temp5
 
-    clr  C                              ; Divide by 2
+    ; Divide by 2
+    clr  C
     rrca Temp2
     rrca Temp1
 
     sjmp calc_next_comm_average_and_update
 
+; Update Comm_Period4x from 1/4 new commutation period
 calc_next_comm_div_16_4:
-    ; Update Comm_Period4x from 1/4 new commutation period
-
     ; Divide Temp4/3 by 16 and store in Temp5
     Divide_12Bit_By_16 Temp4, Temp3, Temp5
     mov  Temp6, #0
@@ -225,7 +225,7 @@ calc_next_comm_done:
     mov  A, Comm_Period4x_H
     subb A, #2                          ; Is Comm_Period4x_H below 2? (above ~160k erpm)
     jnc  ($+4)
-    setb Flag_High_Rpm                  ; Yes - Set high rpm flag
+    setb Flag_High_Rpm                  ; Yes - Set high RPM flag
 
 calc_next_comm_15deg:
     ; Commutation period: 360 deg / 6 runs = 60 deg
@@ -277,7 +277,7 @@ calc_next_comm_period_fast:
     subb A, #0
     mov  Temp4, A
 
-    ; Note: Temp2 is assumed to be zero (approx. Comm_Period4x_H / 4)
+    ; NOTE: Temp2 is assumed to be zero (approx. Comm_Period4x_H / 4)
     mov  A, Temp1                       ; Divide by 4
     rr   A
     rr   A
@@ -835,19 +835,24 @@ wait_for_comm_demag_metric_max_updated:
     jc   wait_for_comm_wait
 
     ; Signal desync
-    setb Flag_Desync_Notify             ;
+    setb Flag_Desync_Notify
 
-    ; Cut power if many consecutive demags. This will help retain sync during hard accelerations
+    ; Cut power if many consecutive demags are detected.
+    ; This will help retain sync during hard accelerations.
     All_Pwm_Fets_Off
     Set_All_Pwm_Phases_Off
 
 wait_for_comm_wait:
-    ; If it has not already, we wait here for the Wt_Comm_Start_ delay to elapse.
+    ; If it has not already, we wait for the Wt_Comm_Start_ delay to elapse.
     Wait_For_Timer3
 
-    ; At this point Timer3 has (already) wrapped and been reloaded with the Wt_Adv_Start_ delay.
-    ; In case this delay has also elapsed, Timer3 has been reloaded with a short delay any number of times.
-    ; - The interrupt flag is set and the pending flag will clear immediately after enabling the interrupt.
+    ; At this point Timer3 has (already) wrapped and been reloaded with
+    ; the Wt_Adv_Start_ delay.
+    ;
+    ; In case this delay has also elapsed, Timer3 has been reloaded with a short
+    ; delay any number of times.
+    ; - The interrupt flag is set and the pending flag will clear immediately
+    ;   after enabling the interrupt.
     mov  TMR3RLL, Wt_Zc_Scan_Start_L    ; Setup next wait time
     mov  TMR3RLH, Wt_Zc_Scan_Start_H
     setb Flag_Timer3_Pending
