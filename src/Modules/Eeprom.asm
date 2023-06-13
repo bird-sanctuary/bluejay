@@ -153,8 +153,9 @@ write_eeprom_block2:
 ;
 ; Read eeprom byte
 ;
-; ASSERT: Target address in DPTR
-; ASSERT: Destination address in Temp1
+; ASSERT:
+; - Target address in DPTR
+; - Destination address in Temp1
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 read_eeprom_byte:
@@ -167,8 +168,9 @@ read_eeprom_byte:
 ;
 ; Write eeprom byte
 ;
-; ASSERT: Data in address given by Temp1
-; ASSERT: Destination address in DPTR
+; ASSERT:
+; - Data in address given by Temp1
+; - Destination address in DPTR
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 write_eeprom_byte:
