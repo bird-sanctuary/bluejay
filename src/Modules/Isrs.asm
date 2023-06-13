@@ -1,4 +1,4 @@
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Bluejay digital ESC firmware for controlling brushless motors in multirotors
 ;
@@ -33,7 +33,7 @@
 ;
 ; Generate DShot telemetry signal
 ;
-; Requirements:
+; ASSERT:
 ; - Must NOT be called while Flag_Telemetry_Pending is cleared
 ; - Must NOT write to Temp7, Temp8
 ;
@@ -43,7 +43,7 @@ t0_int:
     mov  PSW, #10h                      ; Select register bank 2 for this interrupt
 
     dec  Temp1
-    cjne Temp1, #(Temp_Storage - 1),t0_int_dshot_tlm_transition
+    cjne Temp1, #(Temp_Storage - 1), t0_int_dshot_tlm_transition
 
     inc  Temp1                          ; Set pointer to uncritical position
 
@@ -85,9 +85,13 @@ t0_int_dshot_tlm_finish:
 ;
 ; Timer1 interrupt routine
 ;
-; Decode DShot frame
-; Process new throttle value and update pwm registers
-; Schedule DShot telemetry
+; Tasks:
+; - Decode DShot frame
+; - Process new throttle value and update PWM registers
+; - Schedule DShot telemetry
+;
+; NOTE: The ISR should be left as soon as possible. Instead of using loops,
+;       often times more codespace is used since it saves valuable time.
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 t1_int:
@@ -100,8 +104,8 @@ t1_int:
     push ACC
     push B
 
-    ; Note: Interrupts are not explicitly disabled
-    ; Assume higher priority interrupts (Int0, Timer0) to be disabled at this point
+    ; NOTE: Interrupts are not explicitly disabled. Assume higher priority
+    ;       interrupts (Int0, Timer0) to be disabled at this point.
     clr  TMR2CN0_TR2                    ; Timer2 disabled
     mov  Temp2, TMR2L                   ; Read timer value
     mov  Temp3, TMR2H
@@ -123,7 +127,7 @@ t1_int:
     subb A, DShot_Frame_Length_Thr
     jnc  t1_int_frame_fail              ; Frame too long
 
-    ; Check that correct number of pulses is received
+    ; Check that correct number (16) of pulses is received
     cjne Temp1, #16, t1_int_frame_fail  ; Read current pointer
 
     ; Decode transmitted data
@@ -131,16 +135,17 @@ t1_int:
     mov  Temp2, DShot_Pwm_Thr           ; DShot pulse width criteria
     mov  Temp6, #0                      ; Reset timestamp
 
-    ; Decode DShot data Msb. Use more code space to save time (by not using loop)
+    ; Decode DShot data MSB nibble (4bit).
+    ; Use more code space to save time (by not using loop)
     Decode_DShot_2Bit Temp5, t1_int_frame_fail
     Decode_DShot_2Bit Temp5, t1_int_frame_fail
-    sjmp t1_int_decode_lsb
+    sjmp t1_int_decode_lsb              ; Continue with decoding LSB
 
 t1_int_frame_fail:
     sjmp t1_int_outside_range
 
 t1_int_decode_lsb:
-    ; Decode DShot data Lsb
+    ; Decode DShot data LSB (8bit)
     Decode_DShot_2Bit Temp4, t1_int_outside_range
     Decode_DShot_2Bit Temp4, t1_int_outside_range
     Decode_DShot_2Bit Temp4, t1_int_outside_range
@@ -158,10 +163,10 @@ t1_int_outside_range:
     subb A, #50                         ; Allow a given number of outside pulses
     jc   t1_int_exit_timeout            ; If outside limits - ignore first pulses
 
-    ; RCP signal has not timed out, but pulses are not recognized as DShot
+    ; RC pulse signal has not timed out, but pulses are not recognized as DShot
     setb Flag_Rcp_Stop                  ; Set pulse length to zero
     mov  DShot_Cmd, #0                  ; Reset DShot command
-    mov  DShot_Cmd_Cnt, #0
+    mov  DShot_Cmd_Cnt, #0              ; Reset Dshot command counter
 
     ajmp t1_int_exit_no_tlm             ; Exit without resetting timeout
 
@@ -202,7 +207,7 @@ t1_int_decode_checksum:
     mov  A, Temp3                       ; Check for 0 or DShot command
     mov  Temp5, #0
     mov  Temp4, #0
-    jz   t1_int_dshot_set_cmd           ; Clear DShot command when RCP is zero
+    jz   t1_int_dshot_set_cmd           ; Clear DShot command when RC pulse is zero
 
     clr  C                              ; We are in the special DShot range
     rrc  A                              ; Shift tlm bit into carry
@@ -238,9 +243,10 @@ t1_int_normal_range:
 t1_int_bidir_set:
     jnb  Flag_Pgm_Dir_Rev, ($+4)        ; Check programmed direction
     cpl  C                              ; Reverse direction
-    mov  Flag_Rcp_Dir_Rev, C            ; Set rcp direction
+    mov  Flag_Rcp_Dir_Rev, C            ; Set RC pulse direction
 
-    clr  C                              ; Multiply throttle value by 2
+    ; Multiply throttle value by 2
+    clr  C
     rlca Temp4
     rlca Temp5
 
@@ -248,14 +254,14 @@ t1_int_not_bidir:
     ; From here Temp5/Temp4 should be at most 3999 (4095-96)
     mov  A, Temp4                       ; Divide by 16 (12 to 8-bit)
     anl  A, #0F0h
-    orl  A, Temp5                       ; Note: Assumes Temp5 to be 4-bit
+    orl  A, Temp5                       ; NOTE: Assumes Temp5 to be 4-bit
     swap A
     mov  B, #5                          ; Divide by 5 (80 in total)
     div  AB
     mov  Temp3, A
 
     ; Align to 11 bits
-    ;clr    C                       ; Note: Cleared by div
+    ;clr    C                           ; NOTE: Cleared by div
     rrca Temp5
     mov  A, Temp4
     rrc  A
@@ -292,10 +298,10 @@ t1_int_not_bidir:
 t1_int_stall_boost:
     mov  A, Startup_Stall_Cnt           ; Check stall count
     jz   t1_int_startup_boosted
-    mov  B, #40                         ; Note: Stall count should be less than 6
+    mov  B, #40                         ; NOTE: Stall count should be less than 6
     mul  AB
 
-    add  A, Temp4                       ; Add more power when failing to start motor (stalling)
+    add  A, Temp4                       ; Increase power when motor fails to start (stalling)
     mov  Temp4, A
     mov  A, Temp5
     addc A, #0
@@ -308,7 +314,7 @@ t1_int_startup_boosted:
     ; Set 8-bit value
     mov  A, Temp4
     anl  A, #0F8h
-    orl  A, Temp5                       ; Assumes Temp5 to be 3-bit (11-bit rcp)
+    orl  A, Temp5                       ; Assumes Temp5 to be 3-bit (11-bit RC pulse)
     swap A
     rl   A
     mov  Temp2, A
@@ -322,7 +328,7 @@ t1_int_startup_boosted:
     sjmp t1_int_zero_rcp_checked
 
 t1_int_rcp_not_zero:
-    mov  Rcp_Stop_Cnt, #0               ; Reset rcp stop counter
+    mov  Rcp_Stop_Cnt, #0               ; Reset RC pulse stop counter
     clr  Flag_Rcp_Stop                  ; Pulse ready
 
 t1_int_zero_rcp_checked:
@@ -331,7 +337,7 @@ t1_int_zero_rcp_checked:
     jz   ($+4)
     dec  Rcp_Outside_Range_Cnt
 
-    ; Set pwm limit
+    ; Set PWM limit
     clr  C
     mov  A, Pwm_Limit                   ; Limit to the smallest
     mov  Temp6, A                       ; Store limit in Temp6
@@ -430,10 +436,10 @@ ENDIF
 ENDIF
 
 t1_int_set_pwm:
-; Set pwm registers
+; Set PWM registers
 IF DEADTIME != 0
-    ; Subtract dead time from normal pwm and store as damping pwm
-    ; Damping pwm duty cycle will be higher because numbers are inverted
+    ; Subtract dead time from normal pwm and store as damping PWM
+    ; Damping PWM duty cycle will be higher because numbers are inverted
     clr  C
     mov  A, Temp2                       ; Skew damping FET timing
 IF MCU_TYPE == MCU_BB1
@@ -465,8 +471,8 @@ t1_int_max_braking_set:
 t1_int_pwm_braking_set:
 ENDIF
 
-; Note: Interrupts are not explicitly disabled
-; Assume higher priority interrupts (Int0, Timer0) to be disabled at this point
+; NOTE: Interrupts are not explicitly disabled. Assume higher priority
+;       interrupts (Int0, Timer0) to be disabled at this point.
 IF PWM_BITS_H != PWM_8_BIT
     ; Set power pwm auto-reload registers
     Set_Power_Pwm_Reg_L Temp2
@@ -501,7 +507,7 @@ ENDIF
 
     mov  Temp1, #0                      ; Set pointer to start
 
-    ; Note: Delay must be large enough to ensure port is ready for output
+    ; NOTE: Delay must be large enough to ensure port is ready for output
     mov  TL0, DShot_GCR_Start_Delay     ; Telemetry will begin after this delay
     clr  TCON_TF0                       ; Clear Timer0 overflow flag
     setb IE_ET0                         ; Enable Timer0 interrupts
@@ -524,14 +530,19 @@ t1_int_exit_no_int:
 ;
 ; Timer2 interrupt routine
 ;
-; Update RC pulse timeout and stop counters
-; Happens every 32ms before arming and every 16 ms after arming
+; Happens every 32ms before arming and every 16 ms after arming (on 48MHz MCUs)
 ;
-; Requirements: No PSW instructions or Temp registers
+; Tasks:
+; - Update RC pulse timeout
+; - Update stop counters
+;
+; ASSERT:
+; - No PSW instructions
+; - Mp usage of Temp registers
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 t2_int:
-    push ACC
+    push ACC                            ; Preserve registers
     clr  TMR2CN0_TF2H                   ; Clear interrupt flag
     inc  Timer2_X                       ; Increment extended byte
     setb Flag_16ms_Elapsed              ; Set 16ms elapsed flag
@@ -566,9 +577,12 @@ t2_int_exit:
 ;
 ; Timer3 interrupt routine
 ;
-; Used for commutation timing
+; Tasks:
+; - Commutation timing
 ;
-; Requirements: No PSW instructions or Temp/Acc/B registers
+; ASSERT:
+; - No PSW instructions
+; - No usage of Temp/Acc/B registers
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 t3_int:
@@ -585,20 +599,22 @@ t3_int:
 ;
 ; Int0 interrupt routine (High priority)
 ;
-; Read and store DShot pwm signal for decoding
+; Tasks:
+;  - Read and store DShot PWM signal for decoding
 ;
-; Requirements: No PSW instructions
+; ASSERT:
+; - No PSW instructions
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 int0_int:
     push ACC
-    mov  A, TL0                         ; Read pwm for DShot immediately
+    mov  A, TL0                         ; Read PWM for DShot immediately
     mov  TL1, DShot_Timer_Preset        ; Reset sync timer
 
-; Temp1 in register bank 1 points to pwm timings
+    ; Temp1 in register bank 1 points to PWM timings
     push PSW
     mov  PSW, #8h
-    movx @Temp1, A                      ; Store pwm in external memory
+    movx @Temp1, A                      ; Store PWM in external memory
     inc  Temp1
     pop  PSW
 
@@ -609,18 +625,22 @@ int0_int:
 ;
 ; Int1 interrupt routine
 ;
-; Used for RC pulse timing
+; Tasks:
+; - RC pulse timing
 ;
-; Requirements: No PSW instructions or Temp/Acc registers
+; ASSERT:
+; - No PSW instructions
+; - No Temp/Acc registers
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 int1_int:
     clr  IE_EX1                         ; Disable Int1 interrupts
     setb TCON_TR1                       ; Start Timer1
 
-    ; Note: Interrupts are not explicitly disabled, assuming higher priority interrupts:
-    ; - Timer0 to be disabled at this point
-    ; - Int0 to not trigger for valid DShot signal
+    ; NOTE: Interrupts are not explicitly disabled, assuming higher priority
+    ;       interrupts:
+    ;       - Timer0 to be disabled at this point
+    ;       - Int0 to not trigger for valid DShot signal
     clr  TMR2CN0_TR2                    ; Timer2 disabled
     mov  DShot_Frame_Start_L, TMR2L     ; Read timer value
     mov  DShot_Frame_Start_H, TMR2H
