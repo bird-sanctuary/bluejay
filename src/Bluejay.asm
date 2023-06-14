@@ -535,6 +535,7 @@ bootloader_done:
     ; setup straight away.
     jnb  Flag_Had_Signal, setup_dshot
     call beep_signal_lost
+
     ; Wait for flight controller to get ready
     call wait250ms
     call wait250ms
@@ -649,7 +650,7 @@ arming_wait:
     jc   arming_wait
 
     clr  IE_EA
-    call beep_f2_short                  ; Confrim arm state by beeping
+    call beep_f2_short                  ; Confirm arm state by beeping
     setb IE_EA
 
 ; Armed and waiting for power on (RC pulse > 0)

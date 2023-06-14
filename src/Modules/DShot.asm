@@ -69,7 +69,7 @@ detect_rcp_level_read:
 ; 13: Enable EDT (Extended DShot Telemetry)
 ; 14: Disable EDT (Extended DShot Telemetry)
 ; 20: Set motor direction to user programmed direction
-; 21: Sete motor direction to reversed user programmed direction
+; 21: Set motor direction to reversed user programmed direction
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 dshot_cmd_check:
@@ -441,6 +441,7 @@ dshot_12bit_1:
 ; - Temp1: Data pointer for storing pulse timings
 ; - A: 4-bit value to GCR encode
 ; - B: Time that must be added to transition
+;
 ; Output
 ; - B: Time remaining to be added to next transition
 ;

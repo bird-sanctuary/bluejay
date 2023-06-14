@@ -257,7 +257,7 @@ beacon_beep_exit:
 ;         it is the number of pulses of item2.
 ;
 ; Requirements:
-; - Interrupts must be disabledz
+; - Interrupts must be disabled
 ; - FETs must be turned off
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****

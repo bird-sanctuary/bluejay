@@ -175,6 +175,7 @@ read_eeprom_byte:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 write_eeprom_byte:
     mov  A, @Temp1
+
 ; Shorthand if data is already in accumulator
 write_eeprom_byte_from_acc:
     orl  PSCTL, #01h                    ; Set the PSWE bit
