@@ -145,6 +145,9 @@ dshot_cmd_direction_user_normal:
     mov  C, ACC.0                       ; Set direction
     mov  Flag_Pgm_Dir_Rev, C
 
+    ; User reverse operation is off (used in turtle mode)
+    clr  Flag_User_Reverse_Requested
+
     sjmp dshot_cmd_exit
 
 dshot_cmd_direction_user_reverse:       ; Temporary reverse
@@ -157,6 +160,9 @@ dshot_cmd_direction_user_reverse:       ; Temporary reverse
     mov  C, ACC.0
     cpl  C                              ; Set reverse direction
     mov  Flag_Pgm_Dir_Rev, C
+
+    ; User reverse operation is on (used in turtle mode)
+    setb Flag_User_Reverse_Requested
 
     sjmp dshot_cmd_exit
 
