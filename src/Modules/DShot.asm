@@ -83,7 +83,7 @@ dshot_cmd_check_count:
 
 dshot_cmd_direction_normal:
     ; Set motor spinning direction to normal
-    cjne Temp1, #7, dshot_cmd_direction_reverse
+    cjne Temp1, #CMD_DIRECTION_NORMAL, dshot_cmd_direction_reverse
 
     clr  Flag_Pgm_Dir_Rev
 
@@ -91,7 +91,7 @@ dshot_cmd_direction_normal:
 
 dshot_cmd_direction_reverse:
     ; Set motor spinning direction to reversed
-    cjne Temp1, #8, dshot_cmd_direction_bidir_off
+    cjne Temp1, #CMD_DIRECTION_REVERSE, dshot_cmd_direction_bidir_off
 
     setb Flag_Pgm_Dir_Rev
 
@@ -99,7 +99,7 @@ dshot_cmd_direction_reverse:
 
 dshot_cmd_direction_bidir_off:
     ; Set motor control mode to normal (not bidirectional)
-    cjne Temp1, #9, dshot_cmd_direction_bidir_on
+    cjne Temp1, #CMD_BIDIR_OFF, dshot_cmd_direction_bidir_on
 
     clr  Flag_Pgm_Bidir
 
@@ -107,7 +107,7 @@ dshot_cmd_direction_bidir_off:
 
 dshot_cmd_direction_bidir_on:
     ; Set motor control mode to bidirectional
-    cjne Temp1, #10, dshot_cmd_extended_telemetry_enable
+    cjne Temp1, #CMD_BIDIR_ON, dshot_cmd_extended_telemetry_enable
 
     setb Flag_Pgm_Bidir
 
@@ -115,7 +115,7 @@ dshot_cmd_direction_bidir_on:
 
 dshot_cmd_extended_telemetry_enable:
     ; Enable extended telemetry
-    cjne Temp1, #13, dshot_cmd_extended_telemetry_disable
+    cjne Temp1, #CMD_EXTENDED_TELEMETRY_ENABLE, dshot_cmd_extended_telemetry_disable
 
     mov  Ext_Telemetry_L, #00h
     mov  Ext_Telemetry_H, #0Eh          ; Send state/event 0 frame to signal telemetry enable
@@ -126,7 +126,7 @@ dshot_cmd_extended_telemetry_enable:
 
 dshot_cmd_extended_telemetry_disable:
     ; Disable extended telemetry
-    cjne Temp1, #14, dshot_cmd_direction_user_normal
+    cjne Temp1, #CMD_EXTENDED_TELEMETRY_DISABLE, dshot_cmd_direction_user_normal
 
     mov  Ext_Telemetry_L, #0FFh
     mov  Ext_Telemetry_H, #0Eh          ; Send state/event 0xff frame to signal telemetry disable
@@ -137,7 +137,7 @@ dshot_cmd_extended_telemetry_disable:
 
 dshot_cmd_direction_user_normal:
     ; Set motor spinning direction to user programmed direction
-    cjne Temp1, #20, dshot_cmd_direction_user_reverse
+    cjne Temp1, #CMD_DIRECTION_USER_NORMAL, dshot_cmd_direction_user_reverse
 
     mov  Temp2, #Pgm_Direction          ; Read programmed direction
     mov  A, @Temp2
@@ -152,7 +152,7 @@ dshot_cmd_direction_user_normal:
 
 dshot_cmd_direction_user_reverse:       ; Temporary reverse
     ; Set motor spinning direction to reverse of user programmed direction
-    cjne Temp1, #21, dshot_cmd_save_settings
+    cjne Temp1, #CMD_DIRECTION_USER_REVERSE, dshot_cmd_save_settings
 
     mov  Temp2, #Pgm_Direction          ; Read programmed direction
     mov  A, @Temp2
@@ -167,7 +167,7 @@ dshot_cmd_direction_user_reverse:       ; Temporary reverse
     sjmp dshot_cmd_exit
 
 dshot_cmd_save_settings:
-    cjne Temp1, #12, dshot_cmd_exit
+    cjne Temp1, #CMD_SAVE_SETTINGS, dshot_cmd_exit
 
     clr  A                              ; Set programmed direction from flags
     mov  C, Flag_Pgm_Dir_Rev
