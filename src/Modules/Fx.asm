@@ -214,22 +214,22 @@ beacon_beep:
     mov  Temp2, #Pgm_Beacon_Strength    ; Set beacon beep strength
     mov  Beep_Strength, @Temp2
 
-    cjne Temp1, #1, beacon_beep2
+    cjne Temp1, #CMD_BEEP_1, beacon_beep2
     call beep_f1
     sjmp beacon_beep_exit
 
 beacon_beep2:
-    cjne Temp1, #2, beacon_beep3
+    cjne Temp1, #CMD_BEEP_2, beacon_beep3
     call beep_f2
     sjmp beacon_beep_exit
 
 beacon_beep3:
-    cjne Temp1, #3, beacon_beep4
+    cjne Temp1, #CMD_BEEP_3, beacon_beep4
     call beep_f3
     sjmp beacon_beep_exit
 
 beacon_beep4:
-    cjne Temp1, #4, beacon_beep5
+    cjne Temp1, #CMD_BEEP_4, beacon_beep5
     call beep_f4
     sjmp beacon_beep_exit
 

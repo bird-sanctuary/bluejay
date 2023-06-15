@@ -48,3 +48,22 @@
     PWM_10_BIT EQU 2
     PWM_9_BIT EQU 1
     PWM_8_BIT EQU 0
+
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+; DSHOT Commands
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+    CMD_DIRECTION_USER_REVERSE EQU 21
+    CMD_DIRECTION_USER_NORMAL EQU 20
+    CMD_EXTENDED_TELEMETRY_DISABLE EQU 14
+    CMD_EXTENDED_TELEMETRY_ENABLE EQU 13
+    CMD_SAVE_SETTINGS EQU 12
+    CMD_BIDIR_ON EQU 10
+    CMD_BIDIR_OFF EQU 9
+    CMD_DIRECTION_REVERSE EQU 8
+    CMD_DIRECTION_NORMAL EQU 7
+    CMD_ESC_INFO EQU 6
+    CMD_BEEP_5 EQU 5
+    CMD_BEEP_4 EQU 4
+    CMD_BEEP_3 EQU 3
+    CMD_BEEP_2 EQU 2
+    CMD_BEEP_1 EQU 1
