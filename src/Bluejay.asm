@@ -141,6 +141,7 @@ IF PWM_FREQ == PWM_24 or PWM_FREQ == PWM_48 or PWM_FREQ == PWM_96
     PWM_BITS_H EQU (2 + IS_MCU_48MHZ - PWM_CENTERED - PWM_FREQ)
 ENDIF
 
+$include (Modules\McuOffsets.asm)
 $include (Modules\Codespace.asm)
 $include (Modules\Common.asm)
 $include (Modules\Macros.asm)
@@ -507,11 +508,7 @@ input_high_check:
 
     call beep_enter_bootloader
 
-IF MCU_TYPE == MCU_BB51
-    ljmp 0F000h                         ; Jump to bootloader
-ELSE
-    ljmp 1C00h                          ; Jump to bootloader
-ENDIF
+    ljmp CSEG_BOOT_START                ; Jump to bootloader
 
 bootloader_done:
     jnb  Flag_Had_Signal, setup_dshot   ; Check if DShot signal was lost

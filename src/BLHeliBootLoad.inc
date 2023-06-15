@@ -259,11 +259,7 @@ pro4:
 pro5:
     clr  C
     mov  A, DPH                         ; Check that address is not in bootloader area
-IF MCU_TYPE == MCU_BB1 or MCU_TYPE = MCU_BB2
-    subb A, #1Ch
-ELSEIF MCU_TYPE == MCU_BB51
-    subb A, #0F0h
-ENDIF
+    subb A, #BOOTLOADER_OFFSET
     jc   ($+5)
 
     inc  DPTR                           ; Increment flash address
