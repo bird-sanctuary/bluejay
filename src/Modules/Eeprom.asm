@@ -46,12 +46,10 @@ read_all_eeprom_parameters:
     sjmp read_eeprom_read
 
 read_eeprom_store_defaults:
-    mov  Flash_Key_1, #0A5h
-    mov  Flash_Key_2, #0F1h
+    Unlock_Flash
     call set_default_parameters
     call erase_and_store_all_in_eeprom
-    mov  Flash_Key_1, #0
-    mov  Flash_Key_2, #0
+    Lock_Flash
     sjmp read_eeprom_exit
 
 read_eeprom_read:
