@@ -160,6 +160,7 @@ read_eeprom_byte:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 write_eeprom_byte:
     mov  A, @Temp1
+
 write_eeprom_byte_from_acc:
     orl  PSCTL, #01h                    ; Set the PSWE bit
     anl  PSCTL, #0FDh                   ; Clear the PSEE bit
@@ -167,10 +168,12 @@ write_eeprom_byte_from_acc:
     clr  C
     mov  A, DPH                         ; Check that address is not in bootloader area
     subb A, #BOOTLOADER_OFFSET
-    jc   ($+3)
 
+    ; Bootloader address override check
+    jc   write_eeprom_byte_safe_address_write
     ret
 
+write_eeprom_byte_safe_address_write:
     mov  A, Temp8
     mov  FLKEY, Flash_Key_1             ; First key code
     mov  FLKEY, Flash_Key_2             ; Second key code

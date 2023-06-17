@@ -94,7 +94,7 @@ abd:
     mov  Baudh, #high(BAUDTIME)
 
 wait_for_low:
-    jnb  RTX_PORT.RTX_PIN, ($+5)
+    jnb  RTX_PORT.RTX_PIN, id1
     ajmp wait_for_low
 
 ; Identifier (BOOT_SIGN) scanning with timeout and checksum
@@ -129,9 +129,10 @@ id5:
     djnz Parah, id1
 
     acall getw                          ; Read CRC
-    jz   ($+4)                          ; Check CRC
+    jz   in_start                       ; Check CRC
     ajmp abd
 
+in_start:
     ; Send info about chip/bootloader (BOOT_MSG + BOOT_INFO)
     mov  Parah, #((BOOT_INFO - BOOT_MSG) + 4)
 in1:
@@ -260,7 +261,7 @@ pro5:
     clr  C
     mov  A, DPH                         ; Check that address is not in bootloader area
     subb A, #BOOTLOADER_OFFSET
-    jc   ($+5)
+    jc   pro4
 
     inc  DPTR                           ; Increment flash address
     ajmp pro4
@@ -330,10 +331,14 @@ putc:
     mov  A, Paral
     cpl  A
 put3:
-    jb   Bit_Reg.1, ($+5)
+    jb   Bit_Reg.1, put3_check_low
     setb RTX_PORT.RTX_PIN               ; Set pin high
-    jnb  Bit_Reg.1, ($+5)
+
+put3_check_low:
+    jnb  Bit_Reg.1, put_3_wait_bit_time
     clr  RTX_PORT.RTX_PIN               ; Set pin low
+
+put_3_wait_bit_time:
     acall waitf
     clr  C
     rrc  A
@@ -351,11 +356,11 @@ getw:
     mov  A, Paral
     mov  Parah, A
 getc:
-    jb   RTX_PORT.RTX_PIN, ($+5)        ; Wait for high
+    jb   RTX_PORT.RTX_PIN, get1         ; Wait for high
     ajmp getc
 
 get1:
-    jnb  RTX_PORT.RTX_PIN, ($+5)        ; Wait for low
+    jnb  RTX_PORT.RTX_PIN, getx         ; Wait for low
     ajmp get1
 
 getx:
@@ -376,13 +381,15 @@ get2:
     clr  C
     mov  A, Paral
     rrc  A
-    jnb  RTX_PORT.RTX_PIN, ($+5)
+    jnb  RTX_PORT.RTX_PIN, get2_A
     orl  A, #080h
 
+get2_A:
     mov  Paral, A
-    jnb  ACC.7, ($+6)
+    jnb  ACC.7, get2_B
     xrl  Crcl, #low(POLYNOM)
 
+get2_B:
     clr  C
     mov  A, Crch
     rrc  A

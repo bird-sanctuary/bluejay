@@ -57,10 +57,12 @@ ENDM
 
 ; DShot GCR encoding, adjust time by adding to previous item
 GCR_Add_Time MACRO reg
+    LOCAL gcr_add_time_2
     mov  B, @reg
     mov  A, DShot_GCR_Pulse_Time_2
-    cjne A, B, ($+5)
+    cjne A, B, gcr_add_time_2
     mov  A, DShot_GCR_Pulse_Time_3
+gcr_add_time_2:
     mov  @reg, A
 ENDM
 

@@ -148,10 +148,11 @@ t1_int_decode_lsb:
     sjmp t1_int_decode_checksum
 
 t1_int_outside_range:
-    inc  Rcp_Outside_Range_Cnt
+    ; Increment Rcp_Outside_Range_Cnt and clip it to 255
     mov  A, Rcp_Outside_Range_Cnt
-    jnz  ($+4)
-    dec  Rcp_Outside_Range_Cnt
+    add  A, #1
+    subb A, #0                          ; C is 1 on overflow, so substract it to undo overflow
+    mov Rcp_Outside_Range_Cnt, A
 
     clr  C
     mov  A, Rcp_Outside_Range_Cnt
@@ -180,8 +181,10 @@ t1_int_decode_checksum:
     xrl  A, Temp4
     xrl  A, Temp5
     xrl  A, Temp3
-    jnb  Flag_Rcp_DShot_Inverted, ($+4)
+    jnb  Flag_Rcp_DShot_Inverted, t1_int_checksum_check
     cpl  A                              ; Invert checksum if using inverted DShot
+
+t1_int_checksum_check:
     anl  A, #0Fh
     jnz  t1_int_outside_range           ; XOR check
 
@@ -231,13 +234,17 @@ t1_int_normal_range:
     mov  B, A
     mov  A, Temp5
     subb A, #07h
-    jc   t1_int_bidir_set               ; Is result is positive?
+    jc   t1_int_bidir_check             ; Is result is positive?
     mov  Temp4, B                       ; Yes - Use the subtracted value
     mov  Temp5, A
 
-t1_int_bidir_set:
-    jnb  Flag_Pgm_Dir_Rev, ($+4)        ; Check programmed direction
+t1_int_bidir_check:
+    ; Check programmed direction
+    ; TODO: Replace jump by logical instructions
+    jnb  Flag_Pgm_Dir_Rev, t1_int_bidir_set_rcp_direction
     cpl  C                              ; Reverse direction
+
+t1_int_bidir_set_rcp_direction:
     mov  Flag_Rcp_Dir_Rev, C            ; Set rcp direction
 
     clr  C                              ; Multiply throttle value by 2
@@ -267,10 +274,11 @@ t1_int_not_bidir:
     mov  A, Temp5
     addc A, #0
     mov  Temp5, A
-    jnb  ACC.3, ($+7)                   ; Limit to 11-bit maximum
+    jnb  ACC.3, t1_int_boost            ; Limit to 11-bit maximum
     mov  Temp4, #0FFh
     mov  Temp5, #07h
 
+t1_int_boost:
     ; Do not boost when changing direction in bidirectional mode
     jb   Flag_Motor_Started, t1_int_startup_boosted
 
@@ -300,7 +308,7 @@ t1_int_stall_boost:
     mov  A, Temp5
     addc A, #0
     mov  Temp5, A
-    jnb  ACC.3, ($+7)                   ; Limit to 11-bit maximum
+    jnb  ACC.3, t1_int_startup_boosted  ; Limit to 11-bit maximum
     mov  Temp4, #0FFh
     mov  Temp5, #07h
 
@@ -328,18 +336,20 @@ t1_int_rcp_not_zero:
 t1_int_zero_rcp_checked:
     ; Decrement outside range counter
     mov  A, Rcp_Outside_Range_Cnt
-    jz   ($+4)
+    jz   t1_int_set_pwm_limit
     dec  Rcp_Outside_Range_Cnt
 
-    ; Set pwm limit
+t1_int_set_pwm_limit:
+    ; Choose pwm limit between pwm_limit (by temperature) and pwm_limit_by_rpm
     clr  C
     mov  A, Pwm_Limit                   ; Limit to the smallest
     mov  Temp6, A                       ; Store limit in Temp6
     subb A, Pwm_Limit_By_Rpm
-    jc   ($+4)
+    jc   t1_int_check_pwm_limit
     mov  Temp6, Pwm_Limit_By_Rpm
 
-    ; Check against limit
+t1_int_check_pwm_limit:
+    ; Check against the smaller limit
     clr  C
     mov  A, Temp6
     subb A, Temp2                       ; 8-bit rc pulse
@@ -552,8 +562,8 @@ t2_int_flag_rcp_stop_check:
     ; Increment Rcp_Stop_Cnt clipping it to 255
     mov  A, Rcp_Stop_Cnt
     inc  A
-    jz   ($+4)
-    inc  Rcp_Stop_Cnt
+    jz   t2_int_exit                    ; If overflows do not increment
+    inc  Rcp_Stop_Cnt                   ; Otherwise it is safe to increment
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Return from timer2

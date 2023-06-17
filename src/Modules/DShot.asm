@@ -38,12 +38,16 @@ detect_rcp_level:
     mov  A, #50                         ; Must detect the same level 50 times (25 us)
     mov  C, RTX_BIT
 
-detect_rcp_level_read:
-    jc   ($+5)
+detect_rcp_level_check_low_to_high:
+    jc   detect_rcp_level_check_high_to_low
     jb   RTX_BIT, detect_rcp_level      ; Level changed from low to high - start over
-    jnc  ($+5)
+
+detect_rcp_level_check_high_to_low:
+    jnc  detect_rcp_level_check_retries
     jnb  RTX_BIT, detect_rcp_level      ; Level changed from high to low - start over
-    djnz ACC, detect_rcp_level_read
+
+detect_rcp_level_check_retries:
+    djnz ACC, detect_rcp_level_check_low_to_high
 
     mov  Flag_Rcp_DShot_Inverted, C
     ret

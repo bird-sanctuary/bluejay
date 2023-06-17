@@ -57,8 +57,10 @@ calc_next_comm_period:
     mov  Temp1, TMR2L                   ; Load Timer2 value
     mov  Temp2, TMR2H
     mov  Temp3, Timer2_X
-    jnb  TMR2CN0_TF2H, ($+4)            ; Check if interrupt is pending
+    jnb  TMR2CN0_TF2H, calc_next_comm_period_enable_t2 ; Check if interrupt is pending
     inc  Temp3                          ; If it is pending,then timer has already wrapped
+
+calc_next_comm_period_enable_t2:
     setb TMR2CN0_TR2                    ; Timer2 enabled
     setb IE_EA
 
@@ -224,7 +226,7 @@ calc_next_comm_done:
     clr  C
     mov  A, Comm_Period4x_H
     subb A, #2                          ; Is Comm_Period4x_H below 2? (above ~160k erpm)
-    jnc  ($+4)
+    jnc  calc_next_comm_15deg
     setb Flag_High_Rpm                  ; Yes - Set high rpm flag
 
 calc_next_comm_15deg:
@@ -294,9 +296,10 @@ calc_next_comm_period_fast:
 
     clr  C
     subb A, #2                          ; Is Comm_Period4x_H 2 or more? (below ~160k erpm)
-    jc   ($+4)
+    jc   calc_next_comm_fast_15deg
     clr  Flag_High_Rpm                  ; Yes - Clear high rpm bit
 
+calc_next_comm_fast_15deg:
     mov  A, Temp4                       ; Divide Comm_Period4x by 16 and store in Temp4/3
     swap A
     mov  Temp7, A
@@ -377,14 +380,15 @@ adjust_comm_timing:
     inc  Temp8                          ; Increase timing (if metric 130 or above)
 
     subb A, #30
-    jc   ($+3)
+    jc   adjust_comm_timing_limit
 
     inc  Temp8                          ; Increase timing again (if metric 160 or above)
 
+adjust_comm_timing_limit:
     clr  C
     mov  A, Temp8                       ; Limit timing to max
     subb A, #6
-    jc   ($+4)
+    jc   load_comm_timing_done
 
     mov  Temp8, #5                      ; Set timing to max (if timing 6 or above)
 
@@ -611,9 +615,10 @@ comp_start:
     mov  Temp4, #(1 SHL IS_MCU_48MHZ)   ; Max number of readings required
     jb   Flag_High_Rpm, comp_check_timeout ; Branch if high rpm
 
-    jnb  Flag_Initial_Run_Phase, ($+5)
+    jnb  Flag_Initial_Run_Phase, comp_start_check_startup_phase
     clr  Flag_Demag_Detected            ; Clear demag detected flag if start phases
 
+comp_start_check_startup_phase:
     jnb  Flag_Startup_Phase, comp_not_startup
     mov  Temp3, #(27 SHL IS_MCU_48MHZ)  ; Set many samples during startup,approximately one pwm period
     mov  Temp4, #(27 SHL IS_MCU_48MHZ)
@@ -628,12 +633,14 @@ IF MCU_TYPE == MCU_BB1
     clr  C
     rrc  A
 ENDIF
-    jnz  ($+3)
+    jnz  comp_not_startup_set_required_reads
     inc  A                              ; Minimum 1
+
+comp_not_startup_set_required_reads:
     mov  Temp3, A
     clr  C
     subb A, #(20 SHL IS_MCU_48MHZ)
-    jc   ($+4)
+    jc   comp_check_timeout
     mov  Temp3, #(20 SHL IS_MCU_48MHZ)  ; Maximum 20
 
 comp_check_timeout:
@@ -687,7 +694,7 @@ comp_read_wrong_startup:
     clr  C
     mov  A, Temp3
     subb A, Temp4                       ; If above initial requirement - do not increment further
-    jc   ($+3)
+    jc   comp_check_timeout
     dec  Temp3
 
     sjmp comp_check_timeout             ; Continue to look for good ones
@@ -817,9 +824,10 @@ wait_for_comm_demag_event_added:
     mov  Demag_Detected_Metric, A
     clr  C
     subb A, #120                        ; Limit to minimum 120
-    jnc  ($+5)
+    jnc  wait_for_comm_update_demag_metric_max
     mov  Demag_Detected_Metric, #120
 
+wait_for_comm_update_demag_metric_max:
     ; Update demag metric max
     clr  C
     mov  A, Demag_Detected_Metric

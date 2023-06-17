@@ -47,10 +47,12 @@ ASM_INC		= 								\
 			src/Silabs/SI_EFM8BB2_Defs.inc	\
 			src/Silabs/SI_EFM8BB51_Defs.inc	\
 			src/Silabs/SI_EFM8LB1_Defs.inc	\
+			src/Modules/Codespace.asm		\
 			src/Modules/Common.asm			\
 			src/Modules/Commutation.asm		\
 			src/Modules/DShot.asm			\
 			src/Modules/Eeprom.asm			\
+			src/Modules/Enums.asm			\
 			src/Modules/Fx.asm				\
 			src/Modules/Isrs.asm			\
 			src/Modules/Macros.asm			\

@@ -101,16 +101,18 @@ decode_settings:
     mov  Temp1, #Pgm_Startup_Power_Max
     mov  A, #80                         ; Limit to at most 80
     subb A, @Temp1
-    jnc  ($+4)
+    jnc  decode_settings_check_rpm_power_slope
     mov  @Temp1, #80
 
+decode_settings_check_rpm_power_slope:
     ; Check low rpm power slope
     mov  Temp1, #Pgm_Rpm_Power_Slope
     mov  A, #13                         ; Limit to at most 13
     subb A, @Temp1
-    jnc  ($+4)
+    jnc  decode_settings_update_rpm_power_slope
     mov  @Temp1, #13
 
+decode_settings_update_rpm_power_slope:
     mov  Low_Rpm_Pwr_Slope, @Temp1
 
     ; Decode demag compensation
