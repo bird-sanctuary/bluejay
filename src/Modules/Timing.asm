@@ -168,10 +168,7 @@ calc_next_comm_div_8_2:
     Divide_11Bit_By_8 Temp4, Temp3, Temp5
     mov  Temp6, #0
 
-    ; Divide by 2
-    clr  C
-    rrca Temp2
-    rrca Temp1
+    Divide_16Bit_By_2 Temp2, Temp1
 
     sjmp calc_next_comm_average_and_update
 
@@ -180,10 +177,7 @@ calc_next_comm_div_8_2_slow:
     ; Divide Temp4/3 by 8 and store in Temp6/5
     Divide_By_8 Temp4, Temp3, Temp6, Temp5
 
-    ; Divide by 2
-    clr  C
-    rrca Temp2
-    rrca Temp1
+    Divide_16Bit_By_2 Temp2, Temp1
 
     sjmp calc_next_comm_average_and_update
 
@@ -549,13 +543,9 @@ setup_zc_scan_timeout:
 
     mov  Temp1, Comm_Period4x_L         ; Set long timeout when starting
     mov  Temp2, Comm_Period4x_H
-    clr  C
-    rrca Temp2
-    rrca Temp1
+    Divide_16Bit_By_2 Temp2, Temp1
 IF MCU_TYPE == MCU_BB1
-    clr  C
-    rrca Temp2
-    rrca Temp1
+    Divide_16Bit_By_2 Temp2, Temp1
 ENDIF
     jnb  Flag_Startup_Phase, setup_zc_scan_timeout_startup_done
 

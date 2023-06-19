@@ -340,3 +340,9 @@ Divide_By_4 MACRO ih, il, oh, ol
     rrc  A
     mov  ol, A
 ENDM
+
+Divide_16Bit_By_2 MACRO hi, lo
+    clr  C
+    rrca hi
+    rrca lo
+ENDM
