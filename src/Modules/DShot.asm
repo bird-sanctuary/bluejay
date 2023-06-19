@@ -178,13 +178,11 @@ dshot_cmd_save_settings:
     mov  Temp2, #Pgm_Direction          ; Store programmed direction
     mov  @Temp2, A
 
-    mov  Flash_Key_1, #0A5h             ; Initialize flash keys to valid values
-    mov  Flash_Key_2, #0F1h
+    Unlock_Flash
 
     call erase_and_store_all_in_eeprom
 
-    mov  Flash_Key_1, #0                ; Reset flash keys to invalid values
-    mov  Flash_Key_2, #0
+    Lock_Flash
 
     setb IE_EA
 

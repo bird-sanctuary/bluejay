@@ -429,8 +429,7 @@ $include (Modules\Settings.asm)
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 pgm_start:
-    mov  Flash_Key_1, #0                ; Initialize flash keys to invalid values
-    mov  Flash_Key_2, #0
+    Lock_Flash
     mov  WDTCN, #0DEh                   ; Disable watchdog (WDT)
     mov  WDTCN, #0ADh
     mov  SP, #Stack                     ; Initialize stack (16 bytes of indirect RAM)
@@ -489,8 +488,7 @@ clear_ram:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 init_no_signal:
     clr  IE_EA                          ; Disable interrupts explicitly
-    mov  Flash_Key_1, #0                ; Initialize flash keys to invalid values
-    mov  Flash_Key_2, #0
+    Lock_Flash
     call switch_power_off
 
 IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
