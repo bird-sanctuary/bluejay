@@ -54,9 +54,9 @@
 ; - Motor pwm is always damped light (aka complementary pwm, regenerative braking)
 ; Motor sequence starting from zero crossing:
 ; - Timer wait: Wt_Comm            15deg    ; Time to wait from zero cross to actual commutation
-; - Timer wait: Wt_Advance        15deg    ; Time to wait for timing advance. Nominal commutation point is after this
-; - Timer wait: Wt_Zc_Scan        7.5deg    ; Time to wait before looking for zero cross
-; - Scan for zero cross            22.5deg    ; Nominal, with some motor variations
+; - Timer wait: Wt_Advance         15deg    ; Time to wait for timing advance. Nominal commutation point is after this
+; - Timer wait: Wt_Zc_Scan         7.5deg   ; Time to wait before looking for zero cross
+; - Scan for zero cross            22.5deg  ; Nominal, with some motor variations
 ;
 ; Motor startup:
 ; There is a startup phase and an initial run phase, before normal bemf commutation run begins.
@@ -141,6 +141,7 @@ IF PWM_FREQ == PWM_24 or PWM_FREQ == PWM_48 or PWM_FREQ == PWM_96
     PWM_BITS_H EQU (2 + IS_MCU_48MHZ - PWM_CENTERED - PWM_FREQ)
 ENDIF
 
+$include (Modules\McuOffsets.asm)
 $include (Modules\Codespace.asm)
 $include (Modules\Common.asm)
 $include (Modules\Macros.asm)
@@ -155,7 +156,7 @@ DEFAULT_PGM_DIRECTION EQU 1             ; 1=Normal 2=Reversed 3=Bidir 4=Bidir re
 DEFAULT_PGM_BEEP_STRENGTH EQU 40        ; 0..255 (BLHeli_S is 1..255)
 DEFAULT_PGM_BEACON_STRENGTH EQU 80      ; 0..255
 DEFAULT_PGM_BEACON_DELAY EQU 4          ; 1=1m 2=2m 3=5m 4=10m 5=Infinite
-DEFAULT_PGM_ENABLE_TEMP_PROT EQU 7      ; 0=Disabled 1=80C 2=90C 3=100C 4=110C 5=120C 6=130C 7=140C
+DEFAULT_PGM_ENABLE_TEMP_PROT EQU 0      ; 0=Disabled 1=80C 2=90C 3=100C 4=110C 5=120C 6=130C 7=140C
 
 DEFAULT_PGM_POWER_RATING EQU 2          ; 1=1S,2=2S+
 
@@ -168,6 +169,8 @@ DEFAULT_PGM_DITHERING EQU 1             ; 0=Disabled,1=Enabled
 
 DEFAULT_PGM_STARTUP_POWER_MAX EQU 25    ; 0..255 => (1000..2000 Throttle): Maximum startup power
 DEFAULT_PGM_BRAKING_STRENGTH EQU 255    ; 0..255 => 0..100 % Braking
+
+DEFAULT_PGM_SAFETY_ARM EQU 0            ; EDT safety arm is disabled by default
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Temporary register definitions
@@ -220,6 +223,8 @@ Flags3: DS 1                            ; State flags. NOT reset upon motor_star
     Flag_Telemetry_Pending BIT Flags3.0 ; DShot telemetry data packet is ready to be sent
     Flag_Dithering BIT Flags3.1         ; PWM dithering enabled
     Flag_Had_Signal BIT Flags3.2        ; Used to detect reset after having had a valid signal
+    Flag_User_Reverse_Requested BIT Flags3.3 ; It is set when user request to reverse motors in turtle mode
+
 
 Tlm_Data_L: DS 1                        ; DShot telemetry data (lo byte)
 Tlm_Data_H: DS 1                        ; DShot telemetry data (hi byte)
@@ -329,6 +334,7 @@ _Pgm_Pwm_Dither: DS 1                   ; Output PWM dither
 Pgm_Brake_On_Stop: DS 1                 ; Braking when throttle is zero
 Pgm_LED_Control: DS 1                   ; LED control
 Pgm_Power_Rating: DS 1                  ; Power rating
+Pgm_Safety_Arm: DS  1                   ; Various flag settings: bit 0 is require edt enable to arm
 
 ISEG AT 0B0h
 Stack: DS 16                            ; Reserved stack space
@@ -346,8 +352,8 @@ Temp_Storage: DS 48                     ; Temporary storage (internal memory)
 CSEG AT CSEG_EEPROM
 EEPROM_FW_MAIN_REVISION EQU 0           ; Main revision of the firmware
 EEPROM_FW_SUB_REVISION EQU 19           ; Sub revision of the firmware
-EEPROM_LAYOUT_REVISION EQU 206          ; Revision of the EEPROM layout
-EEPROM_B2_PARAMETERS_COUNT EQU 27       ; Number of parameters
+EEPROM_LAYOUT_REVISION EQU 207          ; Revision of the EEPROM layout
+EEPROM_B2_PARAMETERS_COUNT EQU 28       ; Number of parameters
 
 Eep_FW_Main_Revision: DB EEPROM_FW_MAIN_REVISION ; EEPROM firmware main revision number
 Eep_FW_Sub_Revision: DB EEPROM_FW_SUB_REVISION ; EEPROM firmware sub revision number
@@ -392,6 +398,7 @@ _Eep_Pgm_Pwm_Dither: DB 0FFh
 Eep_Pgm_Brake_On_Stop: DB DEFAULT_PGM_BRAKE_ON_STOP ; EEPROM copy of programmed braking when throttle is zero
 Eep_Pgm_LED_Control: DB DEFAULT_PGM_LED_CONTROL ; EEPROM copy of programmed LED control
 Eep_Pgm_Power_Rating: DB DEFAULT_PGM_POWER_RATING ; EEPROM copy of programmed power rating
+Eep_Pgm_Safety_Arm: DB DEFAULT_PGM_SAFETY_ARM ; Various flag settings: bit 0 is require edt enable to arm
 
 Eep_Dummy: DB 0FFh                      ; EEPROM address for safety reason
 CSEG AT CSEG_NAME
@@ -422,8 +429,7 @@ $include (Modules\Settings.asm)
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 pgm_start:
-    mov  Flash_Key_1, #0                ; Initialize flash keys to invalid values
-    mov  Flash_Key_2, #0
+    Lock_Flash
     mov  WDTCN, #0DEh                   ; Disable watchdog (WDT)
     mov  WDTCN, #0ADh
     mov  SP, #Stack                     ; Initialize stack (16 bytes of indirect RAM)
@@ -501,8 +507,7 @@ clear_ram:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 init_no_signal:
     clr  IE_EA                          ; Disable interrupts explicitly
-    mov  Flash_Key_1, #0                ; Initialize flash keys to invalid values
-    mov  Flash_Key_2, #0
+    Lock_Flash
     call switch_power_off
 
 IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
@@ -523,11 +528,7 @@ input_high_check:
 
     call beep_enter_bootloader
 
-IF MCU_TYPE == MCU_BB51
-    ljmp 0F000h                         ; Jump to bootloader
-ELSE
-    ljmp 1C00h                          ; Jump to bootloader
-ENDIF
+    ljmp CSEG_BOOT_START                ; Jump to bootloader
 
 bootloader_done:
     ; If we had a signal before, reset the flag, beep, wait a bit and contiune
@@ -727,6 +728,20 @@ wait_for_start_nonzero:
 
     ; If RC pulse returned to stop (0) - start over
     jb   Flag_Rcp_Stop, wait_for_start_loop
+
+    ; If no safety arm jump to motor start
+    mov  Temp1, #Pgm_Safety_Arm
+    cjne @Temp1, #001h, motor_start
+
+    ; If EDT flag is set start motor
+    jb  Flag_Ext_Tele, motor_start
+
+    ; Safety is enabled. Check Flag_Ext_Tele is set
+    ; If not set beep and wait again
+    call beep_safety_no_arm
+    jmp  wait_for_start_loop
+
+
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Motor start entry point
@@ -1054,6 +1069,15 @@ ENDIF
     ljmp motor_start                    ; Go back and try starting motors again
 
 exit_run_mode_stall_done:
+    ; Clear extended DSHOT telemetry flag if turtle mode is not active
+    ; This flag is also used for EDT safety arm flag
+    ; We don't want to deactivate extended telemetry during turtle mode
+    ; Extended telemetry flag is important because it is involved in
+    ; EDT safety feature. We don't want to disable EDT arming during
+    ; turtle mode.
+    jb Flag_User_Reverse_Requested, ($+5)
+    clr Flag_Ext_Tele
+
     ; Stalled too many times
     clr  IE_EA
     call beep_motor_stalled
@@ -1062,6 +1086,16 @@ exit_run_mode_stall_done:
     ljmp arming_begin                   ; Go back and wait for arming
 
 exit_run_mode_no_stall:
+    ; Clear extended DSHOT telemetry flag if turtle mode is not active
+    ; This flag is also used for EDT safety arm flag
+    ; We don't want to deactivate extended telemetry during turtle mode
+    ; Extended telemetry flag is important because it is involved in
+    ; EDT safety feature. We don't want to disable EDT arming during
+    ; turtle mode.
+    jb Flag_User_Reverse_Requested, ($+5)
+    clr Flag_Ext_Tele
+
+    ; Clear stall counter
     mov  Startup_Stall_Cnt, #0
 
     mov  Temp1, #Pgm_Brake_On_Stop      ; Check if using brake on stop

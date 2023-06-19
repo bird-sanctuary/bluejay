@@ -224,3 +224,14 @@ ENDIF
 
     mov  CLKSEL, #03h                   ; Set clock to 48MHz (Oscillator 1)
 ENDM
+
+Unlock_Flash MACRO
+    mov  Flash_Key_1, #0A5h
+    mov  Flash_Key_2, #0F1h
+ENDM
+
+Lock_Flash MACRO
+    mov  Flash_Key_1, #0
+    mov  Flash_Key_2, #0
+ENDM
+

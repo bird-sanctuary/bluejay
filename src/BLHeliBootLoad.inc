@@ -68,8 +68,7 @@ ENDIF
     acall waitf
 
     ; Initialize flash keys
-    mov  BL_Flash_Key_1, #0A5h          ; First key code
-    mov  BL_Flash_Key_2, #0F1h          ; Second key code
+    Unlock_Flash
 
     ; Initialize ports
     orl  RTX_MDIN, #(1 SHL RTX_PIN)     ; Set digital
@@ -81,8 +80,8 @@ ENDIF
     ; Set number of connect attempts before exiting bootloader
     mov  Cmdh, #250
 
-; Identifier scanning
 abd:
+    ; Identifier scanning
     mov  Xl, #(low(BOOT_DELAY / 6)+1)
     mov  Xh, #(high(BOOT_DELAY / 6)+1)
     mov  Cmdl, #(high((BOOT_DELAY / 6) SHR 8)+1)
@@ -189,8 +188,7 @@ mai2:
 exit:
     mov  Bit_Access, #0                 ; Clear variable used by flash lock detect
     mov  Bit_Access_Int, #0FFh          ; Set variable to indicate that program execution came from bootloader
-    mov  BL_Flash_Key_1, #0             ; Set flash keys to invalid values
-    mov  BL_Flash_Key_2, #0
+    Lock_Flash
     ljmp 0000h
 rst:
     ajmp init
@@ -259,11 +257,7 @@ pro4:
 pro5:
     clr  C
     mov  A, DPH                         ; Check that address is not in bootloader area
-IF MCU_TYPE == MCU_BB1 or MCU_TYPE = MCU_BB2
-    subb A, #1Ch
-ELSEIF MCU_TYPE == MCU_BB51
-    subb A, #0F0h
-ENDIF
+    subb A, #BOOTLOADER_OFFSET
     jc   ($+5)
 
     inc  DPTR                           ; Increment flash address

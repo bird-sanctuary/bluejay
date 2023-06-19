@@ -99,23 +99,24 @@ dshot_cmd_check_count:
     jc   dshot_cmd_exit_no_clear
 
 dshot_cmd_direction_normal:
-    ; 7: Set motor spinning direction to normal
-    cjne Temp1, #7, dshot_cmd_direction_reverse
+    ; Set motor spinning direction to normal
+    cjne Temp1, #CMD_DIRECTION_NORMAL, dshot_cmd_direction_reverse
 
     clr  Flag_Pgm_Dir_Rev
 
     sjmp dshot_cmd_exit
 
 dshot_cmd_direction_reverse:
-    ; 8: Set motor spinning direction to reversed
-    cjne Temp1, #8, dshot_cmd_direction_bidir_off
+    ; Set motor spinning direction to reversed
+    cjne Temp1, #CMD_DIRECTION_REVERSE, dshot_cmd_direction_bidir_off
 
     setb Flag_Pgm_Dir_Rev
 
     sjmp dshot_cmd_exit
 
 dshot_cmd_direction_bidir_off:
-    cjne Temp1, #9, dshot_cmd_direction_bidir_on
+    ; Set motor control mode to normal (not bidirectional)
+    cjne Temp1, #CMD_BIDIR_OFF, dshot_cmd_direction_bidir_on
 
     ; 9: Set motor control mode to normal (not bidirectional)
     clr  Flag_Pgm_Bidir
@@ -123,16 +124,16 @@ dshot_cmd_direction_bidir_off:
     sjmp dshot_cmd_exit
 
 dshot_cmd_direction_bidir_on:
-    ; 10: Set motor control mode to bidirectional
-    cjne Temp1, #10, dshot_cmd_extended_telemetry_enable
+    ; Set motor control mode to bidirectional
+    cjne Temp1, #CMD_BIDIR_ON, dshot_cmd_extended_telemetry_enable
 
     setb Flag_Pgm_Bidir
 
     sjmp dshot_cmd_exit
 
 dshot_cmd_extended_telemetry_enable:
-    ; 13: Enable extended telemetry
-    cjne Temp1, #13, dshot_cmd_extended_telemetry_disable
+    ; Enable extended telemetry
+    cjne Temp1, #CMD_EXTENDED_TELEMETRY_ENABLE, dshot_cmd_extended_telemetry_disable
 
     mov  Ext_Telemetry_L, #00h
     mov  Ext_Telemetry_H, #0Eh          ; Send state/event 0 frame to signal telemetry enable
@@ -142,8 +143,8 @@ dshot_cmd_extended_telemetry_enable:
     sjmp dshot_cmd_exit
 
 dshot_cmd_extended_telemetry_disable:
-    ; 14: Disable extended telemetry
-    cjne Temp1, #14, dshot_cmd_direction_user_normal
+    ; Disable extended telemetry
+    cjne Temp1, #CMD_EXTENDED_TELEMETRY_DISABLE, dshot_cmd_direction_user_normal
 
     mov  Ext_Telemetry_L, #0FFh
     mov  Ext_Telemetry_H, #0Eh          ; Send state/event 0xff frame to signal telemetry disable
@@ -153,8 +154,8 @@ dshot_cmd_extended_telemetry_disable:
     sjmp dshot_cmd_exit
 
 dshot_cmd_direction_user_normal:
-    ; 20: Set motor spinning direction to user programmed direction
-    cjne Temp1, #20, dshot_cmd_direction_user_reverse
+    ; Set motor spinning direction to user programmed direction
+    cjne Temp1, #CMD_DIRECTION_USER_NORMAL, dshot_cmd_direction_user_reverse
 
     mov  Temp2, #Pgm_Direction          ; Read programmed direction
     mov  A, @Temp2
@@ -162,11 +163,14 @@ dshot_cmd_direction_user_normal:
     mov  C, ACC.0                       ; Set direction
     mov  Flag_Pgm_Dir_Rev, C
 
+    ; User reverse operation is off (used in turtle mode)
+    clr  Flag_User_Reverse_Requested
+
     sjmp dshot_cmd_exit
 
 dshot_cmd_direction_user_reverse:       ; Temporary reverse
-    ; 21: Set motor spinning direction to reverse of user programmed direction
-    cjne Temp1, #21, dshot_cmd_save_settings
+    ; Set motor spinning direction to reverse of user programmed direction
+    cjne Temp1, #CMD_DIRECTION_USER_REVERSE, dshot_cmd_save_settings
 
     mov  Temp2, #Pgm_Direction          ; Read programmed direction
     mov  A, @Temp2
@@ -175,11 +179,13 @@ dshot_cmd_direction_user_reverse:       ; Temporary reverse
     cpl  C                              ; Set reverse direction
     mov  Flag_Pgm_Dir_Rev, C
 
+    ; User reverse operation is on (used in turtle mode)
+    setb Flag_User_Reverse_Requested
+
     sjmp dshot_cmd_exit
 
 dshot_cmd_save_settings:
-    ; 12: Save settings
-    cjne Temp1, #12, dshot_cmd_exit
+    cjne Temp1, #CMD_SAVE_SETTINGS, dshot_cmd_exit
 
     clr  A                              ; Set programmed direction from flags
     mov  C, Flag_Pgm_Dir_Rev
@@ -190,13 +196,11 @@ dshot_cmd_save_settings:
     mov  Temp2, #Pgm_Direction          ; Store programmed direction
     mov  @Temp2, A
 
-    mov  Flash_Key_1, #0A5h             ; Initialize flash keys to valid values
-    mov  Flash_Key_2, #0F1h
+    Unlock_Flash
 
     call erase_and_store_all_in_eeprom
 
-    mov  Flash_Key_1, #0                ; Reset flash keys to invalid values
-    mov  Flash_Key_2, #0
+    Lock_Flash
 
     setb IE_EA
 

@@ -32,6 +32,10 @@
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
+ESC_LAYOUT_SIZE         EQU 48
+MELODY_SIZE             EQU 140
+
+
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Read all "EEPROM" parameters
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -49,14 +53,10 @@ read_all_eeprom_parameters:
     sjmp read_eeprom_read
 
 read_eeprom_store_defaults:
-    mov  Flash_Key_1, #0A5h
-    mov  Flash_Key_2, #0F1h
-
+    Unlock_Flash
     call set_default_parameters
     call erase_and_store_all_in_eeprom
-
-    mov  Flash_Key_1, #0
-    mov  Flash_Key_2, #0
+    Lock_Flash
     sjmp read_eeprom_exit
 
 read_eeprom_read:
@@ -94,7 +94,7 @@ read_eeprom_exit:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 erase_and_store_all_in_eeprom:
     clr  IE_EA                          ; Disable interrupts
-    call read_tags
+    call read_esc_layout
     call read_melody
     call erase_flash
 
@@ -137,8 +137,8 @@ write_eeprom_block2:
     inc  Temp1
     djnz Temp4, write_eeprom_block2
 
-    ; Write tags, melody and signature
-    call write_tags
+    ; Now write tags, melogy and signature
+    call write_esc_layout
     call write_melody
     call write_eeprom_signature
 
@@ -183,11 +183,7 @@ write_eeprom_byte_from_acc:
     mov  Temp8, A
     clr  C
     mov  A, DPH                         ; Check that address is not in bootloader area
-IF MCU_TYPE == MCU_BB51
-    subb A, #0F0h
-ELSE
-    subb A, #1Ch
-ENDIF
+    subb A, #BOOTLOADER_OFFSET
     jc   ($+3)
 
     ret
@@ -232,35 +228,36 @@ write_eeprom_signature:
     ret
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-; Tags
+; Read esc layout bytes from flash and store in temporary storage
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-
-; Read all tags from flash and store in temporary storage
-read_tags:
-    mov  Temp3, #48                     ; Number of tags
+read_esc_layout:
+    mov  Temp3, #ESC_LAYOUT_SIZE        ; Number of esc layout bytes
     mov  Temp2, #Temp_Storage           ; Set RAM address
     mov  Temp1, #Bit_Access
     mov  DPTR, #Eep_ESC_Layout          ; Set flash address
-read_tag:
+read_esc_layout_byte:
     call read_eeprom_byte
     mov  A, Bit_Access
     mov  @Temp2, A                      ; Write to RAM
     inc  Temp2
     inc  DPTR
-    djnz Temp3, read_tag
+    djnz Temp3, read_esc_layout_byte
     ret
 
-; Write all tags from temporary storage and store in flash
-write_tags:
-    mov  Temp3, #48                     ; Number of tags
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+; Write all esc layout bytes from temporary storage and
+; store them in flash
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+write_esc_layout:
+    mov  Temp3, #ESC_LAYOUT_SIZE        ; Number of esc layout bytes
     mov  Temp2, #Temp_Storage           ; Set RAM address
     mov  DPTR, #Eep_ESC_Layout          ; Set flash address
-write_tag:
+write_esc_layout_byte:
     mov  A, @Temp2                      ; Read from RAM
     call write_eeprom_byte_from_acc
     inc  Temp2
     inc  DPTR
-    djnz Temp3, write_tag
+    djnz Temp3, write_esc_layout_byte
     ret
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -269,7 +266,7 @@ write_tag:
 
 ; Read 140  bytes from "EEPROM" and store in external memory (XRAM)
 read_melody:
-    mov  Temp3, #140                    ; Number of bytes
+    mov  Temp3, #MELODY_SIZE            ; Number of bytes
     mov  Temp2, #0                      ; Set XRAM address
     mov  Temp1, #Bit_Access
     mov  DPTR, #Eep_Pgm_Beep_Melody     ; Set flash address
@@ -284,7 +281,7 @@ read_melody_byte:
 
 ; Read 140 bytes from external memory (XRAM) and store them in "EEPROM"
 write_melody:
-    mov  Temp3, #140                    ; Number of bytes
+    mov  Temp3, #MELODY_SIZE            ; Number of bytes
     mov  Temp2, #0                      ; Set XRAM address
     mov  DPTR, #Eep_Pgm_Beep_Melody     ; Set flash address
 write_melody_byte:
