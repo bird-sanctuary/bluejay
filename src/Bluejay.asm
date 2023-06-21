@@ -539,9 +539,10 @@ setup_dshot:
 
     ; Route RCP according to detected DShot signal (normal or inverted)
     mov  IT01CF, #(80h + (RTX_PIN SHL 4) + RTX_PIN) ; Route RCP input to Int0/1,with Int1 inverted
-    jnb  Flag_Rcp_DShot_Inverted, ($+6)
+    jnb  Flag_Rcp_DShot_Inverted, setup_dshot_clear_flags
     mov  IT01CF, #(08h + (RTX_PIN SHL 4) + RTX_PIN) ; Route RCP input to Int0/1,with Int0 inverted
 
+setup_dshot_clear_flags:
     clr  Flag_Demag_Notify              ; Clear motor events
     clr  Flag_Desync_Notify
     clr  Flag_Stall_Notify
@@ -1043,9 +1044,10 @@ exit_run_mode_stall_done:
     ; Extended telemetry flag is important because it is involved in
     ; EDT safety feature. We don't want to disable EDT arming during
     ; turtle mode.
-    jb Flag_User_Reverse_Requested, ($+5)
+    jb Flag_User_Reverse_Requested, exit_run_mode_stall_done_beep
     clr Flag_Ext_Tele
 
+exit_run_mode_stall_done_beep:
     ; Stalled too many times
     clr  IE_EA
     call beep_motor_stalled
@@ -1060,9 +1062,10 @@ exit_run_mode_no_stall:
     ; Extended telemetry flag is important because it is involved in
     ; EDT safety feature. We don't want to disable EDT arming during
     ; turtle mode.
-    jb Flag_User_Reverse_Requested, ($+5)
+    jb Flag_User_Reverse_Requested, exit_run_mode_no_stall_beep
     clr Flag_Ext_Tele
 
+exit_run_mode_no_stall_beep:
     ; Clear stall counter
     mov  Startup_Stall_Cnt, #0
 

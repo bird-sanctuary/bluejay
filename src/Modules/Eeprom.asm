@@ -169,10 +169,10 @@ write_eeprom_byte_from_acc:
     clr  C
     mov  A, DPH                         ; Check that address is not in bootloader area
     subb A, #BOOTLOADER_OFFSET
-    jc   ($+3)
-
+    jc   write_eeprom_byte_write
     ret
 
+write_eeprom_byte_write:
     mov  A, Temp8
     mov  FLKEY, Flash_Key_1             ; First key code
     mov  FLKEY, Flash_Key_2             ; Second key code

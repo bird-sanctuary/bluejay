@@ -150,9 +150,10 @@ t1_int_decode_lsb:
 t1_int_outside_range:
     inc  Rcp_Outside_Range_Cnt
     mov  A, Rcp_Outside_Range_Cnt
-    jnz  ($+4)
+    jnz  t1_int_outside_range_check_limit
     dec  Rcp_Outside_Range_Cnt
 
+t1_int_outside_range_check_limit:
     clr  C
     mov  A, Rcp_Outside_Range_Cnt
     subb A, #50                         ; Allow a given number of outside pulses
@@ -180,8 +181,10 @@ t1_int_decode_checksum:
     xrl  A, Temp4
     xrl  A, Temp5
     xrl  A, Temp3
-    jnb  Flag_Rcp_DShot_Inverted, ($+4)
+    jnb  Flag_Rcp_DShot_Inverted, t1_int_decode_checksum_xor_check
     cpl  A                              ; Invert checksum if using inverted DShot
+
+t1_int_decode_checksum_xor_check:
     anl  A, #0Fh
     jnz  t1_int_outside_range           ; XOR check
 
@@ -236,8 +239,10 @@ t1_int_normal_range:
     mov  Temp5, A
 
 t1_int_bidir_set:
-    jnb  Flag_Pgm_Dir_Rev, ($+4)        ; Check programmed direction
+    jnb  Flag_Pgm_Dir_Rev, t1_int_bidir_set_dir ; Check programmed direction
     cpl  C                              ; Reverse direction
+
+t1_int_bidir_set_dir:
     mov  Flag_Rcp_Dir_Rev, C            ; Set rcp direction
 
     clr  C                              ; Multiply throttle value by 2
@@ -255,7 +260,7 @@ t1_int_not_bidir:
     mov  Temp3, A
 
     ; Align to 11 bits
-    ;clr    C                       ; Note: Cleared by div
+    ;clr    C                           ; Note: Cleared by div
     rrca Temp5
     mov  A, Temp4
     rrc  A
@@ -267,10 +272,11 @@ t1_int_not_bidir:
     mov  A, Temp5
     addc A, #0
     mov  Temp5, A
-    jnb  ACC.3, ($+7)                   ; Limit to 11-bit maximum
+    jnb  ACC.3, t1_int_not_bidir_do_not_boost ; Limit to 11-bit maximum
     mov  Temp4, #0FFh
     mov  Temp5, #07h
 
+t1_int_not_bidir_do_not_boost:
     ; Do not boost when changing direction in bidirectional mode
     jb   Flag_Motor_Started, t1_int_startup_boosted
 
@@ -300,7 +306,7 @@ t1_int_stall_boost:
     mov  A, Temp5
     addc A, #0
     mov  Temp5, A
-    jnb  ACC.3, ($+7)                   ; Limit to 11-bit maximum
+    jnb  ACC.3, t1_int_startup_boosted  ; Limit to 11-bit maximum
     mov  Temp4, #0FFh
     mov  Temp5, #07h
 
@@ -328,17 +334,19 @@ t1_int_rcp_not_zero:
 t1_int_zero_rcp_checked:
     ; Decrement outside range counter
     mov  A, Rcp_Outside_Range_Cnt
-    jz   ($+4)
+    jz   t1_int_zero_rcp_checked_set_limit
     dec  Rcp_Outside_Range_Cnt
 
+t1_int_zero_rcp_checked_set_limit:
     ; Set pwm limit
     clr  C
     mov  A, Pwm_Limit                   ; Limit to the smallest
     mov  Temp6, A                       ; Store limit in Temp6
     subb A, Pwm_Limit_By_Rpm
-    jc   ($+4)
+    jc   t1_int_zero_rcp_checked_check_limit
     mov  Temp6, Pwm_Limit_By_Rpm
 
+t1_int_zero_rcp_checked_check_limit:
     ; Check against limit
     clr  C
     mov  A, Temp6
@@ -552,7 +560,7 @@ t2_int_flag_rcp_stop_check:
     ; Increment Rcp_Stop_Cnt clipping it to 255
     mov  A, Rcp_Stop_Cnt
     inc  A
-    jz   ($+4)
+    jz   t2_int_exit
     inc  Rcp_Stop_Cnt
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
