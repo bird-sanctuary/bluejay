@@ -39,10 +39,14 @@ detect_rcp_level:
     mov  C, RTX_BIT
 
 detect_rcp_level_read:
-    jc   ($+5)
+    jc   detect_rcp_level_read_check_high_to_low
     jb   RTX_BIT, detect_rcp_level      ; Level changed from low to high - start over
-    jnc  ($+5)
+
+detect_rcp_level_read_check_high_to_low:
+    jnc  detect_rcp_level_check_loop
     jnb  RTX_BIT, detect_rcp_level      ; Level changed from high to low - start over
+
+detect_rcp_level_check_loop:
     djnz ACC, detect_rcp_level_read
 
     mov  Flag_Rcp_DShot_Inverted, C
