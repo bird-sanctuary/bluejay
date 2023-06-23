@@ -62,18 +62,21 @@ set_pwm_limit:
     jz   set_pwm_limit_low_rpm_exit     ; Avoid divide by zero
 
     mov  A, #255                        ; Divide 255 by Comm_Period4x_H
-    jnb  Flag_Initial_Run_Phase, ($+5)  ; More protection for initial run phase
+    jnb  Flag_Initial_Run_Phase, set_pwm_limit_calculate ; More protection for initial run phase
     mov  A, #127
+
+set_pwm_limit_calculate:
     mov  B, Comm_Period4x_H
     div  AB
     mov  B, Low_Rpm_Pwr_Slope           ; Multiply by slope
     mul  AB
     mov  Temp1, A                       ; Set new limit
     xch  A, B
-    jz   ($+4)                          ; Limit to max
+    jz   set_pwm_limit_check_limit_to_min ; Limit to max
 
     mov  Temp1, #0FFh
 
+set_pwm_limit_check_limit_to_min:
     clr  C
     mov  A, Temp1                       ; Limit to min
     subb A, Pwm_Limit_Beg
@@ -113,7 +116,8 @@ set_pwm_limit_high_rpm_inc_limit:
     inc  A
 
 set_pwm_limit_high_rpm_store:
-    jz   ($+4)
+    jz   set_pwm_limit_high_rpm_end
     mov  Pwm_Limit_By_Rpm, A
 
+set_pwm_limit_high_rpm_end:
     ret

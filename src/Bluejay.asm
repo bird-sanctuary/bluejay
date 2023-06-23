@@ -83,9 +83,9 @@ IF MCU_TYPE == MCU_BB1 or MCU_TYPE == MCU_BB2
     B_ EQU 2                            ; Vn Am Bm Cm __ RX __ __  |  Cc Cp Bc Bp Ac Ap __ __  |  no     no     high   _
     C_ EQU 3                            ; RX __ Vn Am Bm Cm Ap Ac  |  Bp Bc Cp Cc __ __ __ __  |  no     no     high   _
     D_ EQU 4                            ; Bm Cm Am Vn __ RX __ __  |  Ap Ac Bp Bc Cp Cc __ __  |  no     yes    high   _
-    E_ EQU 5                            ; Vn Am Bm Cm __ RX L0 L1  |  Ap Ac Bp Bc Cp Cc L2 __  |  no     no     high   3 Pinout like A,with LEDs
+    E_ EQU 5                            ; Vn Am Bm Cm __ RX L0 L1  |  Ap Ac Bp Bc Cp Cc L2 __  |  no     no     high   3 Pinout like A, with LEDs
     F_ EQU 6                            ; Vn Cm Bm Am __ RX __ __  |  Ap Ac Bp Bc Cp Cc __ __  |  no     no     high   _
-    G_ EQU 7                            ; Bm Cm Am Vn __ RX __ __  |  Ap Ac Bp Bc Cp Cc __ __  |  no     no     high   _ Pinout like D,but non-inverted com FETs
+    G_ EQU 7                            ; Bm Cm Am Vn __ RX __ __  |  Ap Ac Bp Bc Cp Cc __ __  |  no     no     high   _ Pinout like D, but non-inverted com FETs
     H_ EQU 8                            ; Cm Vn Bm Am __ __ __ RX  |  Cc Bc Ac __ Cp Bp Ap __  |  no     no     high   _
     I_ EQU 9                            ; Vn Am Bm Cm __ RX __ __  |  Cp Bp Ap Cc Bc Ac __ __  |  no     no     high   _
     J_ EQU 10                           ; Am Cm Bm Vn RX L0 L1 L2  |  Ap Bp Cp Ac Bc Cc __ __  |  no     no     high   3
@@ -93,18 +93,22 @@ IF MCU_TYPE == MCU_BB1 or MCU_TYPE == MCU_BB2
     L_ EQU 12                           ; Cm Bm Am Vn __ RX __ __  |  Cp Bp Ap Cc Bc Ac __ __  |  no     no     high   _
     M_ EQU 13                           ; __ __ L0 RX Bm Vn Cm Am  |  __ Ap Bp Cp Ac Bc Cc __  |  no     no     high   1
     N_ EQU 14                           ; Vn Am Bm Cm __ RX __ __  |  Ac Ap Bc Bp Cc Cp __ __  |  no     no     high   _
-    O_ EQU 15                           ; Bm Cm Am Vn __ RX __ __  |  Ap Ac Bp Bc Cp Cc __ __  |  no     yes    low    _ Pinout Like D,but low side pwm
+    O_ EQU 15                           ; Bm Cm Am Vn __ RX __ __  |  Ap Ac Bp Bc Cp Cc __ __  |  no     yes    low    _ Pinout Like D, but low side pwm
     P_ EQU 16                           ; __ Cm Bm Vn Am RX __ __  |  __ Ap Bp Cp Ac Bc Cc __  |  no     no     high   _
     Q_ EQU 17                           ; __ RX __ L0 L1 Ap Bp Cp  |  Ac Bc Cc Vn Cm Bm Am __  |  no     no     high   2
     R_ EQU 18                           ; Vn Am Bm Cm __ RX __ __  |  Cp Bp Ap Cc Bc Ac __ __  |  no     no     high   _ Same as I
     S_ EQU 19                           ; Bm Cm Am Vn __ RX __ __  |  Ac Ap Bc Bp Cc Cp __ __  |  no     no     high   _
     T_ EQU 20                           ; __ Cm Vn Bm __ Am __ RX  |  Cc Bc Ac Ap Bp Cp __ __  |  no     no     high   _
-    U_ EQU 21                           ; L2 L1 L0 RX Bm Vn Cm Am  |  __ Ap Bp Cp Ac Bc Cc __  |  no     no     high   3 Pinout like M,with 3 LEDs
+    U_ EQU 21                           ; L2 L1 L0 RX Bm Vn Cm Am  |  __ Ap Bp Cp Ac Bc Cc __  |  no     no     high   3 Pinout like M, with 3 LEDs
     V_ EQU 22                           ; Am Bm Vn Cm __ RX __ Cc  |  Cp Bc __ __ Bp Ac Ap __  |  no     no     high   _
     W_ EQU 23                           ; __ __ Am Vn __ Bm Cm RX  |  __ __ __ __ Cp Bp Ap __  |  n/a    n/a    high   _ Tristate gate driver
     X_ EQU 24
     Y_ EQU 25
-    Z_ EQU 26                           ; Bm Cm Am Vn __ RX __ __  |  Ac Ap Bc Bp Cc Cp __ __  |  yes    no     high   _ Pinout like S,but inverted pwm FETs
+    Z_ EQU 26                           ; Bm Cm Am Vn __ RX __ __  |  Ac Ap Bc Bp Cc Cp __ __  |  yes    no     high   _ Pinout like S, but inverted pwm FETs
+
+    ; Two letter layouts start here. Preferably the first letter is the base
+    ; layout and the second letter is the variation in alphabetical order.
+    OA_ EQU 27                          ; Bm Cm Am Vn __ RX __ __  |  Ap Ac Bp Bc Cp Cc __ __  |  no     yes    low    _ Pinout Like O, but open drain instead of push-pull COM FETs
 ENDIF
 
 ; BB51 - Required
@@ -351,7 +355,7 @@ Temp_Storage: DS 48                     ; Temporary storage (internal memory)
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 CSEG AT CSEG_EEPROM
 EEPROM_FW_MAIN_REVISION EQU 0           ; Main revision of the firmware
-EEPROM_FW_SUB_REVISION EQU 19           ; Sub revision of the firmware
+EEPROM_FW_SUB_REVISION EQU 20           ; Sub revision of the firmware
 EEPROM_LAYOUT_REVISION EQU 207          ; Revision of the EEPROM layout
 EEPROM_B2_PARAMETERS_COUNT EQU 28       ; Number of parameters
 
@@ -402,7 +406,7 @@ Eep_Pgm_Safety_Arm: DB DEFAULT_PGM_SAFETY_ARM ; Various flag settings: bit 0 is 
 
 Eep_Dummy: DB 0FFh                      ; EEPROM address for safety reason
 CSEG AT CSEG_NAME
-Eep_Name: DB "Bluejay         "         ; Name tag (16 Bytes)
+Eep_Name: DB "Bluejay (DEV)   "         ; Name tag (16 Bytes)
 
 CSEG AT CSEG_MELODY
 Eep_Pgm_Beep_Melody: DB 2,58,4,32,52,66,13,0,69,45,13,0,52,66,13,0,78,39,211,0,69,45,208,25,52,25,0
@@ -566,9 +570,10 @@ setup_dshot:
 
     ; Route RCP according to detected DShot signal (normal or inverted)
     mov  IT01CF, #(80h + (RTX_PIN SHL 4) + RTX_PIN) ; Route RCP input to Int0/1,with Int1 inverted
-    jnb  Flag_Rcp_DShot_Inverted, ($+6)
+    jnb  Flag_Rcp_DShot_Inverted, setup_dshot_clear_flags
     mov  IT01CF, #(08h + (RTX_PIN SHL 4) + RTX_PIN) ; Route RCP input to Int0/1,with Int0 inverted
 
+setup_dshot_clear_flags:
     clr  Flag_Demag_Notify              ; Clear motor events
     clr  Flag_Desync_Notify
     clr  Flag_Stall_Notify
@@ -1075,9 +1080,10 @@ exit_run_mode_stall_done:
     ; Extended telemetry flag is important because it is involved in
     ; EDT safety feature. We don't want to disable EDT arming during
     ; turtle mode.
-    jb Flag_User_Reverse_Requested, ($+5)
+    jb Flag_User_Reverse_Requested, exit_run_mode_stall_done_beep
     clr Flag_Ext_Tele
 
+exit_run_mode_stall_done_beep:
     ; Stalled too many times
     clr  IE_EA
     call beep_motor_stalled
@@ -1092,9 +1098,10 @@ exit_run_mode_no_stall:
     ; Extended telemetry flag is important because it is involved in
     ; EDT safety feature. We don't want to disable EDT arming during
     ; turtle mode.
-    jb Flag_User_Reverse_Requested, ($+5)
+    jb Flag_User_Reverse_Requested, exit_run_mode_no_stall_beep
     clr Flag_Ext_Tele
 
+exit_run_mode_no_stall_beep:
     ; Clear stall counter
     mov  Startup_Stall_Cnt, #0
 

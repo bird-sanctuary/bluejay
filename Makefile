@@ -3,7 +3,8 @@ TAG			:= $(shell git describe --tags --abbrev=0)
 VERSION		?= $(TAG)
 
 # Target parameters
-LAYOUTS		= A B C D E F G H I J K L M N O P Q R S T U V W Z
+LAYOUTS		= A B C D E F G H I J K L M N O P Q R S T U V W Z \
+			  OA
 MCUS			= H
 LAYOUTS_X		= A B C
 MCUS_X		= X
@@ -38,7 +39,7 @@ LX51_FLAGS	=
 
 # Source files
 ASM_SRC		= src/Bluejay.asm
-			
+
 ASM_INC		= 								\
 			$(LAYOUTS:%=src/Layouts/%.inc)	\
 			src/Layouts/Base.inc			\
@@ -57,7 +58,7 @@ ASM_INC		= 								\
 			src/Modules/Power.asm			\
 			src/Modules/Scheduler.asm		\
 			src/Modules/Settings.asm		\
-			src/Modules/Timing.asm	
+			src/Modules/Timing.asm
 
 # Check that wine/simplicity studio is available
 EXECUTABLES	= $(AX51_BIN) $(LX51_BIN) $(OX51_BIN)
@@ -82,6 +83,9 @@ $(OUTPUT_DIR)/$(1)_$(2)_$(3)_$(4)_$(VERSION).OBJ : $(ASM_SRC) $(ASM_INC)
 	$(eval _ESC			:= $(1))
 	$(eval _ESC_INT		:= $(shell printf "%d" "'${_ESC}"))
 	$(eval _ESCNO		:= $(shell echo $$(( $(_ESC_INT) - 65 + 1))))
+
+	$(if $(shell if [ ${_ESC} = "OA" ]; then echo "TRUE"; fi),$(eval _ESCNO := '27'),)
+
 	$(eval _MCU_TYPE	:= $(subst L,0,$(subst H,1,$(subst X,2,$(2)))))
 	$(eval _DEADTIME	:= $(3))
 	$(eval _PWM_FREQ	:= $(subst 24,0,$(subst 48,1,$(subst 96,2,$(4)))))

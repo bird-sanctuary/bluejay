@@ -46,6 +46,25 @@ ENDIF
 ; Uses internal calibrated oscillator set to 24/48Mhz
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
+
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
+; ESC target letter(s)
+;
+; The initial set of layouts are labeled A-Z and their character can be
+; calculated based on that.
+;
+; The extended set of layouts consisting of two letters will assign the letters
+; manually for maximum flexibility.
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+IF ESCNO < 27
+    ESC_C_COUNT EQU 1
+    ESC_C EQU "A" + ESCNO - 1
+ELSE
+    ESC_C_COUNT EQU 2
+ENDIF
+
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; ESC selection statements
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -102,6 +121,10 @@ ELSEIF ESCNO == W_
     ;$include (Layouts/Y.inc)           ; Select pinout Y
 ELSEIF ESCNO == Z_
     $include (Layouts/Z.inc)            ; Select pinout Z
+ELSEIF ESCNO == OA_
+    $include (Layouts/OA.inc)           ; Select pinout OA
+    ESC_C0 EQU "O"
+    ESC_C1 EQU "A"
 ENDIF
 ENDIF
 
@@ -129,9 +152,6 @@ ENDIF
 ; Constant definitions
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
-; ESC layout letter
-ESC_C EQU "A" + ESCNO - 1
-
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; MCU letter
@@ -155,12 +175,21 @@ DT_C1 EQU "0" + ((DEADTIME / 10) MOD 10)
 DT_C0 EQU "0" + (DEADTIME MOD 10)
 
 ; Full ESC layout tag including layout letter, mcu letter and deadtime
-; Eg.: G_H_30, O_L_5,...
 CSEG AT CSEG_LAYOUT_TAG
+IF ESC_C_COUNT == 1
+; Eg.: G_H_30, O_L_5,...
 IF DEADTIME < 100
-    Eep_ESC_Layout: DB "#",ESC_C,"_",MCU_C,"_",DT_C1,DT_C0,"#        "
+    Eep_ESC_Layout: DB "#", ESC_C, "_", MCU_C, "_", DT_C1, DT_C0, "#        "
 ELSE
-    Eep_ESC_Layout: DB "#",ESC_C,"_",MCU_C,"_",DT_C2,DT_C1,DT_C0,"#       "
+    Eep_ESC_Layout: DB "#", ESC_C, "_", MCU_C, "_", DT_C2, DT_C1, DT_C0, "#       "
+ENDIF
+ELSEIF ESC_C_COUNT == 2
+; Eg.: AA_H_30, AO_L_5,...
+IF DEADTIME < 100
+    Eep_ESC_Layout: DB "#", ESC_C0, ESC_C1, "_", MCU_C, "_", DT_C1, DT_C0, "#       "
+ELSE
+    Eep_ESC_Layout: DB "#", ESC_C0, ESC_C1, "_", MCU_C, "_", DT_C2, DT_C1, DT_C0, "#      "
+ENDIF
 ENDIF
 
 ; Project and MCU tag (16 Bytes)
