@@ -468,7 +468,26 @@ ENDIF
     Initialize_Crossbar                 ; Initialize the crossbar and related functionality
     call switch_power_off               ; Switch power off again,after initializing ports
 
-    ; Clear RAM
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
+; Internal RAM
+;
+; EFM8 consists of 256 bytes of internal RAM of which the lower 128 bytes can be
+; directly adressed and the upper portion (starting at 0x80) can only be
+; indirectly accessed.
+;
+; NOTE: Upper portion of RAM and SFR use the same address space. RAM is accessed
+;       indirectly. If you are directly accessing the upper space, you are - in
+;       fact - addressing the SFR.
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
+; Clear internal RAM
+;
+; First the accumlator is cleared, then address is overflowed to 255 and content
+; of addresses 255 - 0 is set to 0.
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
     clr  A                              ; Clear accumulator
     mov  Temp1, A                       ; Clear Temp1
 clear_ram:
@@ -496,14 +515,17 @@ init_no_signal:
     call switch_power_off
 
 IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
-    Set_MCU_Clk_24MHz                   ; Set clock frequency
+    ; While not armed, all MCUs run at 24MHz clock frequency. After arming those
+    ; MCUs that support it (BB2 & BB51) are switched to 48MHz clock frequency.
+    Set_MCU_Clk_24MHz
 ENDIF
 
-    mov  Temp1, #9                      ; Check if input signal is high for ~150ms
+    ; If input signal is high for about ~150ms, enter bootloader mode
+    mov  Temp1, #9
     mov  Temp2, #0
     mov  Temp3, #0
 input_high_check:
-    jnb  RTX_BIT, bootloader_done       ; Look for low
+    jnb  RTX_BIT, bootloader_done       ; If low is detected, skip bootloader check
     djnz Temp3, input_high_check
     djnz Temp2, input_high_check
     djnz Temp1, input_high_check
@@ -513,9 +535,14 @@ input_high_check:
     ljmp CSEG_BOOT_START                ; Jump to bootloader
 
 bootloader_done:
-    jnb  Flag_Had_Signal, setup_dshot   ; Check if DShot signal was lost
+    ; If we had a signal before, reset the flag, beep, wait a bit and contiune
+    ; with DSHOT setup. If we did not have a signal yet, continue with DSHOT
+    ; setup straight away.
+    jnb  Flag_Had_Signal, setup_dshot
     call beep_signal_lost
-    call wait250ms                      ; Wait for flight controller to get ready
+
+    ; Wait for flight controller to get ready
+    call wait250ms
     call wait250ms
     call wait250ms
     clr  Flag_Had_Signal
@@ -584,7 +611,7 @@ ENDIF
 
     Set_DShot_Tlm_Bitrate 375000        ; = 5/4 * 300000
 
-    ; Test whether signal is DShot300
+    ; Test whether signal is DShot300, if so begin arming
     mov  Rcp_Outside_Range_Cnt, #10     ; Set out of range counter
     call wait100ms                      ; Wait for new RC pulse
     mov  A, Rcp_Outside_Range_Cnt       ; Check if pulses were accepted
@@ -598,13 +625,14 @@ IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
 
     Set_DShot_Tlm_Bitrate 750000        ; = 5/4 * 600000
 
-    ; Test whether signal is DShot600
+    ; Test whether signal is DShot600, if so begin arming
     mov  Rcp_Outside_Range_Cnt, #10     ; Set out of range counter
     call wait100ms                      ; Wait for new RC pulse
     mov  A, Rcp_Outside_Range_Cnt       ; Check if pulses were accepted
     jz   arming_begin
 ENDIF
 
+    ; No valid signal detected, try again
     ljmp init_no_signal
 
 arming_begin:
@@ -617,20 +645,22 @@ arming_begin:
     mov  Startup_Stall_Cnt, #0          ; Reset stall count
 
     clr  IE_EA
-    call beep_f1_short                  ; Beep signal that RC pulse is ready
+    call beep_f1_short                  ; Confirm RC pulse detection by beeping
     setb IE_EA
 
+; Make sure RC pulse has been zero for ~300ms
 arming_wait:
     clr  C
     mov  A, Rcp_Stop_Cnt
     subb A, #10
-    jc   arming_wait                    ; Wait until rcp has been zero for ~300ms
+    jc   arming_wait
 
     clr  IE_EA
-    call beep_f2_short                  ; Beep signal that ESC is armed
+    call beep_f2_short                  ; Confirm arm state by beeping
     setb IE_EA
 
-wait_for_start:                         ; Armed and waiting for power on
+; Armed and waiting for power on (RC pulse > 0)
+wait_for_start:
     clr  A
     mov  Comm_Period4x_L, A             ; Reset commutation period for telemetry
     mov  Comm_Period4x_H, A
@@ -688,7 +718,8 @@ wait_for_start_no_beep:
     call scheduler_run
 
 wait_for_start_check_rcp:
-    jnb  Flag_Rcp_Stop, wait_for_start_nonzero ; Higher than stop,Yes - proceed
+    ; If RC pulse is higher than stop (>0) then proceed to start the motor
+    jnb  Flag_Rcp_Stop, wait_for_start_nonzero
 
     mov  A, Rcp_Timeout_Cntd            ; Load RC pulse timeout counter value
     ljz  init_no_signal                 ; If pulses are missing - go back to detect input signal
@@ -700,7 +731,7 @@ wait_for_start_check_rcp:
 wait_for_start_nonzero:
     call wait100ms                      ; Wait to see if start pulse was glitch
 
-    ; If Rcp returned to stop - start over
+    ; If RC pulse returned to stop (0) - start over
     jb   Flag_Rcp_Stop, wait_for_start_loop
 
     ; If no safety arm jump to motor start
@@ -747,7 +778,7 @@ motor_start:
 
 ; Begin startup sequence
 IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
-    Set_MCU_Clk_48MHz
+    Set_MCU_Clk_48MHz                   ; Enable 48MHz clock frequency
 
     ; Scale DShot criteria for 48MHz
     clr  C
@@ -990,7 +1021,8 @@ run6_bidir_continue:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Exit run mode and power off
-; on normal stop or comparator timeout
+;
+; Happens on normal stop (RC pulse == 0) or comparator timeout
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 exit_run_mode_on_timeout:

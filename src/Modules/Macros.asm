@@ -1,4 +1,4 @@
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Bluejay digital ESC firmware for controlling brushless motors in multirotors
 ;
@@ -100,7 +100,64 @@ IF num < 5
 ENDIF
 ENDM
 
-Decode_DShot_2Bit MACRO dest,decode_fail
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
+; Decode 2 bit of a DShot frame
+;
+; ASSERT:
+; - Temp1 is a pointer to the first pulse timestamp to be decoded
+; - Temp2 holds DShot pulse width mimimum criteria
+; - Temp6 holds the previous timestamp
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
+; Decode 4 bit example with DShot 300:
+;
+; Temp1 | Value
+; -------------
+; 0     |  16
+; 1     |  49
+; 2     |  83
+; 3     | 102
+;
+; 1st call: (Temp1 = 0, Temp2 = 16, Temp6 = 0, dest = 0b00000000)
+; ---------------------------------------------------------------
+; Bit 1 (Temp1 = 0, dest = 0b00000000):
+; - New value: A = 16
+; - last timestamp (0) is subtracted: A = 16
+; - min pulse width criteria (16) is subtracted: A = 0
+; - carry not set - value valid
+; - A - Temp2 = 0 - 16 -> carry set
+; - rotate dest left through carry -> dest = 0b00000001
+;
+; Bit 2 (Temp1 = 1, dest = 0b00000001):
+; - New value: A = 49
+; - last timestamp (16) is subtracted: A = 33
+; - min pulse width criteria (16) is subtracted: A = 17
+; - carry not set - value valid
+; - A - Temp2 = 17 - 16 -> carry NOT set
+; - rotate dest left through carry -> dest = 0b00000010
+;
+; 2nd call: (Temp1 = 2, Temp2 = 16, Temp6 = 49, dest = 0b00000010)
+; ----------------------------------------------------------------
+; Bit 1 (Temp1 = 2, dest = 0b00000010):
+; - New value: A = 83
+; - last timestamp (49) is subtracted: A = 34
+; - min pulse width criteria (16) is subtracted: A = 18
+; - carry not set - value valid
+; - A - Temp2 = 18 - 16 -> carry NOT set
+; - rotate dest left through carry -> dest = 0b00000100
+;
+; Bit 2 (Temp3 = 2, dest = 0b00000100):
+; - New value: A = 102
+; - last timestamp (83) is subtracted: A = 19
+; - min pulse width criteria (16) is subtracted: A = 3
+; - carry not set - value valid
+; - A - Temp2 = 3 - 16 -> carry set
+; - rotate dest left through carry -> dest = 0b00001001
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+Decode_DShot_2Bit MACRO dest, decode_fail
+    ; Bit 1
     movx A, @Temp1
     mov  Temp7, A
     clr  C
@@ -111,19 +168,23 @@ Decode_DShot_2Bit MACRO dest,decode_fail
 
     subb A, Temp2                       ; Check if bit is zero or one
     rlca dest                           ; Shift bit into data byte
+
+    ; Bit 2
     inc  Temp1                          ; Next bit
 
     movx A, @Temp1
-    mov  Temp6, A
+    mov  Temp6, A                       ; Update timestamp
     clr  C
-    subb A, Temp7
+    subb A, Temp7                       ; Subtract previous timestamp
     clr  C
     subb A, Temp2
-    jc   decode_fail
+    jc   decode_fail                    ; Check that bit is longer than minimum
 
-    subb A, Temp2
-    rlca dest
-    inc  Temp1
+    subb A, Temp2                       ; Check if bit is zero or one
+    rlca dest                           ; Shift bit into data byte
+
+    ; Increase Bit for the (potential) next run of this macro
+    inc  Temp1                          ; Next bit
 ENDM
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -176,11 +237,13 @@ ENDM
 ;
 ; Division
 ;
-; ih, il: input (hi byte, lo byte)
+; ih, il: input  (hi byte, lo byte)
 ; oh, ol: output (hi byte, lo byte)
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-Divide_By_16 MACRO ih,il,oh,ol
+
+; 16 bit Division by 16 (swap nibbles, mask and or)
+Divide_By_16 MACRO ih, il, oh, ol
     mov  A, ih
     swap A
     mov  ol, A
@@ -196,7 +259,15 @@ Divide_By_16 MACRO ih,il,oh,ol
     mov  ol, A
 ENDM
 
-Divide_12Bit_By_16 MACRO ih,il,ol       ; Only if ih < 16
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
+; 12 bit Division by 16 (reduces 2 byte to a single)
+;
+; ASSERT:
+; - ih < 16
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+Divide_12Bit_By_16 MACRO ih, il, ol
     mov  A, ih
     swap A
     mov  ol, A
@@ -207,7 +278,8 @@ Divide_12Bit_By_16 MACRO ih,il,ol       ; Only if ih < 16
     mov  ol, A
 ENDM
 
-Divide_By_8 MACRO ih,il,oh,ol
+; 16 bit Division by 8 (swap nibbles, shift, mask and or)
+Divide_By_8 MACRO ih, il, oh, ol
     mov  A, ih
     swap A
     rl   A
@@ -225,7 +297,14 @@ Divide_By_8 MACRO ih,il,oh,ol
     mov  ol, A
 ENDM
 
-Divide_11Bit_By_8 MACRO ih,il,ol        ; Only if ih < 8
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
+; 11 bit Division by 8 (swap nibbles, shift, mask and or)
+;
+; ASSERT:
+; - ih < 8
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+Divide_11Bit_By_8 MACRO ih, il, ol
     mov  A, ih
     swap A
     rl   A
@@ -238,19 +317,27 @@ Divide_11Bit_By_8 MACRO ih,il,ol        ; Only if ih < 8
     mov  ol, A
 ENDM
 
-Divide_By_4 MACRO ih,il,oh,ol
+; 16 bit Division by 4 (divide through 2, two times) (14 cycles)
+; ih, oh and il, ol can be the same if inplace operation is fine
+Divide_By_4 MACRO ih, il, oh, ol
+    ; Hi: Division by 2 through right shift
     clr  C
     mov  A, ih
     rrc  A
     mov  oh, A
+
+    ; Lo: Division by 2 through carry (previous Hi right shift might have set it)
     mov  A, il
     rrc  A
     mov  ol, A
 
+    ; Hi: Division by 2 trough right shift
     clr  C
     mov  A, oh
     rrc  A
     mov  oh, A
+
+    ; Lo: Division by 2 through carry (previous Hi right shift might have set it)
     mov  A, ol
     rrc  A
     mov  ol, A

@@ -1,4 +1,4 @@
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Bluejay digital ESC firmware for controlling brushless motors in multirotors
 ;
@@ -25,6 +25,11 @@
 ;
 ; ESC programming (EEPROM emulation)
 ;
+; The BB EFM8 technically does not have a dedicated EEPROM but in Bluejay a
+; part of the flash space is dedicated to emulate an EEPROM. This is the space
+; that holds all the settings and is what the configurator reads/writes ( via
+; the bootloader).
+;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 ESC_LAYOUT_SIZE         EQU 48
@@ -32,9 +37,7 @@ MELODY_SIZE             EQU 140
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;
-; Read all eeprom parameters
-;
+; Read all "EEPROM" parameters
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 read_all_eeprom_parameters:
     ; Check initialized signature
@@ -57,52 +60,56 @@ read_eeprom_store_defaults:
     sjmp read_eeprom_exit
 
 read_eeprom_read:
-    ; Read eeprom
+    ; Read "EEPROM"
     mov  DPTR, #_Eep_Pgm_Gov_P_Gain
     mov  Temp1, #_Pgm_Gov_P_Gain
     mov  Temp4, #10                     ; 10 parameters
+
 read_eeprom_block1:
     call read_eeprom_byte
     inc  DPTR
     inc  Temp1
     djnz Temp4, read_eeprom_block1
 
-    ; Read eeprom after Eep_Initialized_x flags
+    ; Read "EEPROM" after Eep_Initialized_x flags
     ; Temp4 = EEPROM_B2_PARAMETERS_COUNT parameters: [_Eep_Enable_TX_Program - Eep_Pgm_Power_Rating]
     mov  DPTR, #_Eep_Enable_TX_Program
     mov  Temp1, #_Pgm_Enable_TX_Program
     mov  Temp4, #EEPROM_B2_PARAMETERS_COUNT
+
 read_eeprom_block2:
     call read_eeprom_byte
     inc  DPTR
     inc  Temp1
     djnz Temp4, read_eeprom_block2
 
-    mov  DPTR, #Eep_Dummy               ; Set pointer to uncritical area
+    ; Set pointer to uncritical area
+    mov  DPTR, #Eep_Dummy
 
 read_eeprom_exit:
     ret
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;
-; Erase flash and store all parameter values in EEPROM
-;
+; Erase flash and store all parameter values in "EEPROM"
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 erase_and_store_all_in_eeprom:
     clr  IE_EA                          ; Disable interrupts
     call read_esc_layout
     call read_melody
-    call erase_flash                    ; Erase flash
+    call erase_flash
 
-    mov  DPTR, #Eep_FW_Main_Revision    ; Store firmware main revision
+    ; Store firmware main revision
+    mov  DPTR, #Eep_FW_Main_Revision
     mov  A, #EEPROM_FW_MAIN_REVISION
     call write_eeprom_byte_from_acc
 
-    inc  DPTR                           ; Now firmware sub revision
+    ; Store firmware sub revision
+    inc  DPTR
     mov  A, #EEPROM_FW_SUB_REVISION
     call write_eeprom_byte_from_acc
 
-    inc  DPTR                           ; Now layout revision
+    ; Store layout revision
+    inc  DPTR
     mov  A, #EEPROM_LAYOUT_REVISION
     call write_eeprom_byte_from_acc
 
@@ -111,6 +118,7 @@ erase_and_store_all_in_eeprom:
     mov  DPTR, #_Eep_Pgm_Gov_P_Gain
     mov  Temp1, #_Pgm_Gov_P_Gain
     mov  Temp4, #10
+
 write_eeprom_block1:
     call write_eeprom_byte
     inc  DPTR
@@ -122,6 +130,7 @@ write_eeprom_block1:
     mov  DPTR, #_Eep_Enable_TX_Program
     mov  Temp1, #_Pgm_Enable_TX_Program
     mov  Temp4, #EEPROM_B2_PARAMETERS_COUNT
+
 write_eeprom_block2:
     call write_eeprom_byte
     inc  DPTR
@@ -132,9 +141,11 @@ write_eeprom_block2:
     call write_esc_layout
     call write_melody
     call write_eeprom_signature
-    mov  DPTR, #Eep_Dummy               ; Set pointer to uncritical area
 
-    ; Give time to flash controller to settle data down
+    ; Set pointer to uncritical area
+    mov  DPTR, #Eep_Dummy
+
+    ; Allow the flash controller to settle data down
     call wait200ms
     ret
 
@@ -142,8 +153,9 @@ write_eeprom_block2:
 ;
 ; Read eeprom byte
 ;
-; Gives data in A and in address given by Temp1
-; Assumes address in DPTR
+; ASSERT:
+; - Target address in DPTR
+; - Destination address in Temp1
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 read_eeprom_byte:
@@ -156,12 +168,15 @@ read_eeprom_byte:
 ;
 ; Write eeprom byte
 ;
-; Assumes data in address given by Temp1, or in accumulator
-; Assumes address in DPTR
+; ASSERT:
+; - Data in address given by Temp1
+; - Destination address in DPTR
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 write_eeprom_byte:
     mov  A, @Temp1
+
+; Shorthand if data is already in accumulator
 write_eeprom_byte_from_acc:
     orl  PSCTL, #01h                    ; Set the PSWE bit
     anl  PSCTL, #0FDh                   ; Clear the PSEE bit
@@ -174,8 +189,11 @@ write_eeprom_byte_from_acc:
 
 write_eeprom_byte_write:
     mov  A, Temp8
+
+    ; Attempt to unlock flash
     mov  FLKEY, Flash_Key_1             ; First key code
     mov  FLKEY, Flash_Key_2             ; Second key code
+
     movx @DPTR, A                       ; Write to flash
     anl  PSCTL, #0FEh                   ; Clear the PSWE bit
     ret
@@ -186,8 +204,11 @@ write_eeprom_byte_write:
 erase_flash:
     orl  PSCTL, #02h                    ; Set the PSEE bit
     orl  PSCTL, #01h                    ; Set the PSWE bit
+
+    ; Attempt to unlock flash
     mov  FLKEY, Flash_Key_1             ; First key code
     mov  FLKEY, Flash_Key_2             ; Second key code
+
     mov  DPTR, #Eep_Initialized_L
     movx @DPTR, A
     anl  PSCTL, #0FCh                   ; Clear the PSEE and PSWE bits
@@ -240,8 +261,10 @@ write_esc_layout_byte:
     ret
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-; Read bytes from flash and store in external memory
+; Melody
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
+
+; Read 140  bytes from "EEPROM" and store in external memory (XRAM)
 read_melody:
     mov  Temp3, #MELODY_SIZE            ; Number of bytes
     mov  Temp2, #0                      ; Set XRAM address
@@ -256,9 +279,7 @@ read_melody_byte:
     djnz Temp3, read_melody_byte
     ret
 
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-; Write bytes from external memory and store in flash
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
+; Read 140 bytes from external memory (XRAM) and store them in "EEPROM"
 write_melody:
     mov  Temp3, #MELODY_SIZE            ; Number of bytes
     mov  Temp2, #0                      ; Set XRAM address

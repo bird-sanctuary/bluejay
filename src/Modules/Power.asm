@@ -1,4 +1,4 @@
-;**** **** **** **** ****
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Bluejay digital ESC firmware for controlling brushless motors in multirotors
 ;
@@ -42,9 +42,9 @@ switch_power_off:
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
-; Set pwm limit low rpm
+; Set PWM limit low RPM
 ;
-; Sets power limit for low rpm
+; Sets power limit for low RPM
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 set_pwm_limit:
@@ -90,9 +90,9 @@ set_pwm_limit_low_rpm_exit:
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
-; Set pwm limit high rpm
+; Set PWM limit high RPM
 ;
-; Sets power limit for high rpm
+; Sets power limit for high RPM
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 set_pwm_limit_high_rpm:

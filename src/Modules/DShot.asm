@@ -29,9 +29,10 @@
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
-; Detect DShot RCP level
+; Detect DShot RC pulse level
 ;
-; Determine if RCP signal level is normal or inverted DShot
+; Determine if RC pulse signal level is normal or inverted DShot. If inverted
+; DShot - we are using
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 detect_rcp_level:
@@ -56,7 +57,23 @@ detect_rcp_level_check_loop:
 ;
 ; Check DShot command
 ;
-; Determine received DShot command and perform action
+; Determine received DShot command and perform action if DShot command is not
+; zero:
+;
+; 1-5: Beacon beep
+;
+; All following commands need to be received 6 times in a row before action is
+; taken:
+;
+;  7: Set motor direction to normal
+;  8: Set motor direction to reverse
+;  9: Disable 3D mode
+; 10: Enable 3D mode
+; 12: Save settings
+; 13: Enable EDT (Extended DShot Telemetry)
+; 14: Disable EDT (Extended DShot Telemetry)
+; 20: Set motor direction to user programmed direction
+; 21: Set motor direction to reversed user programmed direction
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 dshot_cmd_check:
@@ -105,6 +122,7 @@ dshot_cmd_direction_bidir_off:
     ; Set motor control mode to normal (not bidirectional)
     cjne Temp1, #CMD_BIDIR_OFF, dshot_cmd_direction_bidir_on
 
+    ; 9: Set motor control mode to normal (not bidirectional)
     clr  Flag_Pgm_Bidir
 
     sjmp dshot_cmd_exit
@@ -191,8 +209,8 @@ dshot_cmd_save_settings:
     setb IE_EA
 
 dshot_cmd_exit:
-    mov  DShot_Cmd, #0                  ; Clear DShot command and exit
-    mov  DShot_Cmd_Cnt, #0
+    mov  DShot_Cmd, #0                  ; Clear DShot command
+    mov  DShot_Cmd_Cnt, #0              ; Clear Dshot command counter
 
 dshot_cmd_exit_no_clear:
     ret
@@ -244,11 +262,13 @@ dshot_tlm_create_packet:
     addc A, Temp2
     mov  Temp4, A                       ; Comm_Period3x_H
 
-    ; Timer2 ticks are ~489ns (not 500ns), so use approximation for better accuracy:
+    ; Timer2 ticks are ~489ns (not 500ns) - use approximation for better
+    ; accuracy:
+    ;
     ; E-period = Comm_Period3x - 4 * Comm_Period4x_H
 
-    ; Note: For better performance assume Comm_Period4x_H < 64 (6-bit, above ~5k erpm)
-    ; At lower speed result will be less precise
+    ; NOTE: For better performance assume Comm_Period4x_H < 64
+    ;       (6-bit, above ~5k erpm). At lower speed result will be less precise.
     mov  A, Tlm_Data_H                  ; Comm_Period4x_H
     rl   A                              ; Multiply by 4
     rl   A
@@ -334,7 +354,7 @@ dshot_tlm_12bit_encoded:
 ; Encodes 16-bit e-period as a 12-bit value of the form:
 ; <e e e m m m m m m m m m> where M SHL E ~ e-period [us]
 ;
-; Note: Not callable to improve performance
+; NOTE: Not callable to improve performance
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 dshot_12bit_encode:
@@ -429,6 +449,7 @@ dshot_12bit_1:
 ; - Temp1: Data pointer for storing pulse timings
 ; - A: 4-bit value to GCR encode
 ; - B: Time that must be added to transition
+;
 ; Output
 ; - B: Time remaining to be added to next transition
 ;

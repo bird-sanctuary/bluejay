@@ -27,13 +27,7 @@
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;
-; Set default parameters
-;
 ; Sets default programming parameters
-;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
 set_default_parameters:
     mov  Temp1, #_Pgm_Gov_P_Gain
     mov  @Temp1, #0FFh                  ; _Pgm_Gov_P_Gain
@@ -140,8 +134,9 @@ decode_demag_done:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
 ; Power rating only applies to BB21 because voltage references behave diferently
-; depending on an external voltage regulator is used or not.
-; For BB51 (MCU_TYPE == 2) 1s power rating code path is mandatory
+; depending on if an external voltage regulator is used or not.
+;
+; NOTE: For BB51, the 1s power rating code path is mandatory
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 IF MCU_TYPE == MCU_BB1 or MCU_TYPE == MCU_BB2
@@ -206,6 +201,14 @@ ELSEIF PWM_BITS_H == PWM_8_BIT
 ENDIF
     cjne @Temp1, #0FFh, decode_pwm_dithering
     mov  Pwm_Braking_L, #0FFh           ; Apply full braking if setting is max
+
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
+; Dithering
+;
+; Depending on resolution, different dithering patterns are available.
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 decode_pwm_dithering:
     mov  Temp1, #Pgm_Dithering          ; Read programmed dithering setting

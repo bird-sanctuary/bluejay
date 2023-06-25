@@ -25,14 +25,37 @@
 ;
 ; Commutation
 ;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
+; Performs 6-step commutation switching.
 ;
-; Commutation routines
+; In 6-step commutation switching a full rotation is segregated in 6 sectors.
+; Every sectors is 60 degrees (6 * 60 = 360), thus 6 steps are needed to
+; complete one full rotation.
 ;
-; Performs commutation switching
+; Non reversed switching (PWM, non inverted shown here). The diagram shows two
+; full commutation runs:
 ;
+;   123456123456
+; A __/‾‾\__/‾‾\
+;
+; B /‾‾\__/‾‾\__
+;
+; C ‾\__/‾‾\__/‾
+;
+; The followind table shows the states of the FETs for all phases including
+; complementary states:
+;
+; Step   AA' BB' CC'
+; 1 C->A 01  00  10
+; 2 B->A 01  10  00
+; 3 B->C 00  10  01
+; 4 A->C 10  00  01
+; 5 A->B 10  01  00
+; 6 C->B 00  01  10
+;
+; NOTE: Every step has a "reverse" step which is used in bi-directional mode
+;       where the motor is allowed to spin in both directions. Depending on the
+;       current RC pulse the motor is commutated either in "normal" direction
+;       or in "reverse".
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 ; Comm phase 1 to comm phase 2

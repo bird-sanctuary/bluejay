@@ -28,7 +28,11 @@
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
 ; Device SiLabs EFM8BB1x/2x/51
+;
+; Include defines provided by SiLabs depending on target platform.
+;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 IF MCU_TYPE == MCU_BB1
     $include (Silabs/SI_EFM8BB1_Defs.inc)
@@ -134,7 +138,8 @@ ELSEIF ESCNO == C_
 ENDIF
 ENDIF
 
-SIGNATURE_001 EQU 0E8h                  ; Device signature
+; Build device signature based on target platform: 0xE8, [0xB1 | 0xB2 | 0xB5]
+SIGNATURE_001 EQU 0E8h
 IF MCU_TYPE == MCU_BB1
     SIGNATURE_002 EQU 0B1h
 ELSEIF MCU_TYPE == MCU_BB2
