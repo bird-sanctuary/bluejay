@@ -169,7 +169,7 @@ DEFAULT_PGM_LED_CONTROL EQU 0           ; Byte for LED control. 2 bits per LED,0
 
 DEFAULT_PGM_STARTUP_POWER_MIN EQU 51    ; 0..255 => (1000..1125 Throttle): value * (1000 / 2047) + 1000
 DEFAULT_PGM_STARTUP_BEEP EQU 1          ; 0=Short beep,1=Melody
-DEFAULT_PGM_DITHERING EQU 1             ; 0=Disabled,1=Enabled
+DEFAULT_PGM_DITHERING EQU 0             ; 0=Disabled,1=Enabled
 
 DEFAULT_PGM_STARTUP_POWER_MAX EQU 25    ; 0..255 => (1000..2000 Throttle): Maximum startup power
 DEFAULT_PGM_BRAKING_STRENGTH EQU 255    ; 0..255 => 0..100 % Braking
