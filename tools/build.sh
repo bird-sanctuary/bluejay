@@ -44,9 +44,10 @@ else
 
   target="${layout}_${mcu}_${deadtime}_${pwm}"
   params="LAYOUT=${layout} MCU=${mcu} DEADTIME=${deadtime} PWM=${pwm}"
-  if [ -n "${version}" ]; then
-    params="${params} VERSION=${version}"
-  fi
+fi
+
+if [ -n "${version}" ]; then
+  params="${params} VERSION=${version}"
 fi
 
 echo "Building ${target}"
