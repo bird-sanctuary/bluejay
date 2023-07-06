@@ -1005,7 +1005,7 @@ run6_bidir_braking:
 
     clr  C
     mov  A, Comm_Period4x_H             ; Is Comm_Period4x below minimum speed?
-    subb A, #20h                        ; Bidirectional braking termination speed (~9970 erpm)
+    subb A, #40h                        ; Bidirectional braking termination speed (~5000 erpm)
     jc   run6_bidir_continue            ; No - continue braking
 
     ; Braking done, set new spinning direction
