@@ -3,7 +3,8 @@ TAG			:= $(shell git describe --tags --abbrev=0)
 VERSION		?= $(TAG)
 
 # Target parameters
-LAYOUTS		= A B C D E F G H I J K L M N O P Q R S T U V W Z
+LAYOUTS		= A B C D E F G H I J K L M N O P Q R S T U V W Z \
+			  OA
 MCUS			= H
 LAYOUTS_X		= A B C
 MCUS_X		= X
@@ -37,8 +38,27 @@ AX51_FLAGS	= NOMOD51 REGISTERBANK(0,1,2) NOLIST NOSYMBOLS
 LX51_FLAGS	=
 
 # Source files
-ASM_SRC		= Bluejay.asm
-ASM_INC		= $(LAYOUTS:%=Layouts/%.inc) Layouts/Base.inc Common.inc BLHeliBootLoad.inc Silabs/SI_EFM8BB1_Defs.inc Silabs/SI_EFM8BB2_Defs.inc
+ASM_SRC		= src/Bluejay.asm
+
+ASM_INC		= 								\
+			$(LAYOUTS:%=src/Layouts/%.inc)	\
+			src/Layouts/Base.inc			\
+			src/BLHeliBootLoad.inc			\
+			src/Silabs/SI_EFM8BB1_Defs.inc	\
+			src/Silabs/SI_EFM8BB2_Defs.inc	\
+			src/Silabs/SI_EFM8BB51_Defs.inc	\
+			src/Silabs/SI_EFM8LB1_Defs.inc	\
+			src/Modules/Common.asm			\
+			src/Modules/Commutation.asm		\
+			src/Modules/DShot.asm			\
+			src/Modules/Eeprom.asm			\
+			src/Modules/Fx.asm				\
+			src/Modules/Isrs.asm			\
+			src/Modules/Macros.asm			\
+			src/Modules/Power.asm			\
+			src/Modules/Scheduler.asm		\
+			src/Modules/Settings.asm		\
+			src/Modules/Timing.asm
 
 # Check that wine/simplicity studio is available
 EXECUTABLES	= $(AX51_BIN) $(LX51_BIN) $(OX51_BIN)
@@ -63,6 +83,9 @@ $(OUTPUT_DIR)/$(1)_$(2)_$(3)_$(4)_$(VERSION).OBJ : $(ASM_SRC) $(ASM_INC)
 	$(eval _ESC			:= $(1))
 	$(eval _ESC_INT		:= $(shell printf "%d" "'${_ESC}"))
 	$(eval _ESCNO		:= $(shell echo $$(( $(_ESC_INT) - 65 + 1))))
+
+	$(if $(shell if [ ${_ESC} = "OA" ]; then echo "TRUE"; fi),$(eval _ESCNO := '27'),)
+
 	$(eval _MCU_TYPE	:= $(subst L,0,$(subst H,1,$(subst X,2,$(2)))))
 	$(eval _DEADTIME	:= $(3))
 	$(eval _PWM_FREQ	:= $(subst 24,0,$(subst 48,1,$(subst 96,2,$(4)))))

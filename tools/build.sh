@@ -2,11 +2,11 @@
 source_path=$(dirname $(pwd))
 
 usage() {
-  echo "Usage: $0 [-l <A-W>] [-m <X|H|L>] [-d <integer>] [-p <24|48|96>]" 1>&2
+  echo "Usage: $0 [-l <A-W>] [-m <X|H|L>] [-d <integer>] [-p <24|48|96>] [-s <version string>]" 1>&2
   exit 1
 }
 
-while getopts ":l:m:d:p:" o; do
+while getopts ":l:m:d:p:s:" o; do
   case "${o}" in
     l)
       layout=${OPTARG}
@@ -21,6 +21,9 @@ while getopts ":l:m:d:p:" o; do
     p)
       pwm=${OPTARG}
       ((pwm == 24 || pwm == 48 || pwm == 96)) || usage
+      ;;
+    s)
+      version=${OPTARG}
       ;;
     *)
       usage
@@ -41,6 +44,10 @@ else
 
   target="${layout}_${mcu}_${deadtime}_${pwm}"
   params="LAYOUT=${layout} MCU=${mcu} DEADTIME=${deadtime} PWM=${pwm}"
+fi
+
+if [ -n "${version}" ]; then
+  params="${params} VERSION=${version}"
 fi
 
 echo "Building ${target}"

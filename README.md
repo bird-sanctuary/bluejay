@@ -66,10 +66,14 @@ A big shout out goes out to the following members of the community for donating 
 * RabbitAmbulance - for donating a set of 2207 motors
 
 ### Manufacturers
-We are in a very lucky position to have a couple of manufacturers who keep helping us out continously and who deserve a shoutout:
+We are in a very lucky position to have manufacturers who keep helping us out continuously and who deserve a shoutout:
 
 * [BetaFPV](https://betafpv.com/) - for providing us with dev boards for BB51 MCUs, AIO Flight-controllers, Motors and Whoops
+* [Happymodel](https://www.happymodel.cn/) - for providing us with Whoops
 * [Skystars](https://skystars-rc.com/) - for providing us with flight-controllers and ESCs
+* [T-Motor](https://tmotorhobby.com/) - for providing us with an AIO flight-controller
+* [TuneRC](https://www.tunerc.com/) - for providing us with AIO flight-controllers
+* [weBLEEDfpv](https://webleedfpv.com/) - for a set of "Gore V2" motors
 
 ## Contribute
 Any help you can provide is greatly appreciated!
