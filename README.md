@@ -30,7 +30,7 @@ See the project [changelog](CHANGELOG.md) for a list of changes.
 - SiLabs EFM8 BB51
 
 ### Deprecated Platforms
-The `SiLabs EFM8 BB10` has been deprecated. The last official release is [0.18.1](https://github.com/bird-sanctuary/bluejay/releases/tag/v0.18.1). The BB10 has it's limitations in comparison to the BB21 and BB51. Not many of those seem to be around anymore and the team does not have a single one for testing, thus decided to drop support.
+The `SiLabs EFM8 BB10` - commonly also known as L layout - has been deprecated. The last official release is [0.18.1](https://github.com/bird-sanctuary/bluejay/releases/tag/v0.18.1). The BB10 has it's limitations in comparison to the BB21 and BB51. Not many of those seem to be around anymore and the team does not have a single one for testing, thus decided to drop support.
 
 > You will still be able to manually build for it, but we can not guarantee compatibility and do not want to suffer from it's limitations during further development.
 
@@ -45,11 +45,35 @@ You can also do it manually by downloading the [release binaries](https://github
 ## Documentation
 See the [wiki](https://github.com/bird-sanctuary/bluejay/wiki) for useful information. A very detailed documentation with flow charts is [available too](https://github.com/bird-sanctuary/bluejay-documentation).
 
-
 ## Ancestry
 This is a fork of the original [Bluejay](https://github.com/mathiasvr/bluejay) project. The team has decided to detach this fork from the orignal project in order to have all github features to their disposal.
 
 The decision to keep the name was made in order to honour the orignal project and the hope that the original developer will join us here, once he decides to make a comeback.
+
+## Supporters
+This project is run by a small core team devoting a lot of their spare time and money into pushing this project forward. Development of ESC firmware is time consuming and mistakes are expensive: Motors, ESCs and Flight-Controllers tend to break from time to time, especially if pushing the limits.
+
+We do not take monetary donations, but we have a [donation Wiki page](https://github.com/bird-sanctuary/bluejay/wiki/Donations) where you can see which hardware we are currently looking for - if you want to help out, consider getting in touch with us and buying us some hardware we need.
+
+### Community
+A big shout out goes out to the following members of the community for donating hardware - listed by their real name, Discord handle or github username if known:
+
+* 406FPV - for donating a F722 based flight-controller, motors and a whole 1105 based micro quad
+* belrik - for donating a set of 2207 motors
+* Ced_51 - for dontaing multiple sets of different motors (2207, 2306)
+* geordil - for donating a F722 based flight-controller
+* Miguel Juncal - for donating a 5" quad and a set of Sunnysky motors
+* RabbitAmbulance - for donating a set of 2207 motors
+
+### Manufacturers
+We are in a very lucky position to have manufacturers who keep helping us out continuously and who deserve a shoutout:
+
+* [BetaFPV](https://betafpv.com/) - for providing us with dev boards for BB51 MCUs, AIO Flight-controllers, Motors and Whoops
+* [Happymodel](https://www.happymodel.cn/) - for providing us with Whoops
+* [Skystars](https://skystars-rc.com/) - for providing us with flight-controllers and ESCs
+* [T-Motor](https://tmotorhobby.com/) - for providing us with an AIO flight-controller
+* [TuneRC](https://www.tunerc.com/) - for providing us with AIO flight-controllers
+* [weBLEEDfpv](https://webleedfpv.com/) - for a set of "Gore V2" motors
 
 ## Contribute
 Any help you can provide is greatly appreciated!
