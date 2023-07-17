@@ -242,7 +242,7 @@ beacon_beep4:
     sjmp beacon_beep_exit
 
 beacon_beep5:
-    call beep_f5
+    call play_beep_melody
 
 beacon_beep_exit:
     mov  Temp2, #Pgm_Beep_Strength      ; Set normal beep strength
