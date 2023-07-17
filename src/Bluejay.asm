@@ -169,7 +169,6 @@ DEFAULT_PGM_LED_CONTROL EQU 0           ; Byte for LED control. 2 bits per LED,0
 
 DEFAULT_PGM_STARTUP_POWER_MIN EQU 51    ; 0..255 => (1000..1125 Throttle): value * (1000 / 2047) + 1000
 DEFAULT_PGM_STARTUP_BEEP EQU 1          ; 0=Short beep,1=Melody
-DEFAULT_PGM_DITHERING EQU 0             ; 0=Disabled,1=Enabled
 
 DEFAULT_PGM_STARTUP_POWER_MAX EQU 25    ; 0..255 => (1000..2000 Throttle): Maximum startup power
 DEFAULT_PGM_BRAKING_STRENGTH EQU 255    ; 0..255 => 0..100 % Braking
@@ -225,13 +224,13 @@ Flags2: DS 1                            ; State flags. NOT reset upon motor_star
 
 Flags3: DS 1                            ; State flags. NOT reset upon motor_start
     Flag_Telemetry_Pending BIT Flags3.0 ; DShot telemetry data packet is ready to be sent
-    Flag_Dithering BIT Flags3.1         ; PWM dithering enabled
-    Flag_Had_Signal BIT Flags3.2        ; Used to detect reset after having had a valid signal
-    Flag_User_Reverse_Requested BIT Flags3.3 ; It is set when user request to reverse motors in turtle mode
+    Flag_Had_Signal BIT Flags3.1        ; Used to detect reset after having had a valid signal
+    Flag_User_Reverse_Requested BIT Flags3.2 ; It is set when user request to reverse motors in turtle mode
 
 
 Tlm_Data_L: DS 1                        ; DShot telemetry data (lo byte)
 Tlm_Data_H: DS 1                        ; DShot telemetry data (hi byte)
+
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Direct addressing data segment
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -302,7 +301,7 @@ ISEG AT 080h                            ; The variables below must be in this se
 _Pgm_Gov_P_Gain: DS 1                   ;
 Pgm_Startup_Power_Min: DS 1             ; Minimum power during startup phase
 Pgm_Startup_Beep: DS 1                  ; Startup beep melody on/off
-Pgm_Dithering: DS 1                     ; Enable PWM dithering
+_Pgm_Dithering: DS 1                    ;
 Pgm_Startup_Power_Max: DS 1             ; Maximum power (limit) during startup (and starting initial run phase)
 _Pgm_Rampup_Slope: DS 1                 ;
 Pgm_Rpm_Power_Slope: DS 1               ; Low RPM power protection slope (factor)
@@ -340,11 +339,8 @@ Pgm_LED_Control: DS 1                   ; LED control
 Pgm_Power_Rating: DS 1                  ; Power rating
 Pgm_Safety_Arm: DS  1                   ; Various flag settings: bit 0 is require edt enable to arm
 
-ISEG AT 0B0h
-Stack: DS 16                            ; Reserved stack space
-
 ISEG AT 0C0h
-Dithering_Patterns: DS 16               ; Bit patterns for pwm dithering
+Stack: DS 16                            ; Reserved stack space
 
 ISEG AT 0D0h
 Temp_Storage: DS 48                     ; Temporary storage (internal memory)
@@ -365,7 +361,7 @@ Eep_Layout_Revision: DB EEPROM_LAYOUT_REVISION ; EEPROM layout revision number
 _Eep_Pgm_Gov_P_Gain: DB 0FFh
 Eep_Pgm_Startup_Power_Min: DB DEFAULT_PGM_STARTUP_POWER_MIN
 Eep_Pgm_Startup_Beep: DB DEFAULT_PGM_STARTUP_BEEP
-Eep_Pgm_Dithering: DB DEFAULT_PGM_DITHERING
+_Eep_Pgm_Dithering: DB 000h
 Eep_Pgm_Startup_Power_Max: DB DEFAULT_PGM_STARTUP_POWER_MAX
 _Eep_Pgm_Rampup_Slope: DB 0FFh
 Eep_Pgm_Rpm_Power_Slope: DB DEFAULT_PGM_RPM_POWER_SLOPE ; EEPROM copy of programmed rpm power slope (formerly startup power)
