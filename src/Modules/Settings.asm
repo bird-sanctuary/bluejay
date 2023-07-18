@@ -72,6 +72,7 @@ set_default_parameters:
     imov Temp1, #DEFAULT_PGM_LED_CONTROL ; Pgm_LED_Control
     imov Temp1, #DEFAULT_PGM_POWER_RATING ; Pgm_Power_Rating
     imov Temp1, #DEFAULT_PGM_SAFETY_ARM ; Pgm_Safety_Arm
+    imov Temp1, #DEFAULT_48to24_THRESHOLD ; Pgm_48to24_Threshold
 
     ret
 
@@ -166,41 +167,52 @@ decode_temp_done:
 
     mov  Temp1, #Pgm_Braking_Strength   ; Read programmed braking strength setting
     mov  A, @Temp1
-IF PWM_BITS_H == PWM_11_BIT             ; Scale braking strength to pwm resolution
+IF PWM_CENTERED == 1             ; Scale braking strength to pwm resolution
     ; Note: Added for completeness
     ; Currently 11-bit pwm is only used on targets with built-in dead time insertion
+    ; No deadtime & 24khz
     rl   A
     rl   A
     rl   A
     mov  Temp2, A
     anl  A, #07h
-    mov  Pwm_Braking_H, A
+    mov  Pwm_Braking24_H, A
     mov  A, Temp2
     anl  A, #0F8h
-    mov  Pwm_Braking_L, A
-ELSEIF PWM_BITS_H == PWM_10_BIT
+    mov  Pwm_Braking24_L, A
+
+    ; Deadtime & 48khz
     rl   A
     rl   A
     mov  Temp2, A
     anl  A, #03h
-    mov  Pwm_Braking_H, A
+    mov  Pwm_Braking48_H, A
     mov  A, Temp2
     anl  A, #0FCh
-    mov  Pwm_Braking_L, A
-ELSEIF PWM_BITS_H == PWM_9_BIT
+    mov  Pwm_Braking48_L, A
+ELSE
+    ; Deadtime & 24khz
+    rl   A
+    rl   A
+    mov  Temp2, A
+    anl  A, #03h
+    mov  Pwm_Braking24_H, A
+    mov  A, Temp2
+    anl  A, #0FCh
+    mov  Pwm_Braking24_L, A
+
+    ; Deadtime & 48khz
     rl   A
     mov  Temp2, A
     anl  A, #01h
-    mov  Pwm_Braking_H, A
+    mov  Pwm_Braking48_H, A
     mov  A, Temp2
     anl  A, #0FEh
-    mov  Pwm_Braking_L, A
-ELSEIF PWM_BITS_H == PWM_8_BIT
-    mov  Pwm_Braking_H, #0
-    mov  Pwm_Braking_L, A
+    mov  Pwm_Braking48_L, A
 ENDIF
     cjne @Temp1, #0FFh, decode_end
-    mov  Pwm_Braking_L, #0FFh           ; Apply full braking if setting is max
+    mov  Pwm_Braking24_L, #0FFh           ; Apply full braking if setting is max
+    mov  Pwm_Braking48_L, #0FFh           ; Apply full braking if setting is max
 
 decode_end:
     ret
