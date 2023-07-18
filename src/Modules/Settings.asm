@@ -33,7 +33,7 @@ set_default_parameters:
     mov  @Temp1, #0FFh                  ; _Pgm_Gov_P_Gain
     imov Temp1, #DEFAULT_PGM_STARTUP_POWER_MIN ; Pgm_Startup_Power_Min
     imov Temp1, #DEFAULT_PGM_STARTUP_BEEP ; Pgm_Startup_Beep
-    imov Temp1, #DEFAULT_PGM_DITHERING  ; Pgm_Dithering
+    imov Temp1, #000h                   ; _Pgm_Dithering
     imov Temp1, #DEFAULT_PGM_STARTUP_POWER_MAX ; Pgm_Startup_Power_Max
     imov Temp1, #0FFh                   ; _Pgm_Rampup_Slope
     imov Temp1, #DEFAULT_PGM_RPM_POWER_SLOPE ; Pgm_Rpm_Power_Slope
@@ -199,42 +199,8 @@ ELSEIF PWM_BITS_H == PWM_8_BIT
     mov  Pwm_Braking_H, #0
     mov  Pwm_Braking_L, A
 ENDIF
-    cjne @Temp1, #0FFh, decode_pwm_dithering
+    cjne @Temp1, #0FFh, decode_end
     mov  Pwm_Braking_L, #0FFh           ; Apply full braking if setting is max
 
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-;
-; Dithering
-;
-; Depending on resolution, different dithering patterns are available.
-;
-;**** **** **** **** **** **** **** **** **** **** **** **** ****
-
-decode_pwm_dithering:
-    mov  Temp1, #Pgm_Dithering          ; Read programmed dithering setting
-    mov  A, @Temp1
-    add  A, #0FFh                       ; Carry set if A is not zero
-    mov  Flag_Dithering, C              ; Set dithering enabled
-
-IF PWM_BITS_H == PWM_10_BIT             ; Initialize pwm dithering bit patterns
-    mov  Temp1, #Dithering_Patterns     ; 1-bit dithering (10-bit to 11-bit)
-    mov  @Temp1, #00h                   ; 00000000
-    imov Temp1, #55h                    ; 01010101
-ELSEIF PWM_BITS_H == PWM_9_BIT
-    mov  Temp1, #Dithering_Patterns     ; 2-bit dithering (9-bit to 11-bit)
-    mov  @Temp1, #00h                   ; 00000000
-    imov Temp1, #11h                    ; 00010001
-    imov Temp1, #55h                    ; 01010101
-    imov Temp1, #77h                    ; 01110111
-ELSEIF PWM_BITS_H == PWM_8_BIT
-    mov  Temp1, #Dithering_Patterns     ; 3-bit dithering (8-bit to 11-bit)
-    mov  @Temp1, #00h                   ; 00000000
-    imov Temp1, #01h                    ; 00000001
-    imov Temp1, #11h                    ; 00010001
-    imov Temp1, #25h                    ; 00100101
-    imov Temp1, #55h                    ; 01010101
-    imov Temp1, #5Bh                    ; 01011011
-    imov Temp1, #77h                    ; 01110111
-    imov Temp1, #7fh                    ; 01111111
-ENDIF
+decode_end:
     ret
