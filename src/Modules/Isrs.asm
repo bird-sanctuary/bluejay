@@ -370,11 +370,10 @@ t1_int_zero_rcp_checked_check_limit:
 
 t1_int_dynamic_pwm:
     ; Dynamic PWM
-    clr C
-    mov A, Temp2
-    mov Temp1, #Pgm_48to24_Threshold
-    subb A, @Temp1
-    jc t1_int_run_48khz
+    clr  C
+    mov  A, Temp2
+    subb A, Throttle_48to24_Threshold
+    jc   t1_int_run_48khz
 
 IF PWM_CENTERED == 0
 t1_int_run_24khz:

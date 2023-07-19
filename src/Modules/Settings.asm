@@ -210,9 +210,12 @@ ELSE
     anl  A, #0FEh
     mov  Pwm_Braking48_L, A
 ENDIF
-    cjne @Temp1, #0FFh, decode_end
+    cjne @Temp1, #0FFh, decode_throttle_threshold
     mov  Pwm_Braking24_L, #0FFh           ; Apply full braking if setting is max
     mov  Pwm_Braking48_L, #0FFh           ; Apply full braking if setting is max
 
-decode_end:
+decode_throttle_threshold:
+    ; Load programmed throttle threshold into Throttle_48to24_Threshold
+    mov  Temp1, #Pgm_48to24_Threshold
+    mov  Throttle_48to24_Threshold, @Temp1
     ret

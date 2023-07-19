@@ -287,6 +287,7 @@ DShot_GCR_Start_Delay: DS 1
 Ext_Telemetry_L: DS 1                   ; Extended telemetry data to be sent
 Ext_Telemetry_H: DS 1
 Scheduler_Counter: DS 1                 ; Scheduler Heartbeat
+Throttle_48to24_Threshold: DS 1         ; Threshold to switch between 24 and 48khz
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Indirect addressing data segments
