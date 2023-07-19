@@ -300,7 +300,7 @@ _Pgm_Dithering: DS 1                    ;
 Pgm_Startup_Power_Max: DS 1             ; Maximum power (limit) during startup (and starting initial run phase)
 _Pgm_Rampup_Slope: DS 1                 ;
 Pgm_Rpm_Power_Slope: DS 1               ; Low RPM power protection slope (factor)
-Pgm_Pwm_Freq: DS 1                      ; PWM frequency (temporary method for display)
+_Pgm_Pwm_Freq: DS 1                     ;
 Pgm_Direction: DS 1                     ; Rotation direction
 _Pgm_Input_Pol: DS 1                    ; Input PWM polarity
 Initialized_L_Dummy: DS 1               ; Place holder
@@ -361,7 +361,7 @@ _Eep_Pgm_Dithering: DB 000h
 Eep_Pgm_Startup_Power_Max: DB DEFAULT_PGM_STARTUP_POWER_MAX
 _Eep_Pgm_Rampup_Slope: DB 0FFh
 Eep_Pgm_Rpm_Power_Slope: DB DEFAULT_PGM_RPM_POWER_SLOPE ; EEPROM copy of programmed rpm power slope (formerly startup power)
-Eep_Pgm_Pwm_Freq: DB (24 SHL PWM_FREQ)  ; Temporary method for display
+_Eep_Pgm_Pwm_Freq: DB 0FFh
 Eep_Pgm_Direction: DB DEFAULT_PGM_DIRECTION ; EEPROM copy of programmed rotation direction
 _Eep__Pgm_Input_Pol: DB 0FFh
 Eep_Initialized_L: DB 055h              ; EEPROM initialized signature (lo byte)
