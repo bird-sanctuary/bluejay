@@ -374,9 +374,9 @@ t1_int_dynamic_pwm:
     mov A, Temp2
     mov Temp1, #Pgm_48to24_Threshold
     subb A, @Temp1
-    jnc t1_int_run_48khz
+    jc t1_int_run_48khz
 
-IF PWM_CENTERED == 1
+IF PWM_CENTERED == 0
 t1_int_run_24khz:
     ; Scale pwm resolution and invert (duty cycle is defined inversely)
     ; No deadtime and 24khz
