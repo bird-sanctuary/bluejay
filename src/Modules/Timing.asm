@@ -326,13 +326,10 @@ wait_advance_timing:
     ; If it has not already, we wait here for the Wt_Adv_Start_ delay to elapse.
     Wait_For_Timer3
 
-    ; At this point Timer3 has (already) wrapped and been reloaded with the Wt_Zc_Scan_Start_ delay.
-    ; In case this delay has also elapsed, Timer3 has been reloaded with a short delay any number of times.
-    ; - The interrupt flag is set and the pending flag will clear immediately after enabling the interrupt.
-    mov  TMR3RLL, Wt_ZC_Tout_Start_L    ; Setup next wait time
+    ; Setup next wait time
+    mov  TMR3RLL, Wt_ZC_Tout_Start_L
     mov  TMR3RLH, Wt_ZC_Tout_Start_H
-    setb Flag_Timer3_Pending
-    orl  EIE1, #80h                     ; Enable Timer3 interrupts
+    mov  TMR3CN0, #04h                  ; Clear Timer3 overflow flag
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Calculate new wait times
@@ -540,8 +537,7 @@ wait_before_zc_scan:
     mov  Startup_Zc_Timeout_Cntd, #2
 
 setup_zc_scan_timeout:
-    setb Flag_Timer3_Pending
-    orl  EIE1, #80h                     ; Enable Timer3 interrupts
+    mov  TMR3CN0, #04h                  ; Clear Timer3 overflow flag
 
     jnb  Flag_Initial_Run_Phase, wait_before_zc_scan_exit
 
@@ -558,8 +554,6 @@ ENDIF
     mov  Temp2, A
 
 setup_zc_scan_timeout_startup_done:
-    clr  IE_EA
-    anl  EIE1, #7Fh                     ; Disable Timer3 interrupts
     mov  TMR3CN0, #00h                  ; Timer3 disabled and interrupt flag cleared
     clr  C
     clr  A
@@ -569,9 +563,6 @@ setup_zc_scan_timeout_startup_done:
     subb A, Temp2
     mov  TMR3H, A
     mov  TMR3CN0, #04h                  ; Timer3 enabled and interrupt flag cleared
-    setb Flag_Timer3_Pending
-    orl  EIE1, #80h                     ; Enable Timer3 interrupts
-    setb IE_EA
 
 wait_before_zc_scan_exit:
     ret
@@ -634,7 +625,8 @@ comp_not_startup_check_ok_readings:
     mov  Temp3, #(20 SHL IS_MCU_48MHZ)  ; Maximum 20
 
 comp_check_timeout:
-    jb   Flag_Timer3_Pending, comp_check_timeout_not_timed_out ; Has zero cross scan timeout elapsed?
+    mov  A, TMR3CN0
+    jnb  ACC.7, comp_check_timeout_not_timed_out ; Has zero cross scan timeout elapsed?
 
     mov  A, Comparator_Read_Cnt         ; Check that comparator has been read
     jz   comp_check_timeout_not_timed_out ; If not yet read - ignore zero cross timeout
@@ -691,8 +683,6 @@ comp_read_wrong_startup_jump:
     sjmp comp_check_timeout             ; Continue to look for good ones
 
 comp_read_wrong_extend_timeout:
-    clr  Flag_Demag_Detected            ; Clear demag detected flag
-    anl  EIE1, #7Fh                     ; Disable Timer3 interrupts
     mov  TMR3CN0, #00h                  ; Timer3 disabled and interrupt flag cleared
     jnb  Flag_High_Rpm, comp_read_wrong_low_rpm ; Branch if not high rpm
 
@@ -701,8 +691,6 @@ comp_read_wrong_extend_timeout:
 
 comp_read_wrong_timeout_set:
     mov  TMR3CN0, #04h                  ; Timer3 enabled and interrupt flag cleared
-    setb Flag_Timer3_Pending
-    orl  EIE1, #80h                     ; Enable Timer3 interrupts
     ljmp comp_start                     ; If comparator output is not correct - go back and restart
 
 comp_read_wrong_low_rpm:
@@ -743,9 +731,6 @@ comp_exit:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 setup_comm_wait:
-    clr  IE_EA
-    anl  EIE1, #7Fh                     ; Disable Timer3 interrupts
-
     ; It is necessary to update the timer reload registers before the timer registers,
     ; to avoid a reload of the previous values in case of a short Wt_Comm_Start delay.
 
@@ -756,10 +741,6 @@ setup_comm_wait:
     mov  TMR3L, Wt_Comm_Start_L
     mov  TMR3H, Wt_Comm_Start_H
     mov  TMR3CN0, #04h                  ; Timer3 enabled and interrupt flag cleared
-
-    setb Flag_Timer3_Pending
-    orl  EIE1, #80h                     ; Enable Timer3 interrupts
-    setb IE_EA                          ; Enable interrupts again
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
@@ -854,6 +835,5 @@ wait_for_comm_wait:
     ;   after enabling the interrupt.
     mov  TMR3RLL, Wt_Zc_Scan_Start_L    ; Setup next wait time
     mov  TMR3RLH, Wt_Zc_Scan_Start_H
-    setb Flag_Timer3_Pending
-    orl  EIE1, #80h                     ; Enable Timer3 interrupts
+    mov  TMR3CN0, #04h                  ; Clear Timer3 overflow flag
     ret

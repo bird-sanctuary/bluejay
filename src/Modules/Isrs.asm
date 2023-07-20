@@ -609,22 +609,8 @@ t2_int_exit:
 ;
 ; Timer3 interrupt routine
 ;
-; Tasks:
-; - Commutation timing
-;
-; ASSERT:
-; - No PSW instructions
-; - No usage of Temp/Acc/B registers
-;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 t3_int:
-    clr  IE_EA                          ; Disable all interrupts
-    anl  EIE1, #7Fh                     ; Disable Timer3 interrupts
-    anl  TMR3CN0, #07Fh                 ; Clear Timer3 interrupt flag
-    mov  TMR3RLL, #0FAh                 ; Short delay to avoid re-loading regular delay
-    mov  TMR3RLH, #0FFh
-    clr  Flag_Timer3_Pending            ; Flag that timer has wrapped
-    setb IE_EA                          ; Enable all interrupts
     reti
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****

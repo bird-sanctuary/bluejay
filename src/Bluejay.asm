@@ -197,13 +197,12 @@ Flags0: DS 1                            ; State flags. Reset upon motor_start
     Flag_Stall_Notify BIT Flags0.5      ; Set when motor stall detected but still not notified
 
 Flags1: DS 1                            ; State flags. Reset upon motor_start
-    Flag_Timer3_Pending BIT Flags1.0    ; Timer3 pending flag
-    Flag_Demag_Detected BIT Flags1.1    ; Set when excessive demag time is detected
-    Flag_Comp_Timed_Out BIT Flags1.2    ; Set when comparator reading timed out
-    Flag_Motor_Running BIT Flags1.3
-    Flag_Motor_Started BIT Flags1.4     ; Set when motor is started
-    Flag_Dir_Change_Brake BIT Flags1.5  ; Set when braking before direction change in case of bidirectional operation
-    Flag_High_Rpm BIT Flags1.6          ; Set when motor rpm is high (Comm_Period4x_H less than 2)
+    Flag_Demag_Detected BIT Flags1.0    ; Set when excessive demag time is detected
+    Flag_Comp_Timed_Out BIT Flags1.1    ; Set when comparator reading timed out
+    Flag_Motor_Running BIT Flags1.2
+    Flag_Motor_Started BIT Flags1.3     ; Set when motor is started
+    Flag_Dir_Change_Brake BIT Flags1.4  ; Set when braking before direction change in case of bidirectional operation
+    Flag_High_Rpm BIT Flags1.5          ; Set when motor rpm is high (Comm_Period4x_H less than 2)
 
 Flags2: DS 1                            ; State flags. NOT reset upon motor_start
     ; BIT    Flags2.0
@@ -576,7 +575,6 @@ setup_dshot_clear_flags:
 
     ; Setup interrupts
     mov  IE, #2Dh                       ; Enable Timer1/2 interrupts and Int0/1 interrupts
-    mov  EIE1, #80h                     ; Enable Timer3 interrupts
     mov  IP, #03h                       ; High priority to Timer0 and Int0 interrupts
 
     setb IE_EA                          ; Enable all interrupts
