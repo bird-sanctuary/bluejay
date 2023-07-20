@@ -609,6 +609,9 @@ t2_int_exit:
 ;
 ; Timer3 interrupt routine
 ;
+; Tasks:
+; - Commutation timing
+;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 t3_int:
     reti
