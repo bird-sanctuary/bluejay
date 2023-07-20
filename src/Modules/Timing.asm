@@ -690,6 +690,7 @@ comp_read_wrong_extend_timeout:
     mov  TMR3H, #-(8 SHL IS_MCU_48MHZ)
 
 comp_read_wrong_timeout_set:
+    clr  Flag_Demag_Detected            ; Clear demag detected flag
     mov  TMR3CN0, #04h                  ; Timer3 enabled and interrupt flag cleared
     ljmp comp_start                     ; If comparator output is not correct - go back and restart
 
