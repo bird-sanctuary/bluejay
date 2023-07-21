@@ -329,7 +329,12 @@ wait_advance_timing:
     ; Setup next wait time
     mov  TMR3RLL, Wt_ZC_Tout_Start_L
     mov  TMR3RLH, Wt_ZC_Tout_Start_H
-    mov  TMR3CN0, #04h                  ; Clear Timer3 overflow flag
+
+    ; Setup wait time
+    mov  TMR3CN0, #00h                  ; Stop Timer 3
+    mov  TMR3L, Wt_ZC_Tout_Start_L
+    mov  TMR3H, Wt_ZC_Tout_Start_H
+    mov  TMR3CN0, #04h                  ; Clear Timer3 overflow flag and start Timer3
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Calculate new wait times
@@ -736,8 +741,11 @@ setup_comm_wait:
     ; to avoid a reload of the previous values in case of a short Wt_Comm_Start delay.
 
     ; Advance wait time will be loaded by Timer3 immediately after the commutation wait elapses
-    mov  TMR3RLL, Wt_Adv_Start_L        ; Setup next wait time
+    ; Setup next wait time
+    mov  TMR3RLL, Wt_Adv_Start_L
     mov  TMR3RLH, Wt_Adv_Start_H
+
+    ; Setup wait time
     mov  TMR3CN0, #00h                  ; Timer3 disabled and interrupt flag cleared
     mov  TMR3L, Wt_Comm_Start_L
     mov  TMR3H, Wt_Comm_Start_H
@@ -829,12 +837,14 @@ wait_for_comm_wait:
 
     ; At this point Timer3 has (already) wrapped and been reloaded with
     ; the Wt_Adv_Start_ delay.
-    ;
-    ; In case this delay has also elapsed, Timer3 has been reloaded with a short
-    ; delay any number of times.
-    ; - The interrupt flag is set and the pending flag will clear immediately
-    ;   after enabling the interrupt.
-    mov  TMR3RLL, Wt_Zc_Scan_Start_L    ; Setup next wait time
+
+    ; Setup next wait time
+    mov  TMR3RLL, Wt_Zc_Scan_Start_L
     mov  TMR3RLH, Wt_Zc_Scan_Start_H
-    mov  TMR3CN0, #04h                  ; Clear Timer3 overflow flag
+
+    ; Setup wait time
+    mov  TMR3CN0, #00h                  ; Stop Timer 3
+    mov  TMR3L, Wt_Zc_Scan_Start_L
+    mov  TMR3H, Wt_Zc_Scan_Start_H
+    mov  TMR3CN0, #04h                  ; Clear Timer3 overflow flag and start Timer3
     ret
