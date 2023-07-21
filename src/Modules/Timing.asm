@@ -326,12 +326,12 @@ wait_advance_timing:
     ; If it has not already, we wait here for the Wt_Adv_Start_ delay to elapse.
     Wait_For_Timer3
 
-    ; Disable interrupts
-    clr  IE_EA
-
     ; Setup next wait time
     mov  TMR3RLL, Wt_ZC_Tout_Start_L
     mov  TMR3RLH, Wt_ZC_Tout_Start_H
+
+    ; Disable interrupts
+    clr  IE_EA
 
     ; Setup wait time
     mov  TMR3CN0, #00h                  ; Stop Timer 3
@@ -565,11 +565,12 @@ ENDIF
     mov  Temp2, A
 
 setup_zc_scan_timeout_startup_done:
-    clr  IE_EA
-    mov  TMR3CN0, #00h                  ; Timer3 disabled and interrupt flag cleared
     clr  C
     clr  A
     subb A, Temp1                       ; Set timeout
+
+    clr  IE_EA
+    mov  TMR3CN0, #00h                  ; Timer3 disabled and interrupt flag cleared
     mov  TMR3L, A
     clr  A
     subb A, Temp2
@@ -694,17 +695,16 @@ comp_read_wrong_startup:
     sjmp comp_check_timeout             ; Continue to look for good ones
 
 comp_read_wrong_extend_timeout:
-    clr  IE_EA
-    mov  TMR3CN0, #00h                  ; Timer3 disabled and interrupt flag cleared
     jnb  Flag_High_Rpm, comp_read_wrong_low_rpm ; Branch if not high rpm
 
+    clr  IE_EA
+    mov  TMR3CN0, #00h                  ; Timer3 disabled and interrupt flag cleared
     mov  TMR3L, #0                      ; Set timeout to ~1ms
     mov  TMR3H, #-(8 SHL IS_MCU_48MHZ)
-
-comp_read_wrong_timeout_set:
-    clr  Flag_Demag_Detected            ; Clear demag detected flag
     mov  TMR3CN0, #04h                  ; Timer3 enabled and interrupt flag cleared
     setb IE_EA
+
+    clr  Flag_Demag_Detected            ; Clear demag detected flag
     ljmp comp_start                     ; If comparator output is not correct - go back and restart
 
 comp_read_wrong_low_rpm:
@@ -731,9 +731,16 @@ comp_read_wrong_load_timeout:
     clr  C
     clr  A
     subb A, Temp7
+
+    clr  IE_EA
+    mov  TMR3CN0, #00h                  ; Timer3 disabled and interrupt flag cleared
     mov  TMR3L, #0
     mov  TMR3H, A
-    sjmp comp_read_wrong_timeout_set
+    mov  TMR3CN0, #04h                  ; Timer3 enabled and interrupt flag cleared
+    setb IE_EA
+
+    clr  Flag_Demag_Detected            ; Clear demag detected flag
+    ljmp comp_start                     ; If comparator output is not correct - go back and restart
 
 comp_exit:
 
@@ -748,13 +755,13 @@ setup_comm_wait:
     ; It is necessary to update the timer reload registers before the timer registers,
     ; to avoid a reload of the previous values in case of a short Wt_Comm_Start delay.
 
-    ; Disable interrupts
-    clr  IE_EA
-
     ; Advance wait time will be loaded by Timer3 immediately after the commutation wait elapses
     ; Setup next wait time
     mov  TMR3RLL, Wt_Adv_Start_L
     mov  TMR3RLH, Wt_Adv_Start_H
+
+    ; Disable interrupts
+    clr  IE_EA
 
     ; Setup wait time
     mov  TMR3CN0, #00h                  ; Timer3 disabled and interrupt flag cleared
@@ -852,12 +859,12 @@ wait_for_comm_wait:
     ; At this point Timer3 has (already) wrapped and been reloaded with
     ; the Wt_Adv_Start_ delay.
 
-    ; Disable interrupts
-    clr  IE_EA
-
     ; Setup next wait time
     mov  TMR3RLL, Wt_Zc_Scan_Start_L
     mov  TMR3RLH, Wt_Zc_Scan_Start_H
+
+    ; Disable interrupts
+    clr  IE_EA
 
     ; Setup wait time
     mov  TMR3CN0, #00h                  ; Stop Timer 3
