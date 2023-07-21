@@ -559,6 +559,7 @@ ENDIF
     mov  Temp2, A
 
 setup_zc_scan_timeout_startup_done:
+    clr  IE_EA
     mov  TMR3CN0, #00h                  ; Timer3 disabled and interrupt flag cleared
     clr  C
     clr  A
@@ -568,6 +569,7 @@ setup_zc_scan_timeout_startup_done:
     subb A, Temp2
     mov  TMR3H, A
     mov  TMR3CN0, #04h                  ; Timer3 enabled and interrupt flag cleared
+    setb IE_EA
 
 wait_before_zc_scan_exit:
     ret
@@ -740,6 +742,9 @@ setup_comm_wait:
     ; It is necessary to update the timer reload registers before the timer registers,
     ; to avoid a reload of the previous values in case of a short Wt_Comm_Start delay.
 
+    ; Disable interrupts
+    clr  IE_EA
+
     ; Advance wait time will be loaded by Timer3 immediately after the commutation wait elapses
     ; Setup next wait time
     mov  TMR3RLL, Wt_Adv_Start_L
@@ -750,6 +755,9 @@ setup_comm_wait:
     mov  TMR3L, Wt_Comm_Start_L
     mov  TMR3H, Wt_Comm_Start_H
     mov  TMR3CN0, #04h                  ; Timer3 enabled and interrupt flag cleared
+
+    ; Enable interrupts
+    setb IE_EA
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
