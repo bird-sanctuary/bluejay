@@ -326,6 +326,9 @@ wait_advance_timing:
     ; If it has not already, we wait here for the Wt_Adv_Start_ delay to elapse.
     Wait_For_Timer3
 
+    ; Disable interrupts
+    clr  IE_EA
+
     ; Setup next wait time
     mov  TMR3RLL, Wt_ZC_Tout_Start_L
     mov  TMR3RLH, Wt_ZC_Tout_Start_H
@@ -335,6 +338,9 @@ wait_advance_timing:
     mov  TMR3L, Wt_ZC_Tout_Start_L
     mov  TMR3H, Wt_ZC_Tout_Start_H
     mov  TMR3CN0, #04h                  ; Clear Timer3 overflow flag and start Timer3
+
+    ; Enable interrupts
+    setb IE_EA
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Calculate new wait times
@@ -683,13 +689,12 @@ comp_read_wrong_startup:
     clr  C
     mov  A, Temp3
     subb A, Temp4                       ; If above initial requirement - do not increment further
-    jc   comp_read_wrong_startup_jump   ; TODO: Skip this jump to optimize
+    jc   comp_check_timeout
     dec  Temp3
-
-comp_read_wrong_startup_jump:
     sjmp comp_check_timeout             ; Continue to look for good ones
 
 comp_read_wrong_extend_timeout:
+    clr  IE_EA
     mov  TMR3CN0, #00h                  ; Timer3 disabled and interrupt flag cleared
     jnb  Flag_High_Rpm, comp_read_wrong_low_rpm ; Branch if not high rpm
 
@@ -699,6 +704,7 @@ comp_read_wrong_extend_timeout:
 comp_read_wrong_timeout_set:
     clr  Flag_Demag_Detected            ; Clear demag detected flag
     mov  TMR3CN0, #04h                  ; Timer3 enabled and interrupt flag cleared
+    setb IE_EA
     ljmp comp_start                     ; If comparator output is not correct - go back and restart
 
 comp_read_wrong_low_rpm:
@@ -846,6 +852,9 @@ wait_for_comm_wait:
     ; At this point Timer3 has (already) wrapped and been reloaded with
     ; the Wt_Adv_Start_ delay.
 
+    ; Disable interrupts
+    clr  IE_EA
+
     ; Setup next wait time
     mov  TMR3RLL, Wt_Zc_Scan_Start_L
     mov  TMR3RLH, Wt_Zc_Scan_Start_H
@@ -855,4 +864,7 @@ wait_for_comm_wait:
     mov  TMR3L, Wt_Zc_Scan_Start_L
     mov  TMR3H, Wt_Zc_Scan_Start_H
     mov  TMR3CN0, #04h                  ; Clear Timer3 overflow flag and start Timer3
+
+    ; Enable interrupts
+    setb IE_EA
     ret
