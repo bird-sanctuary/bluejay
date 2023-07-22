@@ -596,6 +596,21 @@ ENDIF
 
     mov  CKCON0, #0Ch                   ; Timer0/1 clock is system clock (for DShot300/600)
 
+; Setup variables for DShot150 (Only on 48MHz for performance reasons)
+IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
+    mov  DShot_Timer_Preset, #1         ; Load DShot sync timer preset (for DShot150)
+    mov  DShot_Pwm_Thr, #32             ; Load DShot pwm threshold (for DShot150)
+    mov  DShot_Frame_Length_Thr, #160   ; Load DShot frame length criteria
+
+    Set_DShot_Tlm_Bitrate 187500        ; = 5/4 * 150000
+
+    ; Test whether signal is DShot150, if so begin arming
+    mov  Rcp_Outside_Range_Cnt, #10     ; Set out of range counter
+    call wait100ms                      ; Wait for new RC pulse
+    mov  A, Rcp_Outside_Range_Cnt       ; Check if pulses were accepted
+    jz   arming_begin
+ENDIF
+
     ; Setup variables for DShot300
     mov  DShot_Timer_Preset, #-128      ; Load DShot sync timer preset (for DShot300)
     mov  DShot_Pwm_Thr, #16             ; Load DShot pwm threshold (for DShot300)
