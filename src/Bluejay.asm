@@ -146,6 +146,7 @@ $include (Modules\Macros.asm)
 ; Programming defaults
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 DEFAULT_PGM_RPM_POWER_SLOPE EQU 9       ; 0=Off,1..13 (Power limit factor in relation to rpm)
+DEFAULT_PWM_FREQUENCY EQU 24            ; 24=24khz, 48=48khz, otherwise dynamic
 DEFAULT_PGM_COMM_TIMING EQU 4           ; 1=Low 2=MediumLow 3=Medium 4=MediumHigh 5=High
 DEFAULT_PGM_DEMAG_COMP EQU 2            ; 1=Disabled 2=Low 3=High
 DEFAULT_PGM_DIRECTION EQU 1             ; 1=Normal 2=Reversed 3=Bidir 4=Bidir rev
@@ -300,7 +301,7 @@ _Pgm_Dithering: DS 1                    ;
 Pgm_Startup_Power_Max: DS 1             ; Maximum power (limit) during startup (and starting initial run phase)
 _Pgm_Rampup_Slope: DS 1                 ;
 Pgm_Rpm_Power_Slope: DS 1               ; Low RPM power protection slope (factor)
-_Pgm_Pwm_Freq: DS 1                     ;
+Pgm_Pwm_Freq: DS 1                      ; PWM frequency
 Pgm_Direction: DS 1                     ; Rotation direction
 _Pgm_Input_Pol: DS 1                    ; Input PWM polarity
 Initialized_L_Dummy: DS 1               ; Place holder
@@ -361,7 +362,7 @@ _Eep_Pgm_Dithering: DB 000h
 Eep_Pgm_Startup_Power_Max: DB DEFAULT_PGM_STARTUP_POWER_MAX
 _Eep_Pgm_Rampup_Slope: DB 0FFh
 Eep_Pgm_Rpm_Power_Slope: DB DEFAULT_PGM_RPM_POWER_SLOPE ; EEPROM copy of programmed rpm power slope (formerly startup power)
-_Eep_Pgm_Pwm_Freq: DB 0FFh
+Eep_Pgm_Pwm_Freq: DB DEFAULT_PWM_FREQUENCY ; EEPROM copy of programmed pwm frequency
 Eep_Pgm_Direction: DB DEFAULT_PGM_DIRECTION ; EEPROM copy of programmed rotation direction
 _Eep__Pgm_Input_Pol: DB 0FFh
 Eep_Initialized_L: DB 055h              ; EEPROM initialized signature (lo byte)

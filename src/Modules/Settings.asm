@@ -215,7 +215,26 @@ ENDIF
     mov  Pwm_Braking48_L, #0FFh           ; Apply full braking if setting is max
 
 decode_throttle_threshold:
+    ; Load chosen frequency
+    mov Temp1, #Pgm_Pwm_Freq
+    mov A, @Temp1
+
+    ; Check 24khz pwm frequency
+    cjne A, #24, decode_throttle_not_24
+    mov  Throttle_48to24_Threshold, #255
+    jmp decode_throttle_end
+
+decode_throttle_not_24:
+    ; Check 48khz pwm frequency
+    cjne A, #48, decode_throttle_not_48
+    mov  Throttle_48to24_Threshold, #0
+    jmp decode_throttle_end
+
+decode_throttle_not_48:
+    ; Dynamic pwm frequency
     ; Load programmed throttle threshold into Throttle_48to24_Threshold
     mov  Temp1, #Pgm_48to24_Threshold
     mov  Throttle_48to24_Threshold, @Temp1
+
+decode_throttle_end:
     ret
