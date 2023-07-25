@@ -311,14 +311,15 @@ play_beep_melody_wait:
     movc A, @A+DPTR
     mov  Temp3, A                       ; wait_ms (hi byte)
 
+    ; Exit if long wait time (60+ seconds), to safeguard against uninitialized
+    ; flash - in this case the hi byte would be 0xFF
+    cpl  A
+    jz   play_beep_melody_exit          ; Exit if Temp3 is 255
+
     inc  DPTR
     clr  A
     movc A, @A+DPTR
     mov  Temp2, A                       ; wait_ms (lo byte)
-
-    ; Exit if long wait time (60+ seconds), to safeguard against uninitialized flash
-    cpl  A
-    jz   play_beep_melody_exit          ; Exit if Temp3 is 255
 
     call wait_ms
 
