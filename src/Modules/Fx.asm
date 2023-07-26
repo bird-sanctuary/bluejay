@@ -242,7 +242,7 @@ beacon_beep4:
     sjmp beacon_beep_exit
 
 beacon_beep5:
-    call beep_f5
+    call play_beep_melody
 
 beacon_beep_exit:
     mov  Temp2, #Pgm_Beep_Strength      ; Set normal beep strength
@@ -283,7 +283,7 @@ play_beep_melody_loop:
     movc A, @A+DPTR
     inc  DPTR
     mov  Temp4, A
-    jz   play_beep_melody_exit
+    jz   play_beep_melody_wait
 
     ; Read current location at Eep_Pgm_Beep_Melody to Temp3. If the value zero, that means this is a silent note
     clr  A
@@ -302,6 +302,26 @@ play_beep_melody_item_wait_ms:
 play_beep_melody_loop_next_item:
     inc  DPTR
     djnz Temp5, play_beep_melody_loop
+
+play_beep_melody_wait:
+    ; Read the melody wait setting and wait a number of ms before exiting
+    ; This is used to make playback on multiple ESCs end at the same time.
+    mov  DPTR, #Eep_Pgm_Melody_End_Wait
+    clr  A
+    movc A, @A+DPTR
+    mov  Temp3, A                       ; wait_ms (hi byte)
+
+    ; Exit if long wait time (60+ seconds), to safeguard against uninitialized
+    ; flash - in this case the hi byte would be 0xFF
+    cpl  A
+    jz   play_beep_melody_exit          ; Exit if Temp3 is 255
+
+    inc  DPTR
+    clr  A
+    movc A, @A+DPTR
+    mov  Temp2, A                       ; wait_ms (lo byte)
+
+    call wait_ms
 
 play_beep_melody_exit:
     ret

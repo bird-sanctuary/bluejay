@@ -33,7 +33,7 @@
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 ESC_LAYOUT_SIZE         EQU 48
-MELODY_SIZE             EQU 140
+MELODY_SIZE             EQU 142
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -264,7 +264,8 @@ write_esc_layout_byte:
 ; Melody
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
-; Read 140  bytes from "EEPROM" and store in external memory (XRAM)
+; Read 142 bytes from "EEPROM" and store in external memory (XRAM)
+; 140 bytes of melody and 2 bytes of sync wait
 read_melody:
     mov  Temp3, #MELODY_SIZE            ; Number of bytes
     mov  Temp2, #0                      ; Set XRAM address
@@ -279,7 +280,8 @@ read_melody_byte:
     djnz Temp3, read_melody_byte
     ret
 
-; Read 140 bytes from external memory (XRAM) and store them in "EEPROM"
+; Read 142 bytes from external memory (XRAM) and store them in "EEPROM"
+; 140 bytes of melody and 2 bytes of sync wait
 write_melody:
     mov  Temp3, #MELODY_SIZE            ; Number of bytes
     mov  Temp2, #0                      ; Set XRAM address
