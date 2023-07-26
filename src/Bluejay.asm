@@ -129,20 +129,12 @@ ENDIF
 ; Select the FET dead time (or unselect for use with external batch compile file)
 ;DEADTIME            EQU    15    ; 20.4ns per step
 
-; Select the pwm frequency (or unselect for use with external batch compile file)
-;PWM_FREQ            EQU    0    ; 0=24, 1=48, 2=96 kHz
-
 PWM_CENTERED EQU DEADTIME > 0           ; Use center aligned pwm on ESCs with dead time
 
 IF MCU_TYPE == MCU_BB1
     IS_MCU_48MHZ EQU 0
 ELSE
     IS_MCU_48MHZ EQU 1
-ENDIF
-
-IF PWM_FREQ == PWM_24 or PWM_FREQ == PWM_48 or PWM_FREQ == PWM_96
-    ; Number of bits in pwm high byte
-    PWM_BITS_H EQU (2 + IS_MCU_48MHZ - PWM_CENTERED - PWM_FREQ)
 ENDIF
 
 $include (Modules\McuOffsets.asm)
@@ -154,6 +146,7 @@ $include (Modules\Macros.asm)
 ; Programming defaults
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 DEFAULT_PGM_RPM_POWER_SLOPE EQU 9       ; 0=Off,1..13 (Power limit factor in relation to rpm)
+DEFAULT_PWM_FREQUENCY EQU 24            ; 24=24khz, 48=48khz, otherwise dynamic
 DEFAULT_PGM_COMM_TIMING EQU 4           ; 1=Low 2=MediumLow 3=Medium 4=MediumHigh 5=High
 DEFAULT_PGM_DEMAG_COMP EQU 2            ; 1=Disabled 2=Low 3=High
 DEFAULT_PGM_DIRECTION EQU 1             ; 1=Normal 2=Reversed 3=Bidir 4=Bidir rev
@@ -174,6 +167,7 @@ DEFAULT_PGM_STARTUP_POWER_MAX EQU 25    ; 0..255 => (1000..2000 Throttle): Maxim
 DEFAULT_PGM_BRAKING_STRENGTH EQU 255    ; 0..255 => 0..100 % Braking
 
 DEFAULT_PGM_SAFETY_ARM EQU 0            ; EDT safety arm is disabled by default
+DEFAULT_48to24_THRESHOLD EQU 170        ; About 66% threshold to change between 48 and 24khz
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Temporary register definitions
@@ -238,7 +232,6 @@ DSEG AT 30h
 Rcp_Outside_Range_Cnt: DS 1             ; RC pulse outside range counter (incrementing)
 Rcp_Timeout_Cntd: DS 1                  ; RC pulse timeout counter (decrementing)
 Rcp_Stop_Cnt: DS 1                      ; Counter for RC pulses below stop value
-
 Beacon_Delay_Cnt: DS 1                  ; Counter to trigger beacon during wait for start
 Startup_Cnt: DS 1                       ; Startup phase commutations counter (incrementing)
 Startup_Zc_Timeout_Cntd: DS 1           ; Startup zero cross timeout counter (decrementing)
@@ -268,8 +261,10 @@ Wt_Comm_Start_H: DS 1                   ; Timer3 start point from zero cross to 
 Pwm_Limit: DS 1                         ; Maximum allowed pwm (8-bit)
 Pwm_Limit_By_Rpm: DS 1                  ; Maximum allowed pwm for low or high rpm (8-bit)
 Pwm_Limit_Beg: DS 1                     ; Initial pwm limit (8-bit)
-Pwm_Braking_L: DS 1                     ; Max Braking pwm (lo byte)
-Pwm_Braking_H: DS 1                     ; Max Braking pwm (hi byte)
+Pwm_Braking24_L: DS 1                   ; Max Braking @24khz pwm (lo byte)
+Pwm_Braking24_H: DS 1                   ; Max Braking @24khz pwm (hi byte)
+Pwm_Braking48_L: DS 1                   ; Max Braking @48khz pwm (lo byte)
+Pwm_Braking48_H: DS 1                   ; Max Braking @48khz pwm (hi byte)
 Temp_Prot_Limit: DS 1                   ; Temperature protection limit
 Temp_Pwm_Level_Setpoint: DS 1           ; PWM level setpoint
 Beep_Strength: DS 1                     ; Strength of beeps
@@ -286,7 +281,6 @@ DShot_Cmd_Cnt: DS 1                     ; DShot command count
 DShot_GCR_Pulse_Time_1: DS 1            ; Encodes binary: 1
 DShot_GCR_Pulse_Time_2: DS 1            ; Encodes binary: 01
 DShot_GCR_Pulse_Time_3: DS 1            ; Encodes binary: 001
-
 DShot_GCR_Pulse_Time_1_Tmp: DS 1
 DShot_GCR_Pulse_Time_2_Tmp: DS 1
 DShot_GCR_Pulse_Time_3_Tmp: DS 1
@@ -294,6 +288,8 @@ DShot_GCR_Start_Delay: DS 1
 Ext_Telemetry_L: DS 1                   ; Extended telemetry data to be sent
 Ext_Telemetry_H: DS 1
 Scheduler_Counter: DS 1                 ; Scheduler Heartbeat
+Throttle_48to24_Threshold: DS 1         ; Threshold to switch between 24 and 48khz
+
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Indirect addressing data segments
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -305,7 +301,7 @@ _Pgm_Dithering: DS 1                    ;
 Pgm_Startup_Power_Max: DS 1             ; Maximum power (limit) during startup (and starting initial run phase)
 _Pgm_Rampup_Slope: DS 1                 ;
 Pgm_Rpm_Power_Slope: DS 1               ; Low RPM power protection slope (factor)
-Pgm_Pwm_Freq: DS 1                      ; PWM frequency (temporary method for display)
+Pgm_Pwm_Freq: DS 1                      ; PWM frequency
 Pgm_Direction: DS 1                     ; Rotation direction
 _Pgm_Input_Pol: DS 1                    ; Input PWM polarity
 Initialized_L_Dummy: DS 1               ; Place holder
@@ -337,7 +333,8 @@ _Pgm_Pwm_Dither: DS 1                   ; Output PWM dither
 Pgm_Brake_On_Stop: DS 1                 ; Braking when throttle is zero
 Pgm_LED_Control: DS 1                   ; LED control
 Pgm_Power_Rating: DS 1                  ; Power rating
-Pgm_Safety_Arm: DS  1                   ; Various flag settings: bit 0 is require edt enable to arm
+Pgm_Safety_Arm: DS 1                    ; Various flag settings: bit 0 is require edt enable to arm
+Pgm_48to24_Threshold: DS 1              ; Threshold to move between 48 and 24 khz PWM frequency
 
 ISEG AT 0C0h
 Stack: DS 16                            ; Reserved stack space
@@ -352,8 +349,8 @@ Temp_Storage: DS 48                     ; Temporary storage (internal memory)
 CSEG AT CSEG_EEPROM
 EEPROM_FW_MAIN_REVISION EQU 0           ; Main revision of the firmware
 EEPROM_FW_SUB_REVISION EQU 21           ; Sub revision of the firmware
-EEPROM_LAYOUT_REVISION EQU 207          ; Revision of the EEPROM layout
-EEPROM_B2_PARAMETERS_COUNT EQU 28       ; Number of parameters
+EEPROM_LAYOUT_REVISION EQU 208          ; Revision of the EEPROM layout
+EEPROM_B2_PARAMETERS_COUNT EQU 29       ; Number of parameters
 
 Eep_FW_Main_Revision: DB EEPROM_FW_MAIN_REVISION ; EEPROM firmware main revision number
 Eep_FW_Sub_Revision: DB EEPROM_FW_SUB_REVISION ; EEPROM firmware sub revision number
@@ -365,7 +362,7 @@ _Eep_Pgm_Dithering: DB 000h
 Eep_Pgm_Startup_Power_Max: DB DEFAULT_PGM_STARTUP_POWER_MAX
 _Eep_Pgm_Rampup_Slope: DB 0FFh
 Eep_Pgm_Rpm_Power_Slope: DB DEFAULT_PGM_RPM_POWER_SLOPE ; EEPROM copy of programmed rpm power slope (formerly startup power)
-Eep_Pgm_Pwm_Freq: DB (24 SHL PWM_FREQ)  ; Temporary method for display
+Eep_Pgm_Pwm_Freq: DB DEFAULT_PWM_FREQUENCY ; EEPROM copy of programmed pwm frequency
 Eep_Pgm_Direction: DB DEFAULT_PGM_DIRECTION ; EEPROM copy of programmed rotation direction
 _Eep__Pgm_Input_Pol: DB 0FFh
 Eep_Initialized_L: DB 055h              ; EEPROM initialized signature (lo byte)
@@ -399,6 +396,8 @@ Eep_Pgm_Brake_On_Stop: DB DEFAULT_PGM_BRAKE_ON_STOP ; EEPROM copy of programmed 
 Eep_Pgm_LED_Control: DB DEFAULT_PGM_LED_CONTROL ; EEPROM copy of programmed LED control
 Eep_Pgm_Power_Rating: DB DEFAULT_PGM_POWER_RATING ; EEPROM copy of programmed power rating
 Eep_Pgm_Safety_Arm: DB DEFAULT_PGM_SAFETY_ARM ; Various flag settings: bit 0 is require edt enable to arm
+Eep_Pgm_48to24_Threshold: DB DEFAULT_48to24_THRESHOLD ; Threshold to move between 48 and 24 khz PWM frequency
+
 
 Eep_Dummy: DB 0FFh                      ; EEPROM address for safety reason
 CSEG AT CSEG_NAME
