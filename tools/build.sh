@@ -2,7 +2,7 @@
 source_path=$(dirname $(pwd))
 
 usage() {
-  echo "Usage: $0 [-l <A-W>] [-m <X|H|L>] [-d <integer>] [-p <24|48|96>] [-s <version string>]" 1>&2
+  echo "Usage: $0 [-l <A-W>] [-m <X|H|L>] [-d <integer>] [-s <version string>]" 1>&2
   exit 1
 }
 
@@ -18,10 +18,6 @@ while getopts ":l:m:d:p:s:" o; do
     d)
       deadtime=${OPTARG}
       ;;
-    p)
-      pwm=${OPTARG}
-      ((pwm == 24 || pwm == 48 || pwm == 96)) || usage
-      ;;
     s)
       version=${OPTARG}
       ;;
@@ -32,18 +28,18 @@ while getopts ":l:m:d:p:s:" o; do
 done
 shift $((OPTIND-1))
 
-if [ -z "${layout}" ] && [ -z "${mcu}" ] && [ -z "${deadtime}" ] && [ -z "${pwm}" ]; then
+if [ -z "${layout}" ] && [ -z "${mcu}" ] && [ -z "${deadtime}" ]; then
   # All optional parameters are missing
   target="all"
   params="all"
 else
-  if [ -z "${layout}" ] || [ -z "${mcu}" ] || [ -z "${deadtime}" ] || [ -z "${pwm}" ]; then
+  if [ -z "${layout}" ] || [ -z "${mcu}" ] || [ -z "${deadtime}" ]; then
     # If one optional parameter is given, all are needed
     usage
   fi
 
-  target="${layout}_${mcu}_${deadtime}_${pwm}"
-  params="LAYOUT=${layout} MCU=${mcu} DEADTIME=${deadtime} PWM=${pwm}"
+  target="${layout}_${mcu}_${deadtime}"
+  params="LAYOUT=${layout} MCU=${mcu} DEADTIME=${deadtime}"
 fi
 
 if [ -n "${version}" ]; then
