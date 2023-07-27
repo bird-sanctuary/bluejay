@@ -37,7 +37,7 @@ set_default_parameters:
     imov Temp1, #DEFAULT_PGM_STARTUP_POWER_MAX ; Pgm_Startup_Power_Max
     imov Temp1, #0FFh                   ; _Pgm_Rampup_Slope
     imov Temp1, #DEFAULT_PGM_RPM_POWER_SLOPE ; Pgm_Rpm_Power_Slope
-    imov Temp1, #0FFh                   ; _Pgm_Pwm_Freq
+    imov Temp1, #DEFAULT_PWM_FREQUENCY  ; Pgm_Pwm_Freq
     imov Temp1, #DEFAULT_PGM_DIRECTION  ; Pgm_Direction
     imov Temp1, #0FFh                   ; _Pgm_Input_Pol
 
@@ -221,13 +221,13 @@ decode_throttle_threshold:
 
     ; Check 24khz pwm frequency
     cjne A, #24, decode_throttle_not_24
-    mov  Throttle_48to24_Threshold, #255
+    mov  Throttle_48to24_Threshold, #0
     jmp decode_throttle_end
 
 decode_throttle_not_24:
     ; Check 48khz pwm frequency
     cjne A, #48, decode_throttle_not_48
-    mov  Throttle_48to24_Threshold, #0
+    mov  Throttle_48to24_Threshold, #255
     jmp decode_throttle_end
 
 decode_throttle_not_48:
