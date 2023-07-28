@@ -1,6 +1,7 @@
 # Current version
 TAG			:= $(shell git describe --tags --abbrev=0)
 VERSION		?= $(TAG)
+SETTINGSDIR	?= ./src/Settings
 
 # Target parameters
 LAYOUTS		= A B C D E F G H I J K L M N O P Q R S T U V W Z \
@@ -93,6 +94,7 @@ $(OUTPUT_DIR)/$(1)_$(2)_$(3)_$(4)_$(VERSION).OBJ : $(ASM_SRC) $(ASM_INC)
 	@mkdir -p $(OUTPUT_DIR)
 	@echo "AX51 : $$@"
 	@$(AX51) $(ASM_SRC) \
+		"INCDIR($(SETTINGSDIR)) " \
 		"DEFINE(ESCNO=$(_ESCNO)) " \
 		"DEFINE(MCU_TYPE=$(_MCU_TYPE)) "\
 		"DEFINE(DEADTIME=$(_DEADTIME)) "\
