@@ -2,11 +2,11 @@
 source_path=$(dirname $(pwd))
 
 usage() {
-  echo "Usage: $0 [-l <A-W>] [-m <X|H|L>] [-d <integer>] [-s <version string>]" 1>&2
+  echo "Usage: $0 [-l <A-W>] [-m <X|H|L>] [-d <integer>] [-s <version string>] [-c <custom settings dir path>]" 1>&2
   exit 1
 }
 
-while getopts ":l:m:d:p:s:" o; do
+while getopts ":l:m:d:p:s:c:" o; do
   case "${o}" in
     l)
       layout=${OPTARG}
@@ -20,6 +20,9 @@ while getopts ":l:m:d:p:s:" o; do
       ;;
     s)
       version=${OPTARG}
+      ;;
+    c)
+      settingsdir=${OPTARG}
       ;;
     *)
       usage
@@ -44,6 +47,10 @@ fi
 
 if [ -n "${version}" ]; then
   params="${params} VERSION=${version}"
+fi
+
+if [ -n "${settingsdir}" ]; then
+  params="${params} SETTINGSDIR=${settingsdir}"
 fi
 
 echo "Building ${target}"
