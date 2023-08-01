@@ -422,7 +422,9 @@ t1_int_run_48khz:
     jmp t1_int_set_pwm
 
 t1_int_run_96khz:
-        mov  B, Temp5
+    ; Scale pwm resolution and invert (duty cycle is defined inversely)
+    ; Deadtime and 96khz
+    mov  B, Temp5
     mov  A, Temp4
     mov  C, B.0
     rrc  A
