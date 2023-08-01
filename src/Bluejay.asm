@@ -378,7 +378,7 @@ Eep_Pgm_Brake_On_Stop: DB DEFAULT_PGM_BRAKE_ON_STOP ; EEPROM copy of programmed 
 Eep_Pgm_LED_Control: DB DEFAULT_PGM_LED_CONTROL ; EEPROM copy of programmed LED control
 Eep_Pgm_Power_Rating: DB DEFAULT_PGM_POWER_RATING ; EEPROM copy of programmed power rating
 Eep_Pgm_Safety_Arm: DB DEFAULT_PGM_SAFETY_ARM ; Various flag settings: bit 0 is require edt enable to arm
-Eep_Pgm_96to48_Threshold: DB DEFAULT_48to24_THRESHOLD ; Threshold to move between 96 and 48 khz PWM frequency
+Eep_Pgm_96to48_Threshold: DB DEFAULT_96to48_THRESHOLD ; Threshold to move between 96 and 48 khz PWM frequency
 Eep_Pgm_48to24_Threshold: DB DEFAULT_48to24_THRESHOLD ; Threshold to move between 48 and 24 khz PWM frequency
 
 

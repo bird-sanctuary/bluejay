@@ -385,7 +385,9 @@ t1_int_dynamic_pwm:
 
 IF PWM_CENTERED == 0
 
-    ; Edge aligned PWM
+; *******************
+;  Edge aligned PWM
+; *******************
 t1_int_run_24khz:
     ; Scale pwm resolution and invert (duty cycle is defined inversely)
     ; No deadtime and 24khz
@@ -399,7 +401,6 @@ t1_int_run_24khz:
 
     ; Set PCA to work at 24khz
     mov  PCA0PWM, #83h
-
     jmp t1_int_set_pwm
 
 t1_int_run_48khz:
@@ -418,7 +419,6 @@ t1_int_run_48khz:
 
     ; Set PCA to work at 48khz
     mov  PCA0PWM, #82h
-
     jmp t1_int_set_pwm
 
 t1_int_run_96khz:
@@ -440,9 +440,11 @@ t1_int_run_96khz:
     ; Set PCA to work at 96khz
     mov  PCA0PWM, #81h
 
-ELSE
+ELSE                                    ; (PWM_CENTERED == 0)
 
-    ; Center aligned PWM
+; *******************
+; Center aligned PWM
+; *******************
 t1_int_run_24khz:
     ; Scale pwm resolution and invert (duty cycle is defined inversely)
     ; Deadtime and 24khz
@@ -587,7 +589,7 @@ t1_int_max_braking_set_96khz:
     mov  Temp4, Pwm_Braking96_L         ; No - set desired braking instead
     mov  Temp5, Pwm_Braking96_H
 
-ENDIF
+ENDIF                                   ; (PWM_CENTERED == 0)
 
 
 t1_int_set_pwm:
