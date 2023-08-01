@@ -72,6 +72,7 @@ set_default_parameters:
     imov Temp1, #DEFAULT_PGM_LED_CONTROL ; Pgm_LED_Control
     imov Temp1, #DEFAULT_PGM_POWER_RATING ; Pgm_Power_Rating
     imov Temp1, #DEFAULT_PGM_SAFETY_ARM ; Pgm_Safety_Arm
+    imov Temp1, #DEFAULT_96to48_THRESHOLD ; Pgm_96to48_Threshold
     imov Temp1, #DEFAULT_48to24_THRESHOLD ; Pgm_48to24_Threshold
 
     ret
