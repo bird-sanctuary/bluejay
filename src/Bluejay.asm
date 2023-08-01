@@ -243,6 +243,8 @@ Pwm_Braking24_L: DS 1                   ; Max Braking @24khz pwm (lo byte)
 Pwm_Braking24_H: DS 1                   ; Max Braking @24khz pwm (hi byte)
 Pwm_Braking48_L: DS 1                   ; Max Braking @48khz pwm (lo byte)
 Pwm_Braking48_H: DS 1                   ; Max Braking @48khz pwm (hi byte)
+Pwm_Braking96_L: DS 1                   ; Max Braking @96khz pwm (lo byte)
+Pwm_Braking96_H: DS 1                   ; Max Braking @96khz pwm (hi byte)
 Temp_Prot_Limit: DS 1                   ; Temperature protection limit
 Temp_Pwm_Level_Setpoint: DS 1           ; PWM level setpoint
 Beep_Strength: DS 1                     ; Strength of beeps
@@ -266,6 +268,7 @@ DShot_GCR_Start_Delay: DS 1
 Ext_Telemetry_L: DS 1                   ; Extended telemetry data to be sent
 Ext_Telemetry_H: DS 1
 Scheduler_Counter: DS 1                 ; Scheduler Heartbeat
+Throttle_96to48_Threshold: DS 1         ; Threshold to switch between 24 and 48khz
 Throttle_48to24_Threshold: DS 1         ; Threshold to switch between 24 and 48khz
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -312,6 +315,7 @@ Pgm_Brake_On_Stop: DS 1                 ; Braking when throttle is zero
 Pgm_LED_Control: DS 1                   ; LED control
 Pgm_Power_Rating: DS 1                  ; Power rating
 Pgm_Safety_Arm: DS 1                    ; Various flag settings: bit 0 is require edt enable to arm
+Pgm_96to48_Threshold: DS 1              ; Threshold to move between 96 and 48 khz PWM frequency
 Pgm_48to24_Threshold: DS 1              ; Threshold to move between 48 and 24 khz PWM frequency
 
 ISEG AT 0C0h
@@ -328,7 +332,7 @@ CSEG AT CSEG_EEPROM
 EEPROM_FW_MAIN_REVISION EQU 0           ; Main revision of the firmware
 EEPROM_FW_SUB_REVISION EQU 21           ; Sub revision of the firmware
 EEPROM_LAYOUT_REVISION EQU 208          ; Revision of the EEPROM layout
-EEPROM_B2_PARAMETERS_COUNT EQU 29       ; Number of parameters
+EEPROM_B2_PARAMETERS_COUNT EQU 30       ; Number of parameters
 
 Eep_FW_Main_Revision: DB EEPROM_FW_MAIN_REVISION ; EEPROM firmware main revision number
 Eep_FW_Sub_Revision: DB EEPROM_FW_SUB_REVISION ; EEPROM firmware sub revision number
@@ -374,6 +378,7 @@ Eep_Pgm_Brake_On_Stop: DB DEFAULT_PGM_BRAKE_ON_STOP ; EEPROM copy of programmed 
 Eep_Pgm_LED_Control: DB DEFAULT_PGM_LED_CONTROL ; EEPROM copy of programmed LED control
 Eep_Pgm_Power_Rating: DB DEFAULT_PGM_POWER_RATING ; EEPROM copy of programmed power rating
 Eep_Pgm_Safety_Arm: DB DEFAULT_PGM_SAFETY_ARM ; Various flag settings: bit 0 is require edt enable to arm
+Eep_Pgm_96to48_Threshold: DB DEFAULT_48to24_THRESHOLD ; Threshold to move between 96 and 48 khz PWM frequency
 Eep_Pgm_48to24_Threshold: DB DEFAULT_48to24_THRESHOLD ; Threshold to move between 48 and 24 khz PWM frequency
 
 

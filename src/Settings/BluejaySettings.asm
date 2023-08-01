@@ -49,4 +49,5 @@ DEFAULT_PGM_STARTUP_POWER_MAX EQU 25    ; 0..255 => (1000..2000 Throttle): Maxim
 DEFAULT_PGM_BRAKING_STRENGTH EQU 255    ; 0..255 => 0..100 % Braking
 
 DEFAULT_PGM_SAFETY_ARM EQU 0            ; EDT safety arm is disabled by default
+DEFAULT_96to48_THRESHOLD EQU 85         ; About 33% threshold to change between 96 and 48khz
 DEFAULT_48to24_THRESHOLD EQU 170        ; About 66% threshold to change between 48 and 24khz

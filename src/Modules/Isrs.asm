@@ -370,12 +370,22 @@ t1_int_zero_rcp_checked_check_limit:
 
 t1_int_dynamic_pwm:
     ; Dynamic PWM
-    clr  C
     mov  A, Temp2
+
+    ; Choose between 96khz and 48khz
+    clr  C
+    subb A, Throttle_96to48_Threshold
+    jc   t1_int_run_96khz
+
+    ; Choose between 48khz and 24khz
+    clr  C
     subb A, Throttle_48to24_Threshold
     jc   t1_int_run_48khz
 
+
 IF PWM_CENTERED == 0
+
+    ; Edge aligned PWM
 t1_int_run_24khz:
     ; Scale pwm resolution and invert (duty cycle is defined inversely)
     ; No deadtime and 24khz
@@ -408,7 +418,31 @@ t1_int_run_48khz:
 
     ; Set PCA to work at 48khz
     mov  PCA0PWM, #82h
+
+    jmp t1_int_set_pwm
+
+t1_int_run_96khz:
+        mov  B, Temp5
+    mov  A, Temp4
+    mov  C, B.0
+    rrc  A
+    mov  C, B.1
+    rrc  A
+    cpl  A
+    mov  Temp2, A
+    mov  A, Temp5
+    rr   A
+    rr   A
+    cpl  A
+    anl  A, #1
+    mov  Temp3, A
+
+    ; Set PCA to work at 96khz
+    mov  PCA0PWM, #81h
+
 ELSE
+
+    ; Center aligned PWM
 t1_int_run_24khz:
     ; Scale pwm resolution and invert (duty cycle is defined inversely)
     ; Deadtime and 24khz
@@ -453,6 +487,7 @@ t1_int_max_braking_set_24khz:
     mov  A, Temp5
     subb A, Pwm_Braking24_H             ; Is braking pwm more than maximum allowed braking?
     jc   t1_int_set_pwm                 ; Yes - branch
+
     mov  Temp4, Pwm_Braking24_L         ; No - set desired braking instead
     mov  Temp5, Pwm_Braking24_H
     jmp t1_int_set_pwm
@@ -505,9 +540,55 @@ t1_int_max_braking_set_48khz:
     mov  A, Temp5
     subb A, Pwm_Braking48_H             ; Is braking pwm more than maximum allowed braking?
     jc   t1_int_set_pwm                 ; Yes - branch
+
     mov  Temp4, Pwm_Braking48_L         ; No - set desired braking instead
     mov  Temp5, Pwm_Braking48_H
+    jmp t1_int_set_pwm
+
+t1_int_run_96khz:
+    ; Scale pwm resolution and invert (duty cycle is defined inversely)
+    ; Deadtime and 96khz
+    mov  A, Temp2                       ; Temp2 already 8-bit
+    cpl  A
+    mov  Temp2, A
+    mov  Temp3, #0
+
+    ; Set PCA to work at 96khz
+    mov  PCA0PWM, #80h
+
+    ; Subtract dead time from normal pwm and store as damping PWM
+    ; Damping PWM duty cycle will be higher because numbers are inverted
+    clr  C
+    mov  A, Temp2                       ; Skew damping FET timing
+IF MCU_TYPE == MCU_BB1
+    subb A, #((DEADTIME + 1) SHR 1)
+ELSE
+    subb A, #(DEADTIME)
 ENDIF
+    mov  Temp4, A
+    mov  A, Temp3
+    subb A, #0
+    mov  Temp5, A
+    jnc  t1_int_max_braking_set_96khz
+
+    clr  A                              ; Set to minimum value
+    mov  Temp4, A
+    mov  Temp5, A
+    sjmp t1_int_set_pwm                 ; Max braking is already zero - branch
+
+t1_int_max_braking_set_96khz:
+    clr  C
+    mov  A, Temp4
+    subb A, Pwm_Braking96_L
+    mov  A, Temp5
+    subb A, Pwm_Braking96_H             ; Is braking pwm more than maximum allowed braking?
+    jc   t1_int_set_pwm                 ; Yes - branch
+
+    mov  Temp4, Pwm_Braking96_L         ; No - set desired braking instead
+    mov  Temp5, Pwm_Braking96_H
+
+ENDIF
+
 
 t1_int_set_pwm:
 ; Set PWM registers
