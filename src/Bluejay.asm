@@ -145,7 +145,7 @@ $include (Modules\Macros.asm)
 ; This file is Searched within the INCDIR set in the Makefile.
 ; This allows overwriting the settings by putting a file with the same name in
 ; a different directory and setting that in INCDIR.
-$include (Settings\BluejaySettings.asm)
+$include (BluejaySettings.asm)
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Temporary register definitions

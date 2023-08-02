@@ -213,21 +213,21 @@ decode_throttle_threshold:
     cjne A, #24, decode_throttle_not_24
     mov  Throttle_96to48_Threshold, #0
     mov  Throttle_48to24_Threshold, #0
-    jmp  decode_throttle_end
+    jmp  decode_end
 
 decode_throttle_not_24:
     ; Check 48khz pwm frequency
     cjne A, #48, decode_throttle_not_48
     mov  Throttle_96to48_Threshold, #0
     mov  Throttle_48to24_Threshold, #255
-    jmp  decode_throttle_end
+    jmp  decode_end
 
 decode_throttle_not_48:
     ; Check 96khz pwm frequency
-    cjne A, #96, decode_throttle_not_48
+    cjne A, #96, decode_throttle_not_96
     mov  Throttle_96to48_Threshold, #255
     mov  Throttle_48to24_Threshold, #255
-    jmp  decode_throttle_end
+    jmp  decode_end
 
 decode_throttle_not_96:
     ; Dynamic pwm frequency
@@ -243,10 +243,10 @@ decode_throttle_not_96:
     clr C
     mov  A, Throttle_48to24_Threshold
     subb A, Throttle_96to48_Threshold
-    jnc  decode_throttle_end
+    jnc  decode_throttle_not_96_end
     clr  A
 
-decode_throttle_end:
+decode_throttle_not_96_end:
     ; Update Throttle_48to24_Threshold
     mov Throttle_48to24_Threshold, A
 

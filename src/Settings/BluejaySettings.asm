@@ -28,7 +28,7 @@
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
 DEFAULT_PGM_RPM_POWER_SLOPE EQU 9       ; 0=Off,1..13 (Power limit factor in relation to rpm)
-DEFAULT_PWM_FREQUENCY EQU 24            ; 24=24khz, 48=48khz, otherwise dynamic
+DEFAULT_PWM_FREQUENCY EQU 24            ; 24=24khz, 48=48khz, 96=96khz, otherwise dynamic
 DEFAULT_PGM_COMM_TIMING EQU 4           ; 1=Low 2=MediumLow 3=Medium 4=MediumHigh 5=High
 DEFAULT_PGM_DEMAG_COMP EQU 2            ; 1=Disabled 2=Low 3=High
 DEFAULT_PGM_DIRECTION EQU 1             ; 1=Normal 2=Reversed 3=Bidir 4=Bidir rev

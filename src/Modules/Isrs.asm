@@ -383,11 +383,8 @@ t1_int_dynamic_pwm:
     jc   t1_int_run_48khz
 
 
-IF PWM_CENTERED == 0
+IF PWM_CENTERED == 0                    ;  Edge aligned PWM
 
-; *******************
-;  Edge aligned PWM
-; *******************
 t1_int_run_24khz:
     ; Scale pwm resolution and invert (duty cycle is defined inversely)
     ; No deadtime and 24khz
@@ -399,7 +396,7 @@ t1_int_run_24khz:
     cpl  A
     mov  Temp2, A
 
-    ; Set PCA to work at 24khz
+    ; Set PCA to work at 24khz (11bit pwm)
     mov  PCA0PWM, #83h
     jmp t1_int_set_pwm
 
@@ -417,7 +414,7 @@ t1_int_run_48khz:
     cpl  A
     mov  Temp2, A
 
-    ; Set PCA to work at 48khz
+    ; Set PCA to work at 48khz (10bit pwm)
     mov  PCA0PWM, #82h
     jmp t1_int_set_pwm
 
@@ -439,14 +436,19 @@ t1_int_run_96khz:
     anl  A, #1
     mov  Temp3, A
 
-    ; Set PCA to work at 96khz
+    ; Set PCA to work at 96khz (9bit pwm)
     mov  PCA0PWM, #81h
 
-ELSE                                    ; (PWM_CENTERED == 0)
+t1_int_set_pwm:
+; Set PWM registers
+; NOTE: Interrupts are not explicitly disabled. Assume higher priority
+;       interrupts (Int0, Timer0) to be disabled at this point.
+    ; Set power pwm auto-reload registers
+    Set_Power_Pwm_Reg_L Temp2
+    Set_Power_Pwm_Reg_H Temp3
 
-; *******************
-; Center aligned PWM
-; *******************
+ELSE                                    ; Center aligned PWM
+
 t1_int_run_24khz:
     ; Scale pwm resolution and invert (duty cycle is defined inversely)
     ; Deadtime and 24khz
@@ -461,7 +463,7 @@ t1_int_run_24khz:
     cpl  A
     mov  Temp2, A
 
-    ; Set PCA to work at 24khz
+    ; Set PCA to work at 24khz (10bit pwm)
     mov  PCA0PWM, #82h
 
     ; Subtract dead time from normal pwm and store as damping PWM
@@ -514,7 +516,7 @@ t1_int_run_48khz:
     anl  A, #1
     mov  Temp3, A
 
-    ; Set PCA to work at 48khz
+    ; Set PCA to work at 48khz (9bit pwm)
     mov  PCA0PWM, #81h
 
     ; Subtract dead time from normal pwm and store as damping PWM
@@ -557,7 +559,7 @@ t1_int_run_96khz:
     mov  Temp2, A
     mov  Temp3, #0
 
-    ; Set PCA to work at 96khz
+    ; Set PCA to work at 96khz (8bit pwm)
     mov  PCA0PWM, #80h
 
     ; Subtract dead time from normal pwm and store as damping PWM
@@ -578,7 +580,7 @@ ENDIF
     clr  A                              ; Set to minimum value
     mov  Temp4, A
     mov  Temp5, A
-    sjmp t1_int_set_pwm                 ; Max braking is already zero - branch
+    sjmp t1_int_set_pwm_96khz           ; Max braking is already zero - branch
 
 t1_int_max_braking_set_96khz:
     clr  C
@@ -586,13 +588,21 @@ t1_int_max_braking_set_96khz:
     subb A, Pwm_Braking96_L
     mov  A, Temp5
     subb A, Pwm_Braking96_H             ; Is braking pwm more than maximum allowed braking?
-    jc   t1_int_set_pwm                 ; Yes - branch
+    jc   t1_int_set_pwm_96khz           ; Yes - branch
 
     mov  Temp4, Pwm_Braking96_L         ; No - set desired braking instead
     mov  Temp5, Pwm_Braking96_H
 
-ENDIF                                   ; (PWM_CENTERED == 0)
+t1_int_set_pwm_96khz:
+; Set PWM registers
+; NOTE: Interrupts are not explicitly disabled. Assume higher priority
+;       interrupts (Int0, Timer0) to be disabled at this point.
+    ; Set power pwm auto-reload registers
+    Set_Power_Pwm_Reg_H Temp2
 
+    ; Set damp pwm auto-reload registers
+    Set_Damp_Pwm_Reg_H Temp4
+    jmp  t1_int_prepare_telemetry
 
 t1_int_set_pwm:
 ; Set PWM registers
@@ -602,12 +612,14 @@ t1_int_set_pwm:
     Set_Power_Pwm_Reg_L Temp2
     Set_Power_Pwm_Reg_H Temp3
 
-IF DEADTIME != 0
     ; Set damp pwm auto-reload registers
     Set_Damp_Pwm_Reg_L Temp4
     Set_Damp_Pwm_Reg_H Temp5
-ENDIF
 
+ENDIF                                   ; Edge/center aligned pwm
+
+
+t1_int_prepare_telemetry:
     mov  Rcp_Timeout_Cntd, #10          ; Set timeout count
 
     ; Prepare DShot telemetry
