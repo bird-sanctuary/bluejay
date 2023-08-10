@@ -59,7 +59,7 @@ init:
     mov  SP, #0c0h                      ; Stack = 64 upper bytes of RAM
     ; Initialize clock
     mov  CLKSEL, #00h                   ; Set clock divider to 1
-IF MCU_TYPE == MCU_BB1 or MCU_TYPE = MCU_BB2
+IF MCU_TYPE == MCU_BB1 or MCU_TYPE == MCU_BB2
     ; Initialize VDD monitor
     orl  VDM0CN, #080h                  ; Enable the VDD monitor
 ENDIF
@@ -68,7 +68,8 @@ ENDIF
     acall waitf
 
     ; Initialize flash keys
-    Unlock_Flash
+    mov  BL_Flash_Key_1, #0A5h
+    mov  BL_Flash_Key_2, #0F1h
 
     ; Initialize ports
     orl  RTX_MDIN, #(1 SHL RTX_PIN)     ; Set digital
@@ -188,7 +189,11 @@ mai2:
 exit:
     mov  Bit_Access, #0                 ; Clear variable used by flash lock detect
     mov  Bit_Access_Int, #0FFh          ; Set variable to indicate that program execution came from bootloader
-    Lock_Flash
+
+    ; Lock flash by setting invalid values
+    mov  BL_Flash_Key_1, #0
+    mov  BL_Flash_Key_2, #0
+
     ljmp 0000h
 rst:
     ajmp init
