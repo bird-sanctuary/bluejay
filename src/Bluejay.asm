@@ -769,8 +769,8 @@ motor_start:
     mov  Pwm_Limit_By_Rpm, Pwm_Limit_Beg
 
     ; Set temperature PWM limit and setpoint to the maximum value
-    mov  Pwm_Limit, #255
-    mov  Temp_Pwm_Level_Setpoint, #255
+    mov  Pwm_Limit, Pwm_Limit_Beg
+    mov  Temp_Pwm_Level_Setpoint, Pwm_Limit_Beg
 
 ; Begin startup sequence
 IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
@@ -913,6 +913,7 @@ run6:
     jnb  Flag_Startup_Phase, initial_run_phase
 
     ; Startup phase
+    mov  Pwm_Limit, Pwm_Limit_Beg       ; Set initial max power
     mov  Pwm_Limit_By_Rpm, Pwm_Limit_Beg; Set initial max power
     clr  C
     mov  A, Startup_Cnt                 ; Load startup counter
@@ -926,6 +927,8 @@ startup_phase_done:
     ; Clear startup phase flag & remove pwm limits
     clr  Flag_Startup_Phase
     mov  Pwm_Limit_By_Rpm, #255
+    mov  Pwm_Limit, #255                ; Reset temperature level pwm limit
+    mov  Temp_Pwm_Level_Setpoint, #255  ; Reset temperature level setpoint
 
 initial_run_phase:
     ; If it is a direction change - branch
