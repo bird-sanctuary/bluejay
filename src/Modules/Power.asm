@@ -57,7 +57,7 @@ set_pwm_limit_low_rpm:
     mov  Temp1, Pwm_Limit_Beg
 
     ; Exit if startup phase is set
-    jb   Flag_Initial_Run_Phase, set_pwm_limit_low_rpm_exit
+    jb   Flag_Startup_Phase, set_pwm_limit_low_rpm_exit
 
     ; Set default pwm limit for other phases
     mov  Temp1, #0FFh                   ; Default full power
@@ -79,9 +79,13 @@ set_pwm_limit_calculate:
     mul  AB
     mov  Temp1, A                       ; Set new limit
     xch  A, B
+
+    ; If RPM_PWM_LIMIT < 255 goto set_pwm_limit_check_limit_to_min
     jz   set_pwm_limit_check_limit_to_min ; Limit to max
 
-    mov  Temp1, #0FFh
+    ; Limit is bigger than 0xFF -> set max pwm and exit
+    mov  Pwm_Limit_By_Rpm, #0FFh
+    ret
 
 set_pwm_limit_check_limit_to_min:
     clr  C
