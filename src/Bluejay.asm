@@ -902,9 +902,6 @@ run6:
 startup_phase_done:
     ; Clear startup phase flag & remove pwm limits
     clr  Flag_Startup_Phase
-    mov  Pwm_Limit_By_Rpm, #255
-    mov  Pwm_Limit, #255                ; Reset temperature level pwm limit
-    mov  Temp_Pwm_Level_Setpoint, #255  ; Reset temperature level setpoint
 
 initial_run_phase:
     ; If it is a direction change - branch
@@ -925,6 +922,16 @@ initial_run_phase:
 
 initial_run_phase_done:
     clr  Flag_Initial_Run_Phase         ; Clear initial run phase flag
+
+    ; Lift startup power restrictions
+    ; Temperature protection acts until this point
+    ; as a max startup power limiter.
+    ; This plus the power limits applied in set_pwm_limit function
+    ; act as a startup power limiter to protect the esc and the motor
+    ; during startup, jams produced after crashes and desyncs recovery
+    mov  Pwm_Limit, #255                ; Reset temperature level pwm limit
+    mov  Temp_Pwm_Level_Setpoint, #255  ; Reset temperature level setpoint
+
     setb Flag_Motor_Started             ; Set motor started
     jmp  run1                           ; Continue with normal run
 
