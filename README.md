@@ -23,7 +23,7 @@ Bluejay aims to be an open source successor to BLHeli_S adding several improveme
 - User configurable startup tunes :musical_note:
 - Numerous optimizations and bug fixes
 
-See the project [changelog](CHANGELOG.md) for a list of changes.
+See the projects [release page](https://github.com/bird-sanctuary/bluejay/releases) to understand what changed between versions.
 
 ## Supported Platforms
 - SiLabs EFM8 BB21
