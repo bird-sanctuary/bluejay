@@ -35,9 +35,16 @@
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 switch_power_off:
+    ; This three macros disable MOSFET communtation.
+    ; Dshot frames will have no effect after disabling MOSFET communtation.
+    ; Commutation is started again at motor_start_bidir_done.
     All_Pwm_Fets_Off                    ; Turn off all pwm FETs
     All_Com_Fets_Off                    ; Turn off all commutation FETs
     Set_All_Pwm_Phases_Off
+
+    ; Enforce all PWM limits to zero to disable dshot frame rcpulses
+    mov  Pwm_Limit_By_Rpm, #0
+    mov  Pwm_Limit_Startup_n_Temp, #0
     ret
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****

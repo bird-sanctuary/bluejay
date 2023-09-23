@@ -183,21 +183,21 @@ scheduler_steps_odd:
     ; resulting in current spikes, that may damage motor/ESC.
     ; Compare pwm limit to setpoint
     clr  C
-    mov  A, Pwm_Limit
+    mov  A, Pwm_Limit_Startup_n_Temp
     subb A, Temp_Pwm_Level_Setpoint
     jz   scheduler_steps_odd_choose_step ; pwm limit == setpoint -> next
     jc   scheduler_steps_odd_temp_pwm_limit_inc ; pwm limit < setpoint -> increase pwm limit
 
 scheduler_steps_odd_temp_pwm_limit_dec:
     ; Decrease pwm limit
-    dec  Pwm_Limit
+    dec  Pwm_Limit_Startup_n_Temp
 
     ; Continue with odd scheduler step selection
     sjmp scheduler_steps_odd_choose_step
 
 scheduler_steps_odd_temp_pwm_limit_inc:
     ; Increase pwm limit
-    inc  Pwm_Limit
+    inc  Pwm_Limit_Startup_n_Temp
 
 ; Run speciffic odd scheduler step
 scheduler_steps_odd_choose_step:
