@@ -355,7 +355,7 @@ Temp_Storage: DS 48                     ; Temporary storage (internal memory)
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 CSEG AT CSEG_EEPROM
 EEPROM_FW_MAIN_REVISION EQU 0           ; Main revision of the firmware
-EEPROM_FW_SUB_REVISION EQU 20           ; Sub revision of the firmware
+EEPROM_FW_SUB_REVISION EQU 21           ; Sub revision of the firmware
 EEPROM_LAYOUT_REVISION EQU 207          ; Revision of the EEPROM layout
 EEPROM_B2_PARAMETERS_COUNT EQU 28       ; Number of parameters
 
@@ -406,7 +406,7 @@ Eep_Pgm_Safety_Arm: DB DEFAULT_PGM_SAFETY_ARM ; Various flag settings: bit 0 is 
 
 Eep_Dummy: DB 0FFh                      ; EEPROM address for safety reason
 CSEG AT CSEG_NAME
-Eep_Name: DB "Bluejay         "         ; Name tag (16 Bytes)
+Eep_Name: DB "Bluejay (.1 RC2)"         ; Name tag (16 Bytes)
 
 CSEG AT CSEG_MELODY
 Eep_Pgm_Beep_Melody: DB 2,58,4,32,52,66,13,0,69,45,13,0,52,66,13,0,78,39,211,0,69,45,208,25,52,25,0
@@ -753,28 +753,24 @@ wait_for_start_nonzero:
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 motor_start:
     clr  IE_EA                          ; Disable interrupts
+
     call switch_power_off
-    setb IE_EA                          ; Enable interrupts
 
     clr  A
-    mov  Flags0, A                      ; Clear run time flags
-    mov  Flags1, A
-    mov  Demag_Detected_Metric, A       ; Clear demag metric
-    mov  Demag_Detected_Metric_Max, A   ; Clear demag metric max
-
-    call wait1ms
-
+    mov  Flags0, #0                     ; Clear run time flags
+    mov  Flags1, #0
+    mov  Demag_Detected_Metric, #0      ; Clear demag metric
+    mov  Demag_Detected_Metric_Max, #0  ; Clear demag metric max
     mov  Ext_Telemetry_H, #0            ; Clear extended telemetry data
 
     ; Set up start operating conditions
-    clr  IE_EA                          ; Disable interrupts
     mov  Temp2, #Pgm_Startup_Power_Max
     mov  Pwm_Limit_Beg, @Temp2          ; Set initial pwm limit
     mov  Pwm_Limit_By_Rpm, Pwm_Limit_Beg
 
     ; Set temperature PWM limit and setpoint to the maximum value
-    mov  Pwm_Limit, #255
-    mov  Temp_Pwm_Level_Setpoint, #255
+    mov  Pwm_Limit, Pwm_Limit_Beg
+    mov  Temp_Pwm_Level_Setpoint, Pwm_Limit_Beg
 
 ; Begin startup sequence
 IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
@@ -797,7 +793,6 @@ IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
 
     mov  DShot_GCR_Start_Delay, #DSHOT_TLM_START_DELAY_48
 ENDIF
-    setb IE_EA                          ; Enable interrupts
 
     mov  C, Flag_Pgm_Dir_Rev            ; Read spin direction setting
     mov  Flag_Motor_Dir_Rev, C
@@ -811,10 +806,13 @@ ENDIF
 ; Motor start beginning
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 motor_start_bidir_done:
+    ; Set initial motor state
     setb Flag_Startup_Phase             ; Set startup phase flags
     setb Flag_Initial_Run_Phase
     mov  Startup_Cnt, #0                ; Reset startup phase run counter
     mov  Initial_Run_Rot_Cntd, #12      ; Set initial run rotation countdown
+
+    ; Initialize commutation
     call comm5_comm6                    ; Initialize commutation
     call comm6_comm1
     call initialize_timing              ; Initialize timing
@@ -822,6 +820,8 @@ motor_start_bidir_done:
     call initialize_timing              ; Initialize timing
     call calc_next_comm_period
     call initialize_timing              ; Initialize timing
+
+    setb IE_EA                          ; Enable interrupts
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
@@ -913,6 +913,7 @@ run6:
     jnb  Flag_Startup_Phase, initial_run_phase
 
     ; Startup phase
+    mov  Pwm_Limit, Pwm_Limit_Beg       ; Set initial max power
     mov  Pwm_Limit_By_Rpm, Pwm_Limit_Beg; Set initial max power
     clr  C
     mov  A, Startup_Cnt                 ; Load startup counter
@@ -925,7 +926,6 @@ run6:
 startup_phase_done:
     ; Clear startup phase flag & remove pwm limits
     clr  Flag_Startup_Phase
-    mov  Pwm_Limit_By_Rpm, #255
 
 initial_run_phase:
     ; If it is a direction change - branch
@@ -946,6 +946,16 @@ initial_run_phase:
 
 initial_run_phase_done:
     clr  Flag_Initial_Run_Phase         ; Clear initial run phase flag
+
+    ; Lift startup power restrictions
+    ; Temperature protection acts until this point
+    ; as a max startup power limiter.
+    ; This plus the power limits applied in set_pwm_limit function
+    ; act as a startup power limiter to protect the esc and the motor
+    ; during startup, jams produced after crashes and desyncs recovery
+    mov  Pwm_Limit, #255                ; Reset temperature level pwm limit
+    mov  Temp_Pwm_Level_Setpoint, #255  ; Reset temperature level setpoint
+
     setb Flag_Motor_Started             ; Set motor started
     jmp  run1                           ; Continue with normal run
 
@@ -1030,11 +1040,13 @@ exit_run_mode_on_timeout:
     inc  Startup_Stall_Cnt              ; Increment stall count if motors did not properly start
 
 exit_run_mode:
-    clr  IE_EA                          ; Disable all interrupts
-    clr  Flag_Ext_Tele                  ; Clear extended DSHOT telemetry flag
+    ; Disable all interrupts (they will be disabled for a while, be aware)
+    clr  IE_EA
+
     call switch_power_off
     mov  Flags0, #0                     ; Clear run time flags (in case they are used in interrupts)
     mov  Flags1, #0
+    clr  Flag_Ext_Tele                  ; Clear extended DSHOT telemetry flag
 
 IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
     Set_MCU_Clk_24MHz
@@ -1057,33 +1069,42 @@ IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
     mov  DShot_GCR_Start_Delay, #DSHOT_TLM_START_DELAY
 ENDIF
 
-    setb IE_EA                          ; Enable all interrupts
-
     ; Check if RCP is zero, then it is a normal stop or signal timeout
     jb   Flag_Rcp_Stop, exit_run_mode_no_stall
 
+    ; It is a stall!
     ; Signal stall
     setb Flag_Stall_Notify
 
-    clr  C                              ; Otherwise - it's a stall
+    ; Check max consecutive stalls and exit if stall counter > 3
+    clr  C
     mov  A, Startup_Stall_Cnt
-    subb A, #4                          ; Maximum consecutive stalls
-    jnc  exit_run_mode_stall_done
+    subb A, #3
+    jnc  exit_run_mode_is_stall
+
+    ; At this point there was a desync event, and a new try is to be done.
+    ; The program will jump to motor_start. Interrupts are disabled at this
+    ; point so it is safe to jump to motor start, where a new initial state
+    ; will be set
 
     call wait100ms                      ; Wait for a bit between stall restarts
+
     ljmp motor_start                    ; Go back and try starting motors again
 
-exit_run_mode_stall_done:
+exit_run_mode_is_stall:
+    ; Enable all interrupts (disabled above, in exit_run_mode)
+    setb IE_EA
+
     ; Clear extended DSHOT telemetry flag if turtle mode is not active
     ; This flag is also used for EDT safety arm flag
     ; We don't want to deactivate extended telemetry during turtle mode
     ; Extended telemetry flag is important because it is involved in
     ; EDT safety feature. We don't want to disable EDT arming during
     ; turtle mode.
-    jb Flag_User_Reverse_Requested, exit_run_mode_stall_done_beep
+    jb Flag_User_Reverse_Requested, exit_run_mode_is_stall_beep
     clr Flag_Ext_Tele
 
-exit_run_mode_stall_done_beep:
+exit_run_mode_is_stall_beep:
     ; Stalled too many times
     clr  IE_EA
     call beep_motor_stalled
@@ -1092,16 +1113,19 @@ exit_run_mode_stall_done_beep:
     ljmp arming_begin                   ; Go back and wait for arming
 
 exit_run_mode_no_stall:
+    ; Enable all interrupts (disabled above, in exit_run_mode)
+    setb IE_EA
+
     ; Clear extended DSHOT telemetry flag if turtle mode is not active
     ; This flag is also used for EDT safety arm flag
     ; We don't want to deactivate extended telemetry during turtle mode
     ; Extended telemetry flag is important because it is involved in
     ; EDT safety feature. We don't want to disable EDT arming during
     ; turtle mode.
-    jb Flag_User_Reverse_Requested, exit_run_mode_no_stall_beep
+    jb Flag_User_Reverse_Requested, exit_run_mode_no_stall_no_beep
     clr Flag_Ext_Tele
 
-exit_run_mode_no_stall_beep:
+exit_run_mode_no_stall_no_beep:
     ; Clear stall counter
     mov  Startup_Stall_Cnt, #0
 
