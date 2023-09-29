@@ -42,10 +42,10 @@ DEFAULT_PGM_POWER_RATING EQU 2          ; 1=1S,2=2S+
 DEFAULT_PGM_BRAKE_ON_STOP EQU 0         ; 1=Enabled 0=Disabled
 DEFAULT_PGM_LED_CONTROL EQU 0           ; Byte for LED control. 2 bits per LED,0=Off,1=On
 
-DEFAULT_PGM_STARTUP_POWER_MIN EQU 51    ; 0..255 => (1000..1125 Throttle): value * (1000 / 2047) + 1000
+DEFAULT_PGM_STARTUP_POWER_MIN EQU 21    ; 0..255 => (1000..1125 Throttle): value * (1000 / 2047) + 1000
 DEFAULT_PGM_STARTUP_BEEP EQU 1          ; 0=Short beep,1=Melody
 
-DEFAULT_PGM_STARTUP_POWER_MAX EQU 25    ; 0..255 => (1000..2000 Throttle): Maximum startup power
+DEFAULT_PGM_STARTUP_POWER_MAX EQU 5     ; 0..255 => (1000..2000 Throttle): Maximum startup power
 DEFAULT_PGM_BRAKING_STRENGTH EQU 255    ; 0..255 => 0..100 % Braking
 
 DEFAULT_PGM_SAFETY_ARM EQU 0            ; EDT safety arm is disabled by default
