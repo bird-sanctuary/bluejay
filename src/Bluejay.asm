@@ -1064,7 +1064,6 @@ exit_run_mode:
     call switch_power_off
     mov  Flags0, #0                     ; Clear run time flags (in case they are used in interrupts)
     mov  Flags1, #0
-    clr  Flag_Ext_Tele                  ; Clear extended DSHOT telemetry flag
 
 IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
     Set_MCU_Clk_24MHz
