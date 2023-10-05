@@ -236,7 +236,7 @@ Wt_Zc_Tout_Start_L: DS 1                ; Timer3 start point for zero cross scan
 Wt_Zc_Tout_Start_H: DS 1                ; Timer3 start point for zero cross scan timeout (hi byte)
 Wt_Comm_Start_L: DS 1                   ; Timer3 start point from zero cross to commutation (lo byte)
 Wt_Comm_Start_H: DS 1                   ; Timer3 start point from zero cross to commutation (hi byte)
-Pwm_Limit: DS 1                         ; Maximum allowed pwm (8-bit)
+Pwm_Limit_Startup_n_Temp: DS 1          ; Maximum allowed pwm (8-bit) - Used for startup power limit and temperature limit after startup
 Pwm_Limit_By_Rpm: DS 1                  ; Maximum allowed pwm for low or high rpm (8-bit)
 Pwm_Limit_Beg: DS 1                     ; Initial pwm limit (8-bit)
 Pwm_Braking24_L: DS 1                   ; Max Braking @24khz pwm (lo byte)
@@ -745,7 +745,7 @@ motor_start:
     mov  Pwm_Limit_By_Rpm, Pwm_Limit_Beg
 
     ; Set temperature PWM limit and setpoint to the maximum value
-    mov  Pwm_Limit, Pwm_Limit_Beg
+    mov  Pwm_Limit_Startup_n_Temp, Pwm_Limit_Beg
     mov  Temp_Pwm_Level_Setpoint, Pwm_Limit_Beg
 
 ; Begin startup sequence
@@ -789,7 +789,7 @@ motor_start_bidir_done:
     mov  Initial_Run_Rot_Cntd, #12      ; Set initial run rotation countdown
 
     ; Initialize commutation
-    call comm5_comm6                    ; Initialize commutation
+    call comm5_comm6                    ; Enable MOSFET commutation
     call comm6_comm1
     call initialize_timing              ; Initialize timing
     call calc_next_comm_period          ; Set virtual commutation point
@@ -889,7 +889,7 @@ run6:
     jnb  Flag_Startup_Phase, initial_run_phase
 
     ; Startup phase
-    mov  Pwm_Limit, Pwm_Limit_Beg       ; Set initial max power
+    mov  Pwm_Limit_Startup_n_Temp, Pwm_Limit_Beg       ; Set initial max power
     mov  Pwm_Limit_By_Rpm, Pwm_Limit_Beg; Set initial max power
     clr  C
     mov  A, Startup_Cnt                 ; Load startup counter
@@ -929,7 +929,7 @@ initial_run_phase_done:
     ; This plus the power limits applied in set_pwm_limit function
     ; act as a startup power limiter to protect the esc and the motor
     ; during startup, jams produced after crashes and desyncs recovery
-    mov  Pwm_Limit, #255                ; Reset temperature level pwm limit
+    mov  Pwm_Limit_Startup_n_Temp, #255 ; Reset temperature level pwm limit
     mov  Temp_Pwm_Level_Setpoint, #255  ; Reset temperature level setpoint
 
     setb Flag_Motor_Started             ; Set motor started
@@ -1068,9 +1068,6 @@ ENDIF
     ljmp motor_start                    ; Go back and try starting motors again
 
 exit_run_mode_is_stall:
-    ; Enable all interrupts (disabled above, in exit_run_mode)
-    setb IE_EA
-
     ; Clear extended DSHOT telemetry flag if turtle mode is not active
     ; This flag is also used for EDT safety arm flag
     ; We don't want to deactivate extended telemetry during turtle mode
@@ -1082,16 +1079,13 @@ exit_run_mode_is_stall:
 
 exit_run_mode_is_stall_beep:
     ; Stalled too many times
-    clr  IE_EA
     call beep_motor_stalled
-    setb IE_EA
 
+    ; Enable all interrupts before jump (disabled above, in exit_run_mode)
+    setb IE_EA
     ljmp arming_begin                   ; Go back and wait for arming
 
 exit_run_mode_no_stall:
-    ; Enable all interrupts (disabled above, in exit_run_mode)
-    setb IE_EA
-
     ; Clear extended DSHOT telemetry flag if turtle mode is not active
     ; This flag is also used for EDT safety arm flag
     ; We don't want to deactivate extended telemetry during turtle mode
@@ -1114,6 +1108,8 @@ exit_run_mode_no_stall_no_beep:
     C_Com_Fet_On
 
 exit_run_mode_brake_done:
+    ; Enable all interrupts before jump (disabled above, in exit_run_mode)
+    setb IE_EA
     ljmp wait_for_start                 ; Go back to wait for power on
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
