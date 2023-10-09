@@ -763,6 +763,47 @@ setup_comm_wait:
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
+; Check jamming
+;
+; Checks speed in case a jamming has happened
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+check_jamming:
+    ; Jamming detection: throttle has to be > 25%
+    ; Check Throttle
+    mov  A, Rcp_Throttle
+    add  A, #(255 - 64)
+    jnc  check_jamming_clear
+
+    ; Avoid check if jamming protection is not engaged
+    jnb  Flag_Active_Jamming_Protection, check_jamming_engage
+
+    ; If below speed threshold (period is bigger) do full resync
+    mov  A, Comm_Period4x_H
+    add  A, #(255 - 10) ; Period 10 is ~28000erpm (about 2000rpm at 14 poles)
+    jc   eval_comp_full_resync
+
+    jmp  check_jamming_done
+
+check_jamming_engage:
+    ; If below speed threshold (period is bigger) do not enable
+    mov  A, Comm_Period4x_H
+    add  A, #(255 - 9)  ; Period 9 is ~28000erpm (about 2000rpm at 14 poles)
+    jc   check_jamming_done
+
+    ; Speed is enough to enable jamming protection
+    setb Flag_Active_Jamming_Protection
+    jmp  check_jamming_done
+
+check_jamming_clear:
+    ; Throttle < 25
+    clr  Flag_Active_Jamming_Protection
+
+check_jamming_done:
+
+
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
 ; Evaluate comparator integrity
 ;
 ; Checks comparator signal behavior versus expected behavior
@@ -776,6 +817,7 @@ evaluate_comparator_integrity:
     jb   Flag_Dir_Change_Brake, eval_comp_exit ; Do not exit run mode if braking
     jb   Flag_Demag_Detected, eval_comp_exit ; Do not exit run mode if it is a demag situation
 
+eval_comp_full_resync:
     ; Disable all interrupts and cut power ASAP. They will be enabled in exit_run_mode_on_timeout
     clr  IE_EA
     call switch_power_off

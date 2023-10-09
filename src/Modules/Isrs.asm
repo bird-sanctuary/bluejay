@@ -325,6 +325,7 @@ t1_int_startup_boosted:
     swap A
     rl   A
     mov  Temp2, A
+    mov  Rcp_Throttle, A
 
     jnz  t1_int_rcp_not_zero
 

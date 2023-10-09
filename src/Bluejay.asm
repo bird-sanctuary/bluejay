@@ -203,6 +203,7 @@ Flags0: DS 1                            ; State flags. Reset upon motor_start
     Flag_Demag_Notify BIT Flags0.3      ; Set when motor demag has been detected but still not notified
     Flag_Desync_Notify BIT Flags0.4     ; Set when motor desync has been detected but still not notified
     Flag_Stall_Notify BIT Flags0.5      ; Set when motor stall detected but still not notified
+    Flag_Active_Jamming_Protection BIT Flags0.6 ; When 1 then jamming protection is active
 
 Flags1: DS 1                            ; State flags. Reset upon motor_start
     Flag_Timer3_Pending BIT Flags1.0    ; Timer3 pending flag
@@ -239,6 +240,7 @@ DSEG AT 30h
 Rcp_Outside_Range_Cnt: DS 1             ; RC pulse outside range counter (incrementing)
 Rcp_Timeout_Cntd: DS 1                  ; RC pulse timeout counter (decrementing)
 Rcp_Stop_Cnt: DS 1                      ; Counter for RC pulses below stop value
+Rcp_Throttle: DS 1                      ; Throttle in 8bit
 
 Beacon_Delay_Cnt: DS 1                  ; Counter to trigger beacon during wait for start
 Startup_Cnt: DS 1                       ; Startup phase commutations counter (incrementing)
@@ -924,7 +926,7 @@ run6:
     sjmp exit_run_mode
 
 startup_phase_done:
-    ; Clear startup phase flag & remove pwm limits
+    ; Clear startup phase flag
     clr  Flag_Startup_Phase
 
 initial_run_phase:
