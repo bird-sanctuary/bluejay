@@ -132,6 +132,22 @@ ENDIF
 ; Select the pwm frequency (or unselect for use with external batch compile file)
 ;PWM_FREQ            EQU    0    ; 0=24, 1=48, 2=96 kHz
 
+; Throttle threshold for jamming protection [0 - 255]
+JAMMING_PROTECTION_THROTTLE_THRESHOLD       EQU     55h ; 33% throttle
+
+; Period 40h is   ~5000erpm (about   257rpm at 14 poles)
+; Period 20h is  ~10000erpm (about   714rpm at 14 poles)
+; Period 10h is  ~20000erpm (about  1428rpm at 14 poles)
+; Period  8h is  ~40000erpm (about  2857rpm at 14 poles)
+; Period  4h is  ~80000erpm (about  5717rpm at 14 poles)
+; Period  2h is ~160000erpm (about 11428rpm at 14 poles)
+; Period  1h is ~320000erpm (about 22857rpm at 14 poles)
+; Period over which ESC will resync under jamming suspection
+JAMMING_PROTECTION_PERIOD_LO_RESYNC         EQU     8h ; 2857rpm disable esc if protection is enabled
+; Period over which ESC will enable jamming protection
+JAMMING_PROTECTION_PERIOD_HI_ENGAGE         EQU     7h ; 3500rpm engage jamming protection
+
+
 PWM_CENTERED EQU DEADTIME > 0           ; Use center aligned pwm on ESCs with dead time
 
 IF MCU_TYPE == MCU_BB1

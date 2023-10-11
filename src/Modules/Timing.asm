@@ -769,35 +769,37 @@ setup_comm_wait:
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 check_jamming:
-    ; Jamming detection: throttle has to be > 25%
-    ; Check Throttle
-    mov  A, Rcp_Throttle
-    add  A, #(255 - 64)
-    jnc  check_jamming_clear
-
     ; Avoid check if jamming protection is not engaged
     jnb  Flag_Active_Jamming_Protection, check_jamming_engage
 
-    ; If below speed threshold (period is bigger) do full resync
+    ; If speed above resync threshold (period is lower) do nothing
     mov  A, Comm_Period4x_H
-    add  A, #(255 - 10) ; Period 10 is ~28000erpm (about 2000rpm at 14 poles)
-    jc   eval_comp_full_resync
+    add  A, #(255 - JAMMING_PROTECTION_PERIOD_LO_RESYNC)
+    jnc  check_jamming_done
 
-    jmp  check_jamming_done
+check_jamming_full_resync:
+    ; Disable all interrupts and cut power ASAP. They will be enabled in exit_run_mode_on_timeout
+    clr  IE_EA
+    call switch_power_off
+
+    ; Routine exit without "ret" command
+    dec  SP
+    dec  SP
+
+    ; Go to exit run mode if timeout has elapsed
+    ljmp exit_run_mode_on_timeout
 
 check_jamming_engage:
-    ; If below speed threshold (period is bigger) do not enable
+    ; If throttle <= JAMMING_PROTECTION_THROTTLE_THRESHOLD do not engage jamming protection
+    mov  A, Rcp_Throttle
+    add  A, #(255 - JAMMING_PROTECTION_THROTTLE_THRESHOLD)
+    jnc  check_jamming_done
+
+    ; Flag_Active_Jamming_Protection = (throttle >= JAMMING_PROTECTION_PERIOD_HI_ENGAGE)
     mov  A, Comm_Period4x_H
-    add  A, #(255 - 9)  ; Period 9 is ~28000erpm (about 2000rpm at 14 poles)
-    jc   check_jamming_done
-
-    ; Speed is enough to enable jamming protection
-    setb Flag_Active_Jamming_Protection
-    jmp  check_jamming_done
-
-check_jamming_clear:
-    ; Throttle < 25
-    clr  Flag_Active_Jamming_Protection
+    add  A, #(255 - JAMMING_PROTECTION_PERIOD_HI_ENGAGE)
+    cpl  C
+    mov  Flag_Active_Jamming_Protection, C
 
 check_jamming_done:
 
