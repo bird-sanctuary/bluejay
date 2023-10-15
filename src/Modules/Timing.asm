@@ -763,21 +763,21 @@ setup_comm_wait:
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
-; Check jamming
+; Jamming protection
 ;
 ; Checks speed in case a jamming has happened
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-check_jamming:
+jamming_protection:
     ; Avoid check if jamming protection is not engaged
-    jnb  Flag_Active_Jamming_Protection, check_jamming_engage
+    jnb  Flag_Jamming_Protection_Active, jamming_protection_engage
 
     ; If speed above resync threshold (period is lower) do nothing
     mov  A, Comm_Period4x_H
     add  A, #(255 - JAMMING_PROTECTION_PERIOD_LO_RESYNC)
-    jnc  check_jamming_done
+    jnc  jamming_protection_done
 
-check_jamming_full_resync:
+jamming_protection_full_resync:
     ; Disable all interrupts and cut power ASAP. They will be enabled in exit_run_mode_on_timeout
     clr  IE_EA
     call switch_power_off
@@ -789,19 +789,32 @@ check_jamming_full_resync:
     ; Go to exit run mode if timeout has elapsed
     ljmp exit_run_mode_on_timeout
 
-check_jamming_engage:
-    ; If throttle <= JAMMING_PROTECTION_THROTTLE_THRESHOLD do not engage jamming protection
+jamming_protection_engage:
+    ; If throttle <= JAMMING_PROTECTION_THROTTLE_THRESHOLD then clear jamming protection
     mov  A, Rcp_Throttle
     add  A, #(255 - JAMMING_PROTECTION_THROTTLE_THRESHOLD)
-    jnc  check_jamming_done
+    jnc  jamming_protection_clear
 
-    ; Flag_Active_Jamming_Protection = (throttle >= JAMMING_PROTECTION_PERIOD_HI_ENGAGE)
+    ; If period of eturn is over threshold then clear jamming protection
     mov  A, Comm_Period4x_H
     add  A, #(255 - JAMMING_PROTECTION_PERIOD_HI_ENGAGE)
-    cpl  C
-    mov  Flag_Active_Jamming_Protection, C
+    jc   jamming_protection_clear
 
-check_jamming_done:
+    ; Flag_Jamming_Protection_Active = (Jamm_Prot_ETurn_Cnt > JAMMING_PROTECTION_ETURN_CNT_ENGAGE)
+    inc  Jamm_Prot_ETurn_Cnt
+    mov  A, Jamm_Prot_ETurn_Cnt
+    add  A, #(255 - JAMMING_PROTECTION_ETURN_CNT_ENGAGE)
+    mov  Flag_Jamming_Protection_Active, C
+
+    jmp  jamming_protection_done
+
+
+jamming_protection_clear:
+    ; Disable jamming protection
+    clr  Flag_Jamming_Protection_Active
+    mov  Jamm_Prot_ETurn_Cnt, #0
+
+jamming_protection_done:
 
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****

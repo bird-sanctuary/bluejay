@@ -145,8 +145,9 @@ JAMMING_PROTECTION_THROTTLE_THRESHOLD       EQU     55h ; 33% throttle
 ; Period over which ESC will resync under jamming suspection
 JAMMING_PROTECTION_PERIOD_LO_RESYNC         EQU     8h ; 2857rpm disable esc if protection is enabled
 ; Period over which ESC will enable jamming protection
-JAMMING_PROTECTION_PERIOD_HI_ENGAGE         EQU     7h ; 3500rpm engage jamming protection
-
+JAMMING_PROTECTION_PERIOD_HI_ENGAGE         EQU     6h ; 4000rpm engage jamming protection
+; Number of turns conditions are valid to enable jamming protection to avoid chaotic events
+JAMMING_PROTECTION_ETURN_CNT_ENGAGE         EQU     24
 
 PWM_CENTERED EQU DEADTIME > 0           ; Use center aligned pwm on ESCs with dead time
 
@@ -219,7 +220,7 @@ Flags0: DS 1                            ; State flags. Reset upon motor_start
     Flag_Demag_Notify BIT Flags0.3      ; Set when motor demag has been detected but still not notified
     Flag_Desync_Notify BIT Flags0.4     ; Set when motor desync has been detected but still not notified
     Flag_Stall_Notify BIT Flags0.5      ; Set when motor stall detected but still not notified
-    Flag_Active_Jamming_Protection BIT Flags0.6 ; When 1 then jamming protection is active
+    Flag_Jamming_Protection_Active BIT Flags0.6 ; Set when jamming protection is active
 
 Flags1: DS 1                            ; State flags. Reset upon motor_start
     Flag_Timer3_Pending BIT Flags1.0    ; Timer3 pending flag
@@ -313,6 +314,8 @@ DShot_GCR_Start_Delay: DS 1
 Ext_Telemetry_L: DS 1                   ; Extended telemetry data to be sent
 Ext_Telemetry_H: DS 1
 Scheduler_Counter: DS 1                 ; Scheduler Heartbeat
+Jamm_Prot_ETurn_Cnt: DS 1               ; Jamming protection electronic turn counter
+
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Indirect addressing data segments
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****

@@ -326,9 +326,6 @@ t1_int_startup_boosted:
     rl   A
     mov  Temp2, A
 
-    ; Store throttle
-    mov  Rcp_Throttle, A
-
     jnz  t1_int_rcp_not_zero
 
     mov  A, Temp4                       ; Only set Rcp_Stop if all all 11 bits are zero
@@ -342,11 +339,12 @@ t1_int_rcp_not_zero:
     clr  Flag_Rcp_Stop                  ; Pulse ready
 
 t1_int_zero_rcp_checked:
-    ; Flag_Active_Jamming_Protection = Flag_Active_Jamming_Protection && (throttle > JAMMING_PROTECTION_THROTTLE_THRESHOLD)
+    ; Flag_Jamming_Protection_Active = Flag_Jamming_Protection_Active && (throttle > JAMMING_PROTECTION_THROTTLE_THRESHOLD)
     mov  A, Temp2
+    mov  Rcp_Throttle, A                ; Store throttle to be used in timing module
     add  A, #(255 - JAMMING_PROTECTION_THROTTLE_THRESHOLD)
-    anl  C, Flag_Active_Jamming_Protection
-    mov  Flag_Active_Jamming_Protection, C
+    anl  C, Flag_Jamming_Protection_Active
+    mov  Flag_Jamming_Protection_Active, C
 
 t1_int_dec_outside_range_counter:
     ; Decrement outside range counter
