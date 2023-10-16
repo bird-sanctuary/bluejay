@@ -763,6 +763,62 @@ setup_comm_wait:
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ;
+; Jamming protection
+;
+; Checks speed in case a jamming has happened
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+jamming_protection:
+    ; Avoid check if jamming protection is not engaged
+    jnb  Flag_Jamming_Protection_Active, jamming_protection_engage
+
+    ; If speed above resync threshold (period is lower) do nothing
+    mov  A, Comm_Period4x_H
+    add  A, #(255 - JAMMING_PROTECTION_PERIOD_LO_RESYNC)
+    jnc  jamming_protection_done
+
+jamming_protection_full_resync:
+    ; Disable all interrupts and cut power ASAP. They will be enabled in exit_run_mode_on_timeout
+    clr  IE_EA
+    call switch_power_off
+
+    ; Routine exit without "ret" command
+    dec  SP
+    dec  SP
+
+    ; Go to exit run mode if timeout has elapsed
+    ljmp exit_run_mode_on_timeout
+
+jamming_protection_engage:
+    ; If throttle <= JAMMING_PROTECTION_THROTTLE_THRESHOLD then clear jamming protection
+    mov  A, Rcp_Throttle
+    add  A, #(255 - JAMMING_PROTECTION_THROTTLE_THRESHOLD)
+    jnc  jamming_protection_clear
+
+    ; If period of eturn is over threshold then clear jamming protection
+    mov  A, Comm_Period4x_H
+    add  A, #(255 - JAMMING_PROTECTION_PERIOD_HI_ENGAGE)
+    jc   jamming_protection_clear
+
+    ; Flag_Jamming_Protection_Active = (Jamm_Prot_ETurn_Cnt > JAMMING_PROTECTION_ETURN_CNT_ENGAGE)
+    inc  Jamm_Prot_ETurn_Cnt
+    mov  A, Jamm_Prot_ETurn_Cnt
+    add  A, #(255 - JAMMING_PROTECTION_ETURN_CNT_ENGAGE)
+    mov  Flag_Jamming_Protection_Active, C
+
+    jmp  jamming_protection_done
+
+
+jamming_protection_clear:
+    ; Disable jamming protection
+    clr  Flag_Jamming_Protection_Active
+    mov  Jamm_Prot_ETurn_Cnt, #0
+
+jamming_protection_done:
+
+
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
 ; Evaluate comparator integrity
 ;
 ; Checks comparator signal behavior versus expected behavior
@@ -776,6 +832,7 @@ evaluate_comparator_integrity:
     jb   Flag_Dir_Change_Brake, eval_comp_exit ; Do not exit run mode if braking
     jb   Flag_Demag_Detected, eval_comp_exit ; Do not exit run mode if it is a demag situation
 
+eval_comp_full_resync:
     ; Disable all interrupts and cut power ASAP. They will be enabled in exit_run_mode_on_timeout
     clr  IE_EA
     call switch_power_off

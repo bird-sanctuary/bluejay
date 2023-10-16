@@ -339,6 +339,14 @@ t1_int_rcp_not_zero:
     clr  Flag_Rcp_Stop                  ; Pulse ready
 
 t1_int_zero_rcp_checked:
+    ; Flag_Jamming_Protection_Active = Flag_Jamming_Protection_Active && (throttle > JAMMING_PROTECTION_THROTTLE_THRESHOLD)
+    mov  A, Temp2
+    mov  Rcp_Throttle, A                ; Store throttle to be used in timing module
+    add  A, #(255 - JAMMING_PROTECTION_THROTTLE_THRESHOLD)
+    anl  C, Flag_Jamming_Protection_Active
+    mov  Flag_Jamming_Protection_Active, C
+
+t1_int_dec_outside_range_counter:
     ; Decrement outside range counter
     mov  A, Rcp_Outside_Range_Cnt
     jz   t1_int_zero_rcp_checked_set_limit
@@ -408,7 +416,7 @@ ELSEIF PWM_BITS_H == PWM_9_BIT
     anl  A, #1
     mov  Temp3, A
 ELSEIF PWM_BITS_H == PWM_8_BIT
-    mov  A, Temp2                       ; Temp2 already 8-bit
+    mov  A, Temp2                       ; Rcp_Throttle already 8-bit
     cpl  A
     mov  Temp2, A
     mov  Temp3, #0

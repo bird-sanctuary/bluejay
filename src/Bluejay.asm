@@ -132,6 +132,23 @@ ENDIF
 ; Select the pwm frequency (or unselect for use with external batch compile file)
 ;PWM_FREQ            EQU    0    ; 0=24, 1=48, 2=96 kHz
 
+; Throttle threshold for jamming protection [0 - 255]
+JAMMING_PROTECTION_THROTTLE_THRESHOLD       EQU     55h ; 33% throttle
+
+; Period 40h is   ~5000erpm (about   257rpm at 14 poles)
+; Period 20h is  ~10000erpm (about   714rpm at 14 poles)
+; Period 10h is  ~20000erpm (about  1428rpm at 14 poles)
+; Period  8h is  ~40000erpm (about  2857rpm at 14 poles)
+; Period  4h is  ~80000erpm (about  5717rpm at 14 poles)
+; Period  2h is ~160000erpm (about 11428rpm at 14 poles)
+; Period  1h is ~320000erpm (about 22857rpm at 14 poles)
+; Period over which ESC will resync under jamming suspection
+JAMMING_PROTECTION_PERIOD_LO_RESYNC         EQU     8h ; 2857rpm disable esc if protection is enabled
+; Period over which ESC will enable jamming protection
+JAMMING_PROTECTION_PERIOD_HI_ENGAGE         EQU     6h ; 4000rpm engage jamming protection
+; Number of turns conditions are valid to enable jamming protection to avoid chaotic events
+JAMMING_PROTECTION_ETURN_CNT_ENGAGE         EQU     24
+
 PWM_CENTERED EQU DEADTIME > 0           ; Use center aligned pwm on ESCs with dead time
 
 IF MCU_TYPE == MCU_BB1
@@ -203,6 +220,7 @@ Flags0: DS 1                            ; State flags. Reset upon motor_start
     Flag_Demag_Notify BIT Flags0.3      ; Set when motor demag has been detected but still not notified
     Flag_Desync_Notify BIT Flags0.4     ; Set when motor desync has been detected but still not notified
     Flag_Stall_Notify BIT Flags0.5      ; Set when motor stall detected but still not notified
+    Flag_Jamming_Protection_Active BIT Flags0.6 ; Set when jamming protection is active
 
 Flags1: DS 1                            ; State flags. Reset upon motor_start
     Flag_Timer3_Pending BIT Flags1.0    ; Timer3 pending flag
@@ -239,6 +257,7 @@ DSEG AT 30h
 Rcp_Outside_Range_Cnt: DS 1             ; RC pulse outside range counter (incrementing)
 Rcp_Timeout_Cntd: DS 1                  ; RC pulse timeout counter (decrementing)
 Rcp_Stop_Cnt: DS 1                      ; Counter for RC pulses below stop value
+Rcp_Throttle: DS 1                      ; Throttle in 8bit
 
 Beacon_Delay_Cnt: DS 1                  ; Counter to trigger beacon during wait for start
 Startup_Cnt: DS 1                       ; Startup phase commutations counter (incrementing)
@@ -295,6 +314,8 @@ DShot_GCR_Start_Delay: DS 1
 Ext_Telemetry_L: DS 1                   ; Extended telemetry data to be sent
 Ext_Telemetry_H: DS 1
 Scheduler_Counter: DS 1                 ; Scheduler Heartbeat
+Jamm_Prot_ETurn_Cnt: DS 1               ; Jamming protection electronic turn counter
+
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Indirect addressing data segments
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -355,7 +376,7 @@ Temp_Storage: DS 48                     ; Temporary storage (internal memory)
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 CSEG AT CSEG_EEPROM
 EEPROM_FW_MAIN_REVISION EQU 0           ; Main revision of the firmware
-EEPROM_FW_SUB_REVISION EQU 21           ; Sub revision of the firmware
+EEPROM_FW_SUB_REVISION EQU 20           ; Sub revision of the firmware
 EEPROM_LAYOUT_REVISION EQU 207          ; Revision of the EEPROM layout
 EEPROM_B2_PARAMETERS_COUNT EQU 28       ; Number of parameters
 
@@ -406,7 +427,7 @@ Eep_Pgm_Safety_Arm: DB DEFAULT_PGM_SAFETY_ARM ; Various flag settings: bit 0 is 
 
 Eep_Dummy: DB 0FFh                      ; EEPROM address for safety reason
 CSEG AT CSEG_NAME
-Eep_Name: DB "Bluejay (.1 RC2)"         ; Name tag (16 Bytes)
+Eep_Name: DB "Bluejay (.1 XR2)"         ; Name tag (16 Bytes)
 
 CSEG AT CSEG_MELODY
 Eep_Pgm_Beep_Melody: DB 2,58,4,32,52,66,13,0,69,45,13,0,52,66,13,0,78,39,211,0,69,45,208,25,52,25,0
@@ -924,7 +945,7 @@ run6:
     sjmp exit_run_mode
 
 startup_phase_done:
-    ; Clear startup phase flag & remove pwm limits
+    ; Clear startup phase flag
     clr  Flag_Startup_Phase
 
 initial_run_phase:
@@ -1046,7 +1067,6 @@ exit_run_mode:
     call switch_power_off
     mov  Flags0, #0                     ; Clear run time flags (in case they are used in interrupts)
     mov  Flags1, #0
-    clr  Flag_Ext_Tele                  ; Clear extended DSHOT telemetry flag
 
 IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
     Set_MCU_Clk_24MHz
