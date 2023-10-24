@@ -39,15 +39,8 @@
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 
     ; Frequency
-    PWM_96 EQU 2
     PWM_48 EQU 1
     PWM_24 EQU 0
-
-    ; Resolution
-    PWM_11_BIT EQU 3
-    PWM_10_BIT EQU 2
-    PWM_9_BIT EQU 1
-    PWM_8_BIT EQU 0
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; DSHOT Commands

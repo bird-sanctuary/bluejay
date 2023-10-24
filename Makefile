@@ -9,13 +9,11 @@ MCUS			= H
 LAYOUTS_X		= A B C
 MCUS_X		= X
 DEADTIMES		= 0 5 10 15 20 25 30 40 50 70 90 120
-PWM_FREQS		= 24 48 96
 
 # Example single target
 LAYOUT		?= A
 MCU			?= H
 DEADTIME	?= 5
-PWM			?= 24
 
 # Directory configuration
 OUTPUT_DIR	?= build
@@ -78,8 +76,8 @@ EFM8_LOAD_BAUD	?= 115200
 .NOTPARALLEL:
 
 define MAKE_OBJ
-OBJS += $(1)_$(2)_$(3)_$(4)_$(VERSION).OBJ
-$(OUTPUT_DIR)/$(1)_$(2)_$(3)_$(4)_$(VERSION).OBJ : $(ASM_SRC) $(ASM_INC)
+OBJS += $(1)_$(2)_$(3)_$(VERSION).OBJ
+$(OUTPUT_DIR)/$(1)_$(2)_$(3)_$(VERSION).OBJ : $(ASM_SRC) $(ASM_INC)
 	$(eval _ESC			:= $(1))
 	$(eval _ESC_INT		:= $(shell printf "%d" "'${_ESC}"))
 	$(eval _ESCNO		:= $(shell echo $$(( $(_ESC_INT) - 65 + 1))))
@@ -88,7 +86,6 @@ $(OUTPUT_DIR)/$(1)_$(2)_$(3)_$(4)_$(VERSION).OBJ : $(ASM_SRC) $(ASM_INC)
 
 	$(eval _MCU_TYPE	:= $(subst L,0,$(subst H,1,$(subst X,2,$(2)))))
 	$(eval _DEADTIME	:= $(3))
-	$(eval _PWM_FREQ	:= $(subst 24,0,$(subst 48,1,$(subst 96,2,$(4)))))
 	$$(eval _LST		:= $$(patsubst %.OBJ,%.LST,$$@))
 	@mkdir -p $(OUTPUT_DIR)
 	@echo "AX51 : $$@"
@@ -96,13 +93,12 @@ $(OUTPUT_DIR)/$(1)_$(2)_$(3)_$(4)_$(VERSION).OBJ : $(ASM_SRC) $(ASM_INC)
 		"DEFINE(ESCNO=$(_ESCNO)) " \
 		"DEFINE(MCU_TYPE=$(_MCU_TYPE)) "\
 		"DEFINE(DEADTIME=$(_DEADTIME)) "\
-		"DEFINE(PWM_FREQ=$(_PWM_FREQ)) "\
 		"OBJECT($$@) "\
 		"PRINT($$(_LST)) "\
 		"$(AX51_FLAGS)" > /dev/null 2>&1 || (grep -B 3 -E "\*\*\* (ERROR|WARNING)" $$(_LST); exit 1)
 endef
 
-SINGLE_TARGET_HEX = $(HEX_DIR)/$(LAYOUT)_$(MCU)_$(DEADTIME)_$(PWM)_$(VERSION).hex
+SINGLE_TARGET_HEX = $(HEX_DIR)/$(LAYOUT)_$(MCU)_$(DEADTIME)_$(VERSION).hex
 
 single_target : $(SINGLE_TARGET_HEX)
 
@@ -110,14 +106,12 @@ single_target : $(SINGLE_TARGET_HEX)
 $(foreach _l, $(LAYOUTS), \
 	$(foreach _m, $(MCUS), \
 		$(foreach _d, $(DEADTIMES), \
-			$(foreach _p, $(filter-out $(subst L,96,$(_m)), $(PWM_FREQS)), \
-				$(eval $(call MAKE_OBJ,$(_l),$(_m),$(_d),$(_p)))))))
+			$(eval $(call MAKE_OBJ,$(_l),$(_m),$(_d))))))
 
 $(foreach _l, $(LAYOUTS_X), \
 	$(foreach _m, $(MCUS_X), \
 		$(foreach _d, $(DEADTIMES), \
-			$(foreach _p, $(filter-out $(subst L,96,$(_m)), $(PWM_FREQS)), \
-				$(eval $(call MAKE_OBJ,$(_l),$(_m),$(_d),$(_p)))))))
+			$(eval $(call MAKE_OBJ,$(_l),$(_m),$(_d))))))
 
 HEX_TARGETS = $(OBJS:%.OBJ=$(HEX_DIR)/%.hex)
 
@@ -153,7 +147,7 @@ help:
 	@echo "Usage examples"
 	@echo "================================================================"
 	@echo "make all                                 # Build all targets"
-	@echo "make LAYOUT=A MCU=H DEADTIME=5 PWM=24    # Build a single target"
+	@echo "make LAYOUT=A MCU=H DEADTIME=5           # Build a single target"
 	@echo
 
 clean:

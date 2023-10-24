@@ -71,12 +71,15 @@ Wait_For_Timer3 MACRO
     LOCAL wait_for_t3 done_waiting
     jb   Flag_Telemetry_Pending, wait_for_t3
 
-    jnb  Flag_Timer3_Pending, done_waiting
+    ; Check Timer3 overflow flag to run create packet routine
+    mov  A, TMR3CN0
+    jb   ACC.7, done_waiting
     call dshot_tlm_create_packet
 
 wait_for_t3:
-    jnb  Flag_Timer3_Pending, done_waiting
-    sjmp wait_for_t3
+    ; Wait until Timer3 overflow flag is set
+    mov  A, TMR3CN0
+    jnb  ACC.7, wait_for_t3
 
 done_waiting:
 ENDM
@@ -89,8 +92,14 @@ ENDM
 
 Early_Return_Packet_Stage_ MACRO num next
 IF num > 0
-    inc  Temp7                          ; Increment current packet stage
-    jb   Flag_Timer3_Pending, dshot_packet_stage_&num ; Return early if Timer3 has wrapped
+    ; Increment current packet stage
+    inc  Temp7
+
+    ; Check Timer3 overflow flag to run create packet routine
+    mov  A, TMR3CN0
+    jnb  ACC.7, dshot_packet_stage_&num ; Return early if Timer3 has wrapped
+
+    ; Return subroutine
     pop  PSW
     ret
 dshot_packet_stage_&num:
