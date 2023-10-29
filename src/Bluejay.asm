@@ -351,7 +351,7 @@ Temp_Storage: DS 48                     ; Temporary storage (internal memory)
 CSEG AT CSEG_EEPROM
 EEPROM_FW_MAIN_REVISION EQU 0           ; Main revision of the firmware
 EEPROM_FW_SUB_REVISION EQU 21           ; Sub revision of the firmware
-EEPROM_LAYOUT_REVISION EQU 207          ; Revision of the EEPROM layout
+EEPROM_LAYOUT_REVISION EQU 208          ; Revision of the EEPROM layout
 EEPROM_B2_PARAMETERS_COUNT EQU 28       ; Number of parameters
 
 Eep_FW_Main_Revision: DB EEPROM_FW_MAIN_REVISION ; EEPROM firmware main revision number
@@ -401,7 +401,7 @@ Eep_Pgm_Safety_Arm: DB DEFAULT_PGM_SAFETY_ARM ; Various flag settings: bit 0 is 
 
 Eep_Dummy: DB 0FFh                      ; EEPROM address for safety reason
 CSEG AT CSEG_NAME
-Eep_Name: DB "Bluejay (.1 RC2)"         ; Name tag (16 Bytes)
+Eep_Name: DB "Bluejay (.0 RC1)"         ; Name tag (16 Bytes)
 
 CSEG AT CSEG_MELODY
 Eep_Pgm_Beep_Melody: DB 2,58,4,32,52,66,13,0,69,45,13,0,52,66,13,0,78,39,211,0,69,45,208,25,52,25,0
