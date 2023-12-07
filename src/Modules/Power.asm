@@ -35,9 +35,16 @@
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 switch_power_off:
+    ; This three macros disable MOSFET communtation.
+    ; Dshot frames will have no effect after disabling MOSFET communtation.
+    ; Commutation is started again at motor_start_bidir_done.
     All_Pwm_Fets_Off                    ; Turn off all pwm FETs
     All_Com_Fets_Off                    ; Turn off all commutation FETs
     Set_All_Pwm_Phases_Off
+
+    ; Enforce all PWM limits to zero to disable dshot frame rcpulses
+    mov  Pwm_Limit_By_Rpm, #0
+    mov  Pwm_Limit_Startup_n_Temp, #0
     ret
 
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -50,10 +57,17 @@ switch_power_off:
 set_pwm_limit:
     jb   Flag_High_Rpm, set_pwm_limit_high_rpm ; If high rpm,limit pwm by rpm instead
 
-    ;set_pwm_limit_low_rpm:
-    ; Set pwm limit
+set_pwm_limit_low_rpm:
+    ; Set pwm limit for startup phase to avoid burning the esc/motor during startup
+    ; (Startup can happen after a desync caused by a crash, if that is the case it
+    ; will be better to avoid burning esc/motor)
+    mov  Temp1, Pwm_Limit_Beg
+
+    ; Exit if startup phase is set
+    jb   Flag_Startup_Phase, set_pwm_limit_low_rpm_exit
+
+    ; Set default pwm limit for other phases
     mov  Temp1, #0FFh                   ; Default full power
-    jb   Flag_Startup_Phase, set_pwm_limit_low_rpm_exit ; Exit if startup phase set
 
     mov  A, Low_Rpm_Pwr_Slope           ; Check if low RPM power protection is enabled
     jz   set_pwm_limit_low_rpm_exit     ; Exit if disabled (zero)
@@ -72,9 +86,13 @@ set_pwm_limit_calculate:
     mul  AB
     mov  Temp1, A                       ; Set new limit
     xch  A, B
+
+    ; If RPM_PWM_LIMIT < 255 goto set_pwm_limit_check_limit_to_min
     jz   set_pwm_limit_check_limit_to_min ; Limit to max
 
-    mov  Temp1, #0FFh
+    ; Limit is bigger than 0xFF -> set max pwm and exit
+    mov  Pwm_Limit_By_Rpm, #0FFh
+    ret
 
 set_pwm_limit_check_limit_to_min:
     clr  C

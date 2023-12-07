@@ -347,7 +347,7 @@ t1_int_zero_rcp_checked:
 t1_int_zero_rcp_checked_set_limit:
     ; Set pwm limit
     clr  C
-    mov  A, Pwm_Limit                   ; Limit to the smallest
+    mov  A, Pwm_Limit_Startup_n_Temp    ; Limit to the smallest
     mov  Temp6, A                       ; Store limit in Temp6
     subb A, Pwm_Limit_By_Rpm
     jc   t1_int_zero_rcp_checked_check_limit
