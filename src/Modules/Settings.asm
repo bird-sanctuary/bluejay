@@ -72,6 +72,7 @@ set_default_parameters:
     imov Temp1, #DEFAULT_PGM_LED_CONTROL ; Pgm_LED_Control
     imov Temp1, #DEFAULT_PGM_POWER_RATING ; Pgm_Power_Rating
     imov Temp1, #DEFAULT_PGM_SAFETY_ARM ; Pgm_Safety_Arm
+    imov Temp1, #DEFAULT_96to48_THRESHOLD ; Pgm_96to48_Threshold
     imov Temp1, #DEFAULT_48to24_THRESHOLD ; Pgm_48to24_Threshold
 
     ret
@@ -165,33 +166,14 @@ decode_temp_done:
     mov  Temp1, #Pgm_Beep_Strength      ; Read programmed beep strength setting
     mov  Beep_Strength, @Temp1          ; Set beep strength
 
-    mov  Temp1, #Pgm_Braking_Strength   ; Read programmed braking strength setting
+    ; Read programmed braking strength setting
+    mov  Temp1, #Pgm_Braking_Strength
+
+    ; Scale braking strength to pwm resolution
+    ; Only for center aligned pwm modes (edge aligned pwm insert deadtime by hw)
+IF PWM_CENTERED == 1
+    ; Deadtime & 24khz (10bit pwm)
     mov  A, @Temp1
-IF PWM_CENTERED == 1             ; Scale braking strength to pwm resolution
-    ; Note: Added for completeness
-    ; Currently 11-bit pwm is only used on targets with built-in dead time insertion
-    ; No deadtime & 24khz
-    rl   A
-    rl   A
-    rl   A
-    mov  Temp2, A
-    anl  A, #07h
-    mov  Pwm_Braking24_H, A
-    mov  A, Temp2
-    anl  A, #0F8h
-    mov  Pwm_Braking24_L, A
-
-    ; Deadtime & 48khz
-    rl   A
-    rl   A
-    mov  Temp2, A
-    anl  A, #03h
-    mov  Pwm_Braking48_H, A
-    mov  A, Temp2
-    anl  A, #0FCh
-    mov  Pwm_Braking48_L, A
-ELSE
-    ; Deadtime & 24khz
     rl   A
     rl   A
     mov  Temp2, A
@@ -201,7 +183,8 @@ ELSE
     anl  A, #0FCh
     mov  Pwm_Braking24_L, A
 
-    ; Deadtime & 48khz
+    ; Deadtime & 48khz (9bit pwm)
+    mov  A, @Temp1
     rl   A
     mov  Temp2, A
     anl  A, #01h
@@ -209,32 +192,63 @@ ELSE
     mov  A, Temp2
     anl  A, #0FEh
     mov  Pwm_Braking48_L, A
-ENDIF
+
+    ; Deadtime & 96khz (8bit pwm)
+    mov  A, @Temp1
+    mov  Pwm_Braking96_H, #0
+    mov  Pwm_Braking96_L, A
+
     cjne @Temp1, #0FFh, decode_throttle_threshold
     mov  Pwm_Braking24_L, #0FFh           ; Apply full braking if setting is max
     mov  Pwm_Braking48_L, #0FFh           ; Apply full braking if setting is max
+    mov  Pwm_Braking96_L, #0FFh           ; Apply full braking if setting is max
+ENDIF
 
 decode_throttle_threshold:
     ; Load chosen frequency
-    mov Temp1, #Pgm_Pwm_Freq
-    mov A, @Temp1
+    mov  Temp1, #Pgm_Pwm_Freq
+    mov  A, @Temp1
 
     ; Check 24khz pwm frequency
     cjne A, #24, decode_throttle_not_24
+    mov  Throttle_96to48_Threshold, #0
     mov  Throttle_48to24_Threshold, #0
-    jmp decode_throttle_end
+    jmp  decode_end
 
 decode_throttle_not_24:
     ; Check 48khz pwm frequency
     cjne A, #48, decode_throttle_not_48
+    mov  Throttle_96to48_Threshold, #0
     mov  Throttle_48to24_Threshold, #255
-    jmp decode_throttle_end
+    jmp  decode_end
 
 decode_throttle_not_48:
+    ; Check 96khz pwm frequency
+    cjne A, #96, decode_throttle_not_96
+    mov  Throttle_96to48_Threshold, #255
+    mov  Throttle_48to24_Threshold, #255
+    jmp  decode_end
+
+decode_throttle_not_96:
     ; Dynamic pwm frequency
+    ; Load programmed throttle threshold into Throttle_96to48_Threshold
+    mov  Temp1, #Pgm_96to48_Threshold
+    mov  Throttle_96to48_Threshold, @Temp1
+
     ; Load programmed throttle threshold into Throttle_48to24_Threshold
     mov  Temp1, #Pgm_48to24_Threshold
     mov  Throttle_48to24_Threshold, @Temp1
 
-decode_throttle_end:
+    ; Sanitize Throttle_48to24_Threshold
+    clr C
+    mov  A, Throttle_48to24_Threshold
+    subb A, Throttle_96to48_Threshold
+    jnc  decode_throttle_not_96_end
+    clr  A
+
+decode_throttle_not_96_end:
+    ; Update Throttle_48to24_Threshold
+    mov Throttle_48to24_Threshold, A
+
+decode_end:
     ret
