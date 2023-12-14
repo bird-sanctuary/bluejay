@@ -211,44 +211,44 @@ decode_throttle_threshold:
 
     ; Check 24khz pwm frequency
     cjne A, #24, decode_throttle_not_24
-    mov  Throttle_96to48_Threshold, #0
-    mov  Throttle_48to24_Threshold, #0
+    mov  Throttle_96to48_Threshold, #255
+    mov  Throttle_48to24_Threshold, #255
     jmp  decode_end
 
 decode_throttle_not_24:
     ; Check 48khz pwm frequency
     cjne A, #48, decode_throttle_not_48
-    mov  Throttle_96to48_Threshold, #0
-    mov  Throttle_48to24_Threshold, #255
+    mov  Throttle_96to48_Threshold, #255
+    mov  Throttle_48to24_Threshold, #0
     jmp  decode_end
 
 decode_throttle_not_48:
     ; Check 96khz pwm frequency
     cjne A, #96, decode_throttle_not_96
-    mov  Throttle_96to48_Threshold, #255
-    mov  Throttle_48to24_Threshold, #255
+    mov  Throttle_96to48_Threshold, #0
+    mov  Throttle_48to24_Threshold, #0
     jmp  decode_end
 
 decode_throttle_not_96:
     ; Dynamic pwm frequency
-    ; Load programmed throttle threshold into Throttle_96to48_Threshold
-    mov  Temp1, #Pgm_96to48_Threshold
-    mov  Throttle_96to48_Threshold, @Temp1
-
     ; Load programmed throttle threshold into Throttle_48to24_Threshold
     mov  Temp1, #Pgm_48to24_Threshold
     mov  Throttle_48to24_Threshold, @Temp1
 
-    ; Sanitize Throttle_48to24_Threshold
+    ; Load programmed throttle threshold into Throttle_96to48_Threshold
+    mov  Temp1, #Pgm_96to48_Threshold
+    mov  Throttle_96to48_Threshold, @Temp1
+
+    ; Sanitize Throttle_96to48_Threshold
     clr C
-    mov  A, Throttle_48to24_Threshold
-    subb A, Throttle_96to48_Threshold
+    mov  A, Throttle_96to48_Threshold
+    subb A, Throttle_48to24_Threshold
     jnc  decode_throttle_not_96_end
     clr  A
 
 decode_throttle_not_96_end:
-    ; Update Throttle_48to24_Threshold
-    mov Throttle_48to24_Threshold, A
+    ; Update Throttle_96to48_Threshold
+    mov Throttle_96to48_Threshold, A
 
 decode_end:
     ret
