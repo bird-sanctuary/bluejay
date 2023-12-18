@@ -166,12 +166,12 @@ decode_temp_done:
     mov  Temp1, #Pgm_Beep_Strength      ; Read programmed beep strength setting
     mov  Beep_Strength, @Temp1          ; Set beep strength
 
-    ; Read programmed braking strength setting
-    mov  Temp1, #Pgm_Braking_Strength
-
     ; Scale braking strength to pwm resolution
     ; Only for center aligned pwm modes (edge aligned pwm insert deadtime by hw)
 IF PWM_CENTERED == 1
+    ; Read programmed braking strength setting
+    mov  Temp1, #Pgm_Braking_Strength
+
     ; Deadtime & 24khz (10bit pwm)
     mov  A, @Temp1
     rl   A
