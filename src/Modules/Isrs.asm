@@ -598,7 +598,7 @@ t1_int_max_braking_set_24khz:
     subb A, Pwm_Braking24_L
     mov  A, Temp5
     subb A, Pwm_Braking24_H             ; Is braking pwm more than maximum allowed braking?
-    jc   t1_int_set_pwm_24khz                 ; Yes - branch
+    jc   t1_int_set_pwm_24khz           ; Yes - branch
 
     mov  Temp4, Pwm_Braking24_L         ; No - set desired braking instead
     mov  Temp5, Pwm_Braking24_H
