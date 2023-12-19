@@ -195,7 +195,6 @@ IF PWM_CENTERED == 1
 
     ; Deadtime & 96khz (8bit pwm)
     mov  A, @Temp1
-    mov  Pwm_Braking96_H, #0
     mov  Pwm_Braking96_L, A
 
     cjne @Temp1, #0FFh, decode_throttle_threshold
