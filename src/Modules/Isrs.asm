@@ -455,6 +455,7 @@ t1_int_run_96khz:
     mov  A, Temp2                       ; Temp2 already 8-bit
     cpl  A
     mov  Temp2, A
+    mov  Temp3, #0
 
     ; Substract dead time from normal pwm and store as damping PWM
     ; Damping PWM duty cycle will be higher because numbers are inverted
@@ -466,18 +467,26 @@ ELSE
     subb A, #(DEADTIME)
 ENDIF
     mov  Temp4, A
+    mov  A, Temp3
+    subb A, #0
+    mov  Temp5, A
     jnc  t1_int_max_braking_set_96khz
 
-    mov  Temp4, #0                      ; Set to minimum value
+    clr  A                              ; Set to minimum value
+    mov  Temp4, A
+    mov  Temp5, A
     sjmp t1_int_set_pwm_96khz           ; Max braking is already zero - branch
 
 t1_int_max_braking_set_96khz:
     clr  C
     mov  A, Temp4
-    subb A, Pwm_Braking96_L             ; Is braking pwm more than maximum allowed braking?
+    subb A, Pwm_Braking96_L
+    mov  A, Temp5
+    subb A, #0                          ; Is braking pwm more than maximum allowed braking? (Pwm_Braking96_H is 0, 8-bit)
     jc   t1_int_set_pwm_96khz           ; Yes - branch
 
     mov  Temp4, Pwm_Braking96_L         ; No - set desired braking instead
+    mov  Temp5, #0                      ; Pwm_Braking96_H is 0, 8-bit
 
 t1_int_set_pwm_96khz:
 ; Set PWM registers
