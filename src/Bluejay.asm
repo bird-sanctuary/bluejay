@@ -244,7 +244,6 @@ Pwm_Braking24_H: DS 1                   ; Max Braking @24khz pwm (hi byte)
 Pwm_Braking48_L: DS 1                   ; Max Braking @48khz pwm (lo byte)
 Pwm_Braking48_H: DS 1                   ; Max Braking @48khz pwm (hi byte)
 Pwm_Braking96_L: DS 1                   ; Max Braking @96khz pwm (lo byte)
-Pwm_Braking96_H: DS 1                   ; Max Braking @96khz pwm (hi byte)
 Temp_Prot_Limit: DS 1                   ; Temperature protection limit
 Temp_Pwm_Level_Setpoint: DS 1           ; PWM level setpoint
 Beep_Strength: DS 1                     ; Strength of beeps
