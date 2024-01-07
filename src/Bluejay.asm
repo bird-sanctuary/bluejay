@@ -167,11 +167,10 @@ DEFAULT_PGM_POWER_RATING EQU 2          ; 1=1S,2=2S+
 DEFAULT_PGM_BRAKE_ON_STOP EQU 0         ; 1=Enabled 0=Disabled
 DEFAULT_PGM_LED_CONTROL EQU 0           ; Byte for LED control. 2 bits per LED,0=Off,1=On
 
-DEFAULT_PGM_STARTUP_POWER_MIN EQU 51    ; 0..255 => (1000..1125 Throttle): value * (1000 / 2047) + 1000
+DEFAULT_PGM_STARTUP_POWER_MIN EQU 21    ; 0..255 => (1000..1125 Throttle): value * (1000 / 2047) + 1000
 DEFAULT_PGM_STARTUP_BEEP EQU 1          ; 0=Short beep,1=Melody
-DEFAULT_PGM_DITHERING EQU 0             ; 0=Disabled,1=Enabled
 
-DEFAULT_PGM_STARTUP_POWER_MAX EQU 25    ; 0..255 => (1000..2000 Throttle): Maximum startup power
+DEFAULT_PGM_STARTUP_POWER_MAX EQU 5     ; 0..255 => (1000..2000 Throttle): Maximum startup power
 DEFAULT_PGM_BRAKING_STRENGTH EQU 255    ; 0..255 => 0..100 % Braking
 
 DEFAULT_PGM_SAFETY_ARM EQU 0            ; EDT safety arm is disabled by default
@@ -225,9 +224,8 @@ Flags2: DS 1                            ; State flags. NOT reset upon motor_star
 
 Flags3: DS 1                            ; State flags. NOT reset upon motor_start
     Flag_Telemetry_Pending BIT Flags3.0 ; DShot telemetry data packet is ready to be sent
-    Flag_Dithering BIT Flags3.1         ; PWM dithering enabled
-    Flag_Had_Signal BIT Flags3.2        ; Used to detect reset after having had a valid signal
-    Flag_User_Reverse_Requested BIT Flags3.3 ; It is set when user request to reverse motors in turtle mode
+    Flag_Had_Signal BIT Flags3.1        ; Used to detect reset after having had a valid signal
+    Flag_User_Reverse_Requested BIT Flags3.2 ; It is set when user request to reverse motors in turtle mode
 
 
 Tlm_Data_L: DS 1                        ; DShot telemetry data (lo byte)
@@ -302,7 +300,7 @@ ISEG AT 080h                            ; The variables below must be in this se
 _Pgm_Gov_P_Gain: DS 1                   ;
 Pgm_Startup_Power_Min: DS 1             ; Minimum power during startup phase
 Pgm_Startup_Beep: DS 1                  ; Startup beep melody on/off
-Pgm_Dithering: DS 1                     ; Enable PWM dithering
+_Pgm_Dithering: DS 1                    ; Enable PWM dithering
 Pgm_Startup_Power_Max: DS 1             ; Maximum power (limit) during startup (and starting initial run phase)
 _Pgm_Rampup_Slope: DS 1                 ;
 Pgm_Rpm_Power_Slope: DS 1               ; Low RPM power protection slope (factor)
@@ -343,9 +341,6 @@ Pgm_Safety_Arm: DS  1                   ; Various flag settings: bit 0 is requir
 ISEG AT 0B0h
 Stack: DS 16                            ; Reserved stack space
 
-ISEG AT 0C0h
-Dithering_Patterns: DS 16               ; Bit patterns for pwm dithering
-
 ISEG AT 0D0h
 Temp_Storage: DS 48                     ; Temporary storage (internal memory)
 
@@ -355,8 +350,8 @@ Temp_Storage: DS 48                     ; Temporary storage (internal memory)
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 CSEG AT CSEG_EEPROM
 EEPROM_FW_MAIN_REVISION EQU 0           ; Main revision of the firmware
-EEPROM_FW_SUB_REVISION EQU 20           ; Sub revision of the firmware
-EEPROM_LAYOUT_REVISION EQU 207          ; Revision of the EEPROM layout
+EEPROM_FW_SUB_REVISION EQU 21           ; Sub revision of the firmware
+EEPROM_LAYOUT_REVISION EQU 208          ; Revision of the EEPROM layout
 EEPROM_B2_PARAMETERS_COUNT EQU 28       ; Number of parameters
 
 Eep_FW_Main_Revision: DB EEPROM_FW_MAIN_REVISION ; EEPROM firmware main revision number
@@ -365,7 +360,7 @@ Eep_Layout_Revision: DB EEPROM_LAYOUT_REVISION ; EEPROM layout revision number
 _Eep_Pgm_Gov_P_Gain: DB 0FFh
 Eep_Pgm_Startup_Power_Min: DB DEFAULT_PGM_STARTUP_POWER_MIN
 Eep_Pgm_Startup_Beep: DB DEFAULT_PGM_STARTUP_BEEP
-Eep_Pgm_Dithering: DB DEFAULT_PGM_DITHERING
+_Eep_Pgm_Dithering: DB 0FFh
 Eep_Pgm_Startup_Power_Max: DB DEFAULT_PGM_STARTUP_POWER_MAX
 _Eep_Pgm_Rampup_Slope: DB 0FFh
 Eep_Pgm_Rpm_Power_Slope: DB DEFAULT_PGM_RPM_POWER_SLOPE ; EEPROM copy of programmed rpm power slope (formerly startup power)
@@ -406,7 +401,7 @@ Eep_Pgm_Safety_Arm: DB DEFAULT_PGM_SAFETY_ARM ; Various flag settings: bit 0 is 
 
 Eep_Dummy: DB 0FFh                      ; EEPROM address for safety reason
 CSEG AT CSEG_NAME
-Eep_Name: DB "Bluejay (.1 RC2)"         ; Name tag (16 Bytes)
+Eep_Name: DB "Bluejay (.0 RC1)"         ; Name tag (16 Bytes)
 
 CSEG AT CSEG_MELODY
 Eep_Pgm_Beep_Melody: DB 2,58,4,32,52,66,13,0,69,45,13,0,52,66,13,0,78,39,211,0,69,45,208,25,52,25,0
@@ -1046,7 +1041,6 @@ exit_run_mode:
     call switch_power_off
     mov  Flags0, #0                     ; Clear run time flags (in case they are used in interrupts)
     mov  Flags1, #0
-    clr  Flag_Ext_Tele                  ; Clear extended DSHOT telemetry flag
 
 IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
     Set_MCU_Clk_24MHz
