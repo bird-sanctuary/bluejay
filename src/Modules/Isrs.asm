@@ -414,36 +414,6 @@ ELSEIF PWM_BITS_H == PWM_8_BIT
     mov  Temp3, #0
 ENDIF
 
-; 11-bit effective dithering of 8/9/10-bit pwm
-IF PWM_BITS_H == PWM_8_BIT or PWM_BITS_H == PWM_9_BIT or PWM_BITS_H == PWM_10_BIT
-    jnb  Flag_Dithering, t1_int_set_pwm
-
-    mov  A, Temp4                       ; 11-bit low byte
-    cpl  A
-    anl  A, #((1 SHL (3 - PWM_BITS_H)) - 1); Get index into dithering pattern table
-
-    add  A, #Dithering_Patterns
-    mov  Temp1, A                       ; Reuse DShot pwm pointer since it is not currently in use.
-    mov  A, @Temp1                      ; Retrieve pattern
-    rl   A                              ; Rotate pattern
-    mov  @Temp1, A                      ; Store pattern
-
-    jnb  ACC.0, t1_int_set_pwm          ; Increment if bit is set
-
-    mov  A, Temp2
-    add  A, #1
-    mov  Temp2, A
-    jnz  t1_int_set_pwm
-IF PWM_BITS_H != PWM_8_BIT
-    mov  A, Temp3
-    addc A, #0
-    mov  Temp3, A
-    jnb  ACC.PWM_BITS_H, t1_int_set_pwm
-    dec  Temp3                          ; Reset on overflow
-ENDIF
-    dec  Temp2
-ENDIF
-
 t1_int_set_pwm:
 ; Set PWM registers
 IF DEADTIME != 0
