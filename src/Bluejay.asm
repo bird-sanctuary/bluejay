@@ -724,8 +724,6 @@ wait_for_start_check_rcp:
     sjmp wait_for_start_loop            ; Go back to beginning of wait loop
 
 wait_for_start_nonzero:
-    call wait100ms                      ; Wait to see if start pulse was glitch
-
     ; If RC pulse returned to stop (0) - start over
     jb   Flag_Rcp_Stop, wait_for_start_loop
 
