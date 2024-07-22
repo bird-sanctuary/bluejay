@@ -78,7 +78,7 @@ $include (Modules\Enums.asm)
 ;                                         PORT 0                   |  PORT 1                   |  PWM    COM    PWM    LED
 ;                                         P0 P1 P2 P3 P4 P5 P6 P7  |  P0 P1 P2 P3 P4 P5 P6 P7  |  inv    inv    side    n
 ;                                         -----------------------  |  -----------------------  |  -------------------------
-IF MCU_TYPE == MCU_BB1 or MCU_TYPE == MCU_BB2
+IF MCU_TYPE == MCU_BB2
     A_ EQU 1                            ; Vn Am Bm Cm __ RX __ __  |  Ap Ac Bp Bc Cp Cc __ __  |  no     no     high   _
     B_ EQU 2                            ; Vn Am Bm Cm __ RX __ __  |  Cc Cp Bc Bp Ac Ap __ __  |  no     no     high   _
     C_ EQU 3                            ; RX __ Vn Am Bm Cm Ap Ac  |  Bp Bc Cp Cc __ __ __ __  |  no     no     high   _
@@ -134,15 +134,11 @@ ENDIF
 
 PWM_CENTERED EQU DEADTIME > 0           ; Use center aligned pwm on ESCs with dead time
 
-IF MCU_TYPE == MCU_BB1
-    IS_MCU_48MHZ EQU 0
-ELSE
-    IS_MCU_48MHZ EQU 1
-ENDIF
+IS_MCU_48MHZ EQU 1
 
 IF PWM_FREQ == PWM_24 or PWM_FREQ == PWM_48 or PWM_FREQ == PWM_96
     ; Number of bits in pwm high byte
-    PWM_BITS_H EQU (2 + IS_MCU_48MHZ - PWM_CENTERED - PWM_FREQ)
+    PWM_BITS_H EQU (3 - PWM_CENTERED - PWM_FREQ)
 ENDIF
 
 $include (Modules\McuOffsets.asm)
@@ -432,7 +428,7 @@ pgm_start:
     mov  WDTCN, #0DEh                   ; Disable watchdog (WDT)
     mov  WDTCN, #0ADh
     mov  SP, #Stack                     ; Initialize stack (16 bytes of indirect RAM)
-IF MCU_TYPE == MCU_BB1 or MCU_TYPE == MCU_BB2
+IF MCU_TYPE == MCU_BB2
     orl  VDM0CN, #080h                  ; Enable the VDD monitor
 ENDIF
     mov  RSTSRC, #06h                   ; Set missing clock and VDD monitor as a reset source if not 1S capable
@@ -582,21 +578,6 @@ setup_dshot_clear_flags:
 
     setb IE_EA                          ; Enable all interrupts
 
-; Setup variables for DShot150 (Only on 24MHz because frame length threshold cannot be scaled up)
-IF MCU_TYPE == MCU_BB1
-    mov  DShot_Timer_Preset, #-64       ; Load DShot sync timer preset (for DShot150)
-    mov  DShot_Pwm_Thr, #8              ; Load DShot qualification pwm threshold (for DShot150)
-    mov  DShot_Frame_Length_Thr, #160   ; Load DShot frame length criteria
-
-    Set_DShot_Tlm_Bitrate 187500        ; = 5/4 * 150000
-
-    ; Test whether signal is DShot150
-    mov  Rcp_Outside_Range_Cnt, #10     ; Set out of range counter
-    call wait100ms                      ; Wait for new RC pulse
-    mov  A, Rcp_Outside_Range_Cnt       ; Check if pulses were accepted
-    jz   arming_begin
-ENDIF
-
     mov  CKCON0, #0Ch                   ; Timer0/1 clock is system clock (for DShot300/600)
 
     ; Setup variables for DShot300
@@ -612,8 +593,7 @@ ENDIF
     mov  A, Rcp_Outside_Range_Cnt       ; Check if pulses were accepted
     jz   arming_begin
 
-; Setup variables for DShot600 (Only on 48MHz for performance reasons)
-IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
+    ; Setup variables for DShot600
     mov  DShot_Timer_Preset, #-64       ; Load DShot sync timer preset (for DShot600)
     mov  DShot_Pwm_Thr, #8              ; Load DShot pwm threshold (for DShot600)
     mov  DShot_Frame_Length_Thr, #40    ; Load DShot frame length criteria
@@ -625,7 +605,6 @@ IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
     call wait100ms                      ; Wait for new RC pulse
     mov  A, Rcp_Outside_Range_Cnt       ; Check if pulses were accepted
     jz   arming_begin
-ENDIF
 
     ; No valid signal detected, try again
     ljmp init_no_signal

@@ -59,7 +59,7 @@ init:
     mov  SP, #0c0h                      ; Stack = 64 upper bytes of RAM
     ; Initialize clock
     mov  CLKSEL, #00h                   ; Set clock divider to 1
-IF MCU_TYPE == MCU_BB1 or MCU_TYPE == MCU_BB2
+IF MCU_TYPE == MCU_BB2
     ; Initialize VDD monitor
     orl  VDM0CN, #080h                  ; Enable the VDD monitor
 ENDIF

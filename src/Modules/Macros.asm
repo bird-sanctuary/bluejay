@@ -29,17 +29,10 @@
 
 DSHOT_TLM_CLOCK EQU 24500000            ; 24.5MHz
 DSHOT_TLM_START_DELAY EQU -(5 * 25 / 4) ; Start telemetry after 5 us (~30 us after receiving DShot cmd)
-IF MCU_TYPE == MCU_BB1
-    DSHOT_TLM_PREDELAY EQU 9            ; 9 Timer0 ticks inherent delay
-ELSE
-    DSHOT_TLM_PREDELAY EQU 7            ; 7 Timer0 ticks inherent delay
-ENDIF
-
-IF MCU_TYPE == MCU_BB2 or MCU_TYPE == MCU_BB51
-    DSHOT_TLM_CLOCK_48 EQU 49000000     ; 49MHz
-    DSHOT_TLM_START_DELAY_48 EQU -(16 * 49 / 4) ; Start telemetry after 16 us (~30 us after receiving DShot cmd)
-    DSHOT_TLM_PREDELAY_48 EQU 11        ; 11 Timer0 ticks inherent delay
-ENDIF
+DSHOT_TLM_PREDELAY EQU 7                ; 7 Timer0 ticks inherent delay
+DSHOT_TLM_CLOCK_48 EQU 49000000         ; 49MHz
+DSHOT_TLM_START_DELAY_48 EQU -(16 * 49 / 4) ; Start telemetry after 16 us (~30 us after receiving DShot cmd)
+DSHOT_TLM_PREDELAY_48 EQU 11            ; 11 Timer0 ticks inherent delay
 
 Set_DShot_Tlm_Bitrate MACRO rate
     mov  DShot_GCR_Pulse_Time_1, #(DSHOT_TLM_PREDELAY - (1 * DSHOT_TLM_CLOCK / 4 / rate))
