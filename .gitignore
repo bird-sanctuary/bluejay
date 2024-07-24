@@ -1,4 +1,5 @@
 /build
+/user
 /tools/.wine
 *.diff
 .project
