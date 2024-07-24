@@ -34,9 +34,7 @@
 ; Include defines provided by SiLabs depending on target platform.
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-IF MCU_TYPE == MCU_BB1
-    $include (Silabs/SI_EFM8BB1_Defs.inc)
-ELSEIF MCU_TYPE == MCU_BB2
+IF MCU_TYPE == MCU_BB2
     $include (Silabs/SI_EFM8BB2_Defs.inc)
 ELSEIF MCU_TYPE == MCU_BB51
     $include (Silabs/SI_EFM8BB51_Defs.inc)
@@ -68,7 +66,7 @@ ENDIF
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; ESC selection statements
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-IF MCU_TYPE == MCU_BB1 or MCU_TYPE = MCU_BB2
+IF MCU_TYPE = MCU_BB2
 IF ESCNO == A_
     $include (Layouts/A.inc)            ; Select pinout A
 ELSEIF ESCNO == B_
@@ -140,9 +138,7 @@ ENDIF
 
 ; Build device signature based on target platform: 0xE8, [0xB1 | 0xB2 | 0xB5]
 SIGNATURE_001 EQU 0E8h
-IF MCU_TYPE == MCU_BB1
-    SIGNATURE_002 EQU 0B1h
-ELSEIF MCU_TYPE == MCU_BB2
+IF MCU_TYPE == MCU_BB2
     SIGNATURE_002 EQU 0B2h
 ELSEIF MCU_TYPE == MCU_BB51
     SIGNATURE_002 EQU 0B5h
@@ -156,14 +152,11 @@ ENDIF
 ;
 ; MCU letter
 ;
-; BB1:  L
 ; BB21: H
 ; BB51: X
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-IF MCU_TYPE == MCU_BB1
-    MCU_C EQU "L"
-ELSEIF MCU_TYPE == MCU_BB2
+IF MCU_TYPE == MCU_BB2
     MCU_C EQU "H"
 ELSEIF MCU_TYPE == MCU_BB51
     MCU_C EQU "X"
@@ -194,9 +187,7 @@ ENDIF
 
 ; Project and MCU tag (16 Bytes)
 CSEG AT CSEG_MCU_TAG
-IF MCU_TYPE == MCU_BB1
-    Eep_ESC_MCU: DB "#BLHELI$EFM8B10#"
-ELSEIF MCU_TYPE == MCU_BB2
+IF MCU_TYPE == MCU_BB2
     Eep_ESC_MCU: DB "#BLHELI$EFM8B21#"
 ELSEIF MCU_TYPE == MCU_BB51
     Eep_ESC_MCU: DB "#BLHELI$EFM8B51#"

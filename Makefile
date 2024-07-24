@@ -44,7 +44,6 @@ ASM_INC		= 								\
 			$(LAYOUTS:%=src/Layouts/%.inc)	\
 			src/Layouts/Base.inc			\
 			src/BLHeliBootLoad.inc			\
-			src/Silabs/SI_EFM8BB1_Defs.inc	\
 			src/Silabs/SI_EFM8BB2_Defs.inc	\
 			src/Silabs/SI_EFM8BB51_Defs.inc	\
 			src/Silabs/SI_EFM8LB1_Defs.inc	\

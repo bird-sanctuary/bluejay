@@ -421,11 +421,7 @@ IF DEADTIME != 0
     ; Damping PWM duty cycle will be higher because numbers are inverted
     clr  C
     mov  A, Temp2                       ; Skew damping FET timing
-IF MCU_TYPE == MCU_BB1
-    subb A, #((DEADTIME + 1) SHR 1)
-ELSE
     subb A, #(DEADTIME)
-ENDIF
     mov  Temp4, A
     mov  A, Temp3
     subb A, #0

@@ -548,9 +548,6 @@ setup_zc_scan_timeout:
     mov  Temp1, Comm_Period4x_L         ; Set long timeout when starting
     mov  Temp2, Comm_Period4x_H
     Divide_16Bit_By_2 Temp2, Temp1
-IF MCU_TYPE == MCU_BB1
-    Divide_16Bit_By_2 Temp2, Temp1
-ENDIF
     jnb  Flag_Startup_Phase, setup_zc_scan_timeout_startup_done
 
     mov  A, Temp2
@@ -619,10 +616,6 @@ comp_not_startup:
     ; Too high a value (~>35) causes the RCT4215 630 to run rough on full throttle
     mov  Temp4, #(20 SHL IS_MCU_48MHZ)
     mov  A, Comm_Period4x_H             ; Set number of readings higher for lower speeds
-IF MCU_TYPE == MCU_BB1
-    clr  C
-    rrc  A
-ENDIF
     jnz  comp_not_startup_check_ok_readings
     inc  A                              ; Minimum 1
 

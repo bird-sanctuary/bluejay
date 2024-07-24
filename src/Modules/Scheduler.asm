@@ -299,7 +299,7 @@ scheduler_steps_odd_temperature_frame:
 ; For BB51 (MCU_TYPE == 2) 1s power rating code path is mandatory
 ;
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
-IF MCU_TYPE == MCU_BB1 or MCU_TYPE == MCU_BB2
+IF MCU_TYPE == MCU_BB2
     mov  Temp1, #Pgm_Power_Rating
     cjne @Temp1, #01h, scheduler_steps_odd_temperature_frame_power_rating_2s
 ENDIF
