@@ -1,4 +1,4 @@
-FROM debian:10
+FROM debian:12
 RUN dpkg --add-architecture i386
 RUN apt-get update
 RUN apt-get install -y wget wine wine32 make git
