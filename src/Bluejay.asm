@@ -116,6 +116,8 @@ IF MCU_TYPE == MCU_BB51
     A_ EQU 1                            ; __ Bm Cm Am Vn RX __ __  |  Ap Ac Bp Bc Cp Cc __ __  |  no     no     low    _
     B_ EQU 2                            ; __ Bm Cm Am Vn RX __ __  |  Ac Ap Bc Bp Cc Cp __ __  |  no     yes    high   _
     C_ EQU 3                            ; __ Bm Cm Am Vn RX __ __  |  Ac Ap Bc Bp Cc Cp __ __  |  yes    yes    high   _
+    D_ EQU 4                            ; __ Bm Cm Am Vn RX __ __  |  Ap Ac Bp Bc Cp Cc __ __  |  no	 yes 	high   _
+	E_ EQU 5                            ; __ Cm Bm Am Vn RX __ __  |  Cp Bp Ap Cc Bc Ac __ __  |  no	 yes 	high   _
 ENDIF
 
 ; Select the port mapping to use (or unselect all for use with external batch compile file)
