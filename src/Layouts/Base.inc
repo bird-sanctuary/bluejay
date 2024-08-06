@@ -133,7 +133,7 @@ Set_Comparator_Phase_A MACRO
 IF MCU_TYPE == MCU_BB2
     mov  CMP_MX, #((A_Mux SHL 4) + V_Mux)
 ELSEIF MCU_TYPE == MCU_BB51
-    mov  CMP_MX, #12h
+    mov  CMP_MX, #(10h + A_Mux - 1)
 ENDIF
 ENDM
 
@@ -142,7 +142,7 @@ Set_Comparator_Phase_B MACRO
 IF MCU_TYPE == MCU_BB2
     mov  CMP_MX, #((B_Mux SHL 4) + V_Mux)
 ELSEIF MCU_TYPE == MCU_BB51
-    mov  CMP_MX, #10h
+	mov  CMP_MX, #(10h + B_Mux - 1)
 ENDIF
 ENDM
 
@@ -151,7 +151,7 @@ Set_Comparator_Phase_C MACRO
 IF MCU_TYPE == MCU_BB2
     mov  CMP_MX, #((C_Mux SHL 4) + V_Mux)
 ELSEIF MCU_TYPE == MCU_BB51
-    mov  CMP_MX, #11h
+    mov  CMP_MX, #(10h + C_Mux - 1)
 ENDIF
 ENDM
 

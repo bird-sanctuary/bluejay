@@ -133,6 +133,10 @@ ELSEIF ESCNO == B_
     $include (Layouts/BB51/B.inc)       ; Select pinout B
 ELSEIF ESCNO == C_
     $include (Layouts/BB51/C.inc)       ; Select pinout C
+ELSEIF ESCNO == D_
+	$include (Layouts/BB51/D.inc)       ; Select pinout D
+ELSEIF ESCNO == E_
+	$include (Layouts/BB51/E.inc)		; Select pinout E
 ENDIF
 ENDIF
 
