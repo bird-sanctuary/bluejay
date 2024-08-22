@@ -86,4 +86,4 @@ You can also join our [Discord server](https://discord.gg/ddyzguPB5t) to ask que
 If you have fixed an issue or added a functionality, please feel free to submit a pull request. Direct your PRs against the develop branch of this repository.
 
 ### Build
-Please see the [wiki](https://github.com/bird-sanctuary/bluejay/wiki/Building-from-source) for instructions on how to build Bluejay from source.
+Please see the [wiki](https://github.com/bird-sanctuary/bluejay/wiki/Development#building-from-source) for instructions on how to build Bluejay from source.
