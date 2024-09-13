@@ -242,6 +242,7 @@ scheduler_steps_odd_status_frame_max_loaded:
     clr  Flag_Demag_Notify
     clr  Flag_Desync_Notify
     clr  Flag_Stall_Notify
+    mov  Demag_Detected_Metric_Max, #0  ; Reset the Max metric so the next value would reflect maximum seen during the time in between STATUS telemetry packets
 
     ; Load status frame
     mov  Ext_Telemetry_L, A             ; Set telemetry low value to status data
