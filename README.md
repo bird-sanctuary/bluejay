@@ -41,6 +41,12 @@ Bluejay firmware can be flashed to BLHeli_S compatible ESCs and configured using
 
 You can also do it manually by downloading the [release binaries](https://github.com/bird-sanctuary/bluejay/wiki/Release-binaries).
 
+### Third party tools
+
+A collection of community-developed tools that complement Bluejay. These are not maintained or officially supported by the project, but may be useful for specific use cases. Please review their documentation and use your own judgment before integrating them into your setup.
+
+- [prober](https://github.com/hackrfstuff/prober/releases) (Standalone - CLI and GUI for Linux and Windows. Includes automatic ESC index mapping, direct-kick recovery for flaky 4-in-1/AIO boards, and C2 flashing support.)
+
 ## Documentation
 See the [wiki](https://github.com/bird-sanctuary/bluejay/wiki) for useful information. A very detailed documentation with flow charts is [available too](https://github.com/bird-sanctuary/bluejay-documentation).
 
