@@ -45,6 +45,7 @@ You can also do it manually by downloading the [release binaries](https://github
 
 A collection of community-developed tools that complement Bluejay. These are not maintained or officially supported by the project, but may be useful for specific use cases. Please review their documentation and use your own judgment before integrating them into your setup.
 
+- [C2 Flasher](https://stylesuxx.github.io/arduino-c2-flasher/) (PWA - Use when your ESC is bricked and you need to recover it via C2 interface)
 - [prober](https://github.com/hackrfstuff/prober/releases) (Standalone - CLI and GUI for Linux and Windows. Includes automatic ESC index mapping, direct-kick recovery for flaky 4-in-1/AIO boards, and C2 flashing support.)
 
 ## Documentation
