@@ -21,11 +21,11 @@ jobs:
 
     steps:
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Cache Toolchain
         id: cache-toolchain
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.wine
           key: toolchain-cache
@@ -49,7 +49,7 @@ jobs:
         run: tar -cvzf bluejay-${{ github.run_number }}.tar.gz "bluejay-${GITHUB_RUN_NUMBER}"
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: bluejay-ci-${{ github.run_number }}
           path: bluejay-${{ github.run_number }}.tar.gz
@@ -58,7 +58,7 @@ jobs:
       - name: Generate Changelog
         if: startsWith(github.ref, 'refs/tags/v')
         id: github_release
-        uses: mikepenz/release-changelog-builder-action@v3
+        uses: mikepenz/release-changelog-builder-action@v5
         with:
           configuration: ".changelog-configuration.json"
         env:
