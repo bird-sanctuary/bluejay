@@ -9,6 +9,13 @@ on:
       - main
       - develop
     types: [opened, reopened, synchronize]
+  workflow_dispatch:
+    inputs:
+      build_ref:
+        description: 'Branch, tag, or SHA to build from'
+        required: true
+        default: 'develop'
+        type: string
 
 jobs:
   build:
@@ -22,6 +29,8 @@ jobs:
     steps:
       - name: Code Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.build_ref || github.ref }}
 
       - name: Cache Toolchain
         id: cache-toolchain
