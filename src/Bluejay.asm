@@ -271,6 +271,7 @@ DShot_GCR_Start_Delay: DS 1
 Ext_Telemetry_L: DS 1                   ; Extended telemetry data to be sent
 Ext_Telemetry_H: DS 1
 Scheduler_Counter: DS 1                 ; Scheduler Heartbeat
+Ext_Telemetry_Repeat: DS 1              ; Remaining repeats of the current extended telemetry frame
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
 ; Indirect addressing data segments
 ;**** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -718,6 +719,7 @@ motor_start:
     mov  Demag_Detected_Metric, #0      ; Clear demag metric
     mov  Demag_Detected_Metric_Max, #0  ; Clear demag metric max
     mov  Ext_Telemetry_H, #0            ; Clear extended telemetry data
+    mov  Ext_Telemetry_Repeat, #0
 
     ; Set up start operating conditions
     mov  Temp2, #Pgm_Startup_Power_Max

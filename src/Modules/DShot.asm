@@ -305,6 +305,14 @@ dshot_tlm_ext_coded:
     ; Move extended telemetry data to telemetry data to send
     mov  Tlm_Data_L, Ext_Telemetry_L
     mov  Tlm_Data_H, Ext_Telemetry_H
+
+    ; Keep the frame for the next packet while repeats are requested
+    mov  A, Ext_Telemetry_Repeat
+    jz   dshot_tlm_ext_clear
+    dec  Ext_Telemetry_Repeat
+    sjmp dshot_tlm_12bit_encoded
+
+dshot_tlm_ext_clear:
     ; Clear extended telemetry data
     mov  Ext_Telemetry_H, #0
 

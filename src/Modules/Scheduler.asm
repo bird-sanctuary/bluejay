@@ -52,6 +52,20 @@ MASK_REMAINDER_DIV8             EQU ((001h SHL SCHEDULER_COUNTER_DIVIDER_POW2) -
 ; Mask to get the scheduler step
 MASK_STEP                       EQU (007h SHL SCHEDULER_COUNTER_DIVIDER_POW2)
 
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+;
+; Number of consecutive packets the status frame is sent in.
+;
+; The status frame reports events since the previous status frame and its flags
+; are cleared when it is sent, so a lost frame loses the events. A receiver
+; that decodes the telemetry of one of N motors per loop (round robin) sees
+; only every Nth packet. Sending the frame in 4 consecutive packets makes sure
+; such a receiver gets it with up to 4 motors. Other frames carry state that
+; is sent again periodically and are sent once.
+;
+;**** **** **** **** **** **** **** **** **** **** **** **** ****
+EXT_TELEMETRY_STATUS_SENDS      EQU 4
+
 ; Scheduler steps for steps 1, 3, 5
 STEP1_STATUS_FRAME              EQU (001h SHL SCHEDULER_COUNTER_DIVIDER_POW2)
 STEP3_DEBUG1_FRAME              EQU (003h SHL SCHEDULER_COUNTER_DIVIDER_POW2)
@@ -99,6 +113,9 @@ scheduler_check_time:
     ret
 
 scheduler_start:
+    ; Repeats of a previous frame do not apply to the frames of this step
+    mov  Ext_Telemetry_Repeat, #0
+
     ; Choose between odd or even steps
     mov  A, Scheduler_Counter
     jb   ACC.SCHEDULER_COUNTER_DIVIDER_POW2, scheduler_steps_odd
@@ -246,6 +263,7 @@ scheduler_steps_odd_status_frame_max_loaded:
     ; Load status frame
     mov  Ext_Telemetry_L, A             ; Set telemetry low value to status data
     mov  Ext_Telemetry_H, #0Eh          ; Set telemetry high value to status frame ID
+    mov  Ext_Telemetry_Repeat, #(EXT_TELEMETRY_STATUS_SENDS - 1) ; Do not lose events
 
     ; Now restart ADC conversion
     Restart_Adc
